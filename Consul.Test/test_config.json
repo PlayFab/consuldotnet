@@ -1,0 +1,10 @@
+{
+    "data_dir": "./consul-data",
+    "ui_dir": "./consul-data/dist",
+    "log_level": "TRACE",
+    "server": true,
+    "bootstrap": true,
+    "acl_datacenter": "dc1",
+    "acl_master_token": "yep",
+    "acl_default_policy": "allow"
+}

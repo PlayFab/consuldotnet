@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>Consul.NET</title>
+    <authors>PlayFab, Inc.</authors>
+    <owners>PlayFab, Inc.</owners>
+    <licenseUrl>https://github.com/PlayFab/consuldotnet/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/PlayFab/consuldotnet/</projectUrl>
+    <iconUrl>https://avatars2.githubusercontent.com/u/7634333?v=3&amp;s=140</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>.NET API for Consul (http://www.consul.io/)</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2015 PlayFab, Inc.</copyright>
+    <tags>consul api</tags>
+  </metadata>
+</package>
