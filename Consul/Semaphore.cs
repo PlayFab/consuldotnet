@@ -66,11 +66,13 @@ namespace Consul
         {
         }
 
-        public SemaphoreHeldException(string message) : base(message)
+        public SemaphoreHeldException(string message)
+            : base(message)
         {
         }
 
-        public SemaphoreHeldException(string message, Exception inner) : base(message, inner)
+        public SemaphoreHeldException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -89,11 +91,13 @@ namespace Consul
         {
         }
 
-        public SemaphoreNotHeldException(string message) : base(message)
+        public SemaphoreNotHeldException(string message)
+            : base(message)
         {
         }
 
-        public SemaphoreNotHeldException(string message, Exception inner) : base(message, inner)
+        public SemaphoreNotHeldException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -112,11 +116,13 @@ namespace Consul
         {
         }
 
-        public SemaphoreInUseException(string message) : base(message)
+        public SemaphoreInUseException(string message)
+            : base(message)
         {
         }
 
-        public SemaphoreInUseException(string message, Exception inner) : base(message, inner)
+        public SemaphoreInUseException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -135,11 +141,13 @@ namespace Consul
         {
         }
 
-        public SemaphoreConflictException(string message) : base(message)
+        public SemaphoreConflictException(string message)
+            : base(message)
         {
         }
 
-        public SemaphoreConflictException(string message, Exception inner) : base(message, inner)
+        public SemaphoreConflictException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -435,14 +443,7 @@ namespace Consul
 
                 var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                if (holders == 0)
-                {
-                    Task.WaitAll(_client.KV.Delete(contenderKey), _client.KV.Delete(key));
-                }
-                else
-                {
-                    _client.KV.Delete(contenderKey).Wait();
-                }
+                _client.KV.Delete(contenderKey).Wait();
             }
         }
 
@@ -510,7 +511,7 @@ namespace Consul
         {
             try
             {
-                var opts = new QueryOptions() {Consistency = ConsistencyMode.Consistent};
+                var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                 while (IsHeld && !_cts.Token.IsCancellationRequested)
                 {
                     var pairs = await _client.KV.List(Opts.Prefix, opts);
@@ -581,9 +582,9 @@ namespace Consul
             var key = string.Join("/", Opts.Prefix, DefaultSemaphoreKey);
             if (pairs != null)
             {
-                return pairs.FirstOrDefault(p => p.Key == key) ?? new KVPair(key) {Flags = SemaphoreFlagValue};
+                return pairs.FirstOrDefault(p => p.Key == key) ?? new KVPair(key) { Flags = SemaphoreFlagValue };
             }
-            return new KVPair(key) {Flags = SemaphoreFlagValue};
+            return new KVPair(key) { Flags = SemaphoreFlagValue };
         }
 
         /// <summary>
@@ -595,7 +596,7 @@ namespace Consul
         {
             if (pair == null || pair.Value == null)
             {
-                return new SemaphoreLock() {Limit = Opts.Limit};
+                return new SemaphoreLock() { Limit = Opts.Limit };
             }
 
             return JsonConvert.DeserializeObject<SemaphoreLock>(Encoding.UTF8.GetString(pair.Value));
@@ -741,7 +742,7 @@ namespace Consul
             {
                 throw new ArgumentNullException("opts");
             }
-            return new Semaphore(this) {Opts = opts};
+            return new Semaphore(this) { Opts = opts };
         }
     }
 }
