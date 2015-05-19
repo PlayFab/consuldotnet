@@ -1,6 +1,6 @@
 # Consul.NET
 
-* Consul API: [v0.5.1](https://github.com/hashicorp/consul/tree/v0.5.1/api)
+* Consul API: [v0.5.2](https://github.com/hashicorp/consul/tree/v0.5.2/api)
 * .NET version: >= 4.5
 
 Consul.NET is a .NET port of the Go Consul API, but reworked to use .NET
