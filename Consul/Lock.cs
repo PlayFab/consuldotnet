@@ -30,11 +30,13 @@ namespace Consul
         {
         }
 
-        public LockHeldException(string message) : base(message)
+        public LockHeldException(string message)
+            : base(message)
         {
         }
 
-        public LockHeldException(string message, Exception inner) : base(message, inner)
+        public LockHeldException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -53,11 +55,13 @@ namespace Consul
         {
         }
 
-        public LockNotHeldException(string message) : base(message)
+        public LockNotHeldException(string message)
+            : base(message)
         {
         }
 
-        public LockNotHeldException(string message, Exception inner) : base(message, inner)
+        public LockNotHeldException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -76,11 +80,13 @@ namespace Consul
         {
         }
 
-        public LockInUseException(string message) : base(message)
+        public LockInUseException(string message)
+            : base(message)
         {
         }
 
-        public LockInUseException(string message, Exception inner) : base(message, inner)
+        public LockInUseException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -99,11 +105,13 @@ namespace Consul
         {
         }
 
-        public LockConflictException(string message) : base(message)
+        public LockConflictException(string message)
+            : base(message)
         {
         }
 
-        public LockConflictException(string message, Exception inner) : base(message, inner)
+        public LockConflictException(string message, Exception inner)
+            : base(message, inner)
         {
         }
 
@@ -268,7 +276,13 @@ namespace Consul
                         }
 
                         pair.Response = LockEntry(Opts.Session);
-                        Client.KV.Acquire(pair.Response).Wait(ct);
+                        var acquisitionResult = Client.KV.Acquire(pair.Response).GetAwaiter().GetResult();
+
+                        if (!acquisitionResult.Response)
+                        {
+                            qOpts.WaitIndex = pair.LastIndex;
+                            continue;
+                        }
 
                         if (ct.IsCancellationRequested)
                         {
@@ -379,7 +393,7 @@ namespace Consul
         {
             try
             {
-                var opts = new QueryOptions() {Consistency = ConsistencyMode.Consistent};
+                var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                 while (IsHeld && !_cts.Token.IsCancellationRequested)
                 {
                     var pair = await Client.KV.Get(Opts.Key, opts);
@@ -491,7 +505,33 @@ namespace Consul
             {
                 throw new ArgumentNullException("opts");
             }
-            return new Lock(this) {Opts = opts};
+            return new Lock(this) { Opts = opts };
+        }
+        public void ExecuteLocked(string key, Action a)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            ExecuteLocked(new LockOptions(key), a);
+        }
+        public void ExecuteLocked(LockOptions opts, Action a)
+        {
+            if (a == null)
+            {
+                throw new ArgumentNullException("a");
+            }
+            var l = Lock(opts);
+            l.Acquire();
+            if (l.IsHeld)
+            {
+                a();
+            }
+            else
+            {
+                throw new LockNotHeldException("Unable to acquire the lock");
+            }
+            l.Release();
         }
     }
 }
