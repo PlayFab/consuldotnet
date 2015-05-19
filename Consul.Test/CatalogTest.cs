@@ -79,7 +79,7 @@ namespace Consul.Test
         }
 
         [TestMethod]
-        public void TestCatalog_RegistrationDeregistration()
+        public void Catalog_RegistrationDeregistration()
         {
             var c = ClientTest.MakeClient();
             var service = new AgentService()

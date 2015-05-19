@@ -39,7 +39,7 @@ namespace Consul.Test
             }
             catch (LockNotHeldException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof (LockNotHeldException));
+                Assert.IsInstanceOfType(ex, typeof(LockNotHeldException));
             }
             catch (Exception ex)
             {
@@ -54,7 +54,7 @@ namespace Consul.Test
             }
             catch (LockHeldException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof (LockHeldException));
+                Assert.IsInstanceOfType(ex, typeof(LockHeldException));
             }
             catch (Exception ex)
             {
@@ -71,7 +71,7 @@ namespace Consul.Test
             }
             catch (LockNotHeldException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof (LockNotHeldException));
+                Assert.IsInstanceOfType(ex, typeof(LockNotHeldException));
             }
             catch (Exception ex)
             {
@@ -85,7 +85,7 @@ namespace Consul.Test
         public void Lock_Contend()
         {
             var c = ClientTest.MakeClient();
-            var key = "test/lock";
+            const string key = "test/lock";
 
             var acquired = new bool[3];
 
@@ -108,7 +108,7 @@ namespace Consul.Test
                 acquireTasks[i].Start();
             }
 
-            Task.WaitAll(acquireTasks, (int) (3*Lock.DefaultLockRetryTime.TotalMilliseconds));
+            Task.WaitAll(acquireTasks, (int)(3 * Lock.DefaultLockRetryTime.TotalMilliseconds));
 
             foreach (var item in acquired)
             {
@@ -135,7 +135,7 @@ namespace Consul.Test
                 }
                 catch (LockHeldException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof (LockHeldException));
+                    Assert.IsInstanceOfType(ex, typeof(LockHeldException));
                 }
 
                 lockKey.Release();
@@ -155,7 +155,7 @@ namespace Consul.Test
                 }
                 catch (LockInUseException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof (LockInUseException));
+                    Assert.IsInstanceOfType(ex, typeof(LockInUseException));
                 }
 
                 lockKey2.Release();
@@ -173,13 +173,37 @@ namespace Consul.Test
                 }
                 catch (LockNotHeldException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof (LockNotHeldException));
+                    Assert.IsInstanceOfType(ex, typeof(LockNotHeldException));
                 }
                 catch (Exception ex)
                 {
                     Assert.Fail(ex.ToString());
                 }
             }
+        }
+
+        [TestMethod]
+        public void Lock_RunAction()
+        {
+            var c = ClientTest.MakeClient();
+            Task.WaitAll(Task.Run(() =>
+            {
+                c.ExecuteLocked("test/lock", () =>
+                {
+                    // Only executes if the lock is held
+                    Debug.WriteLine("Contender {0} acquired", 1);
+                    Assert.IsTrue(true);
+                });
+            }),
+            Task.Run(() =>
+            {
+                c.ExecuteLocked("test/lock", () =>
+                {
+                    // Only executes if the lock is held
+                    Debug.WriteLine("Contender {0} acquired", 2);
+                    Assert.IsTrue(true);
+                });
+            }));
         }
 
         [TestMethod]
@@ -199,7 +223,7 @@ namespace Consul.Test
             }
             catch (LockConflictException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof (LockConflictException));
+                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
             }
             catch (Exception ex)
             {
@@ -211,7 +235,7 @@ namespace Consul.Test
             }
             catch (LockConflictException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof (LockConflictException));
+                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
             }
             catch (Exception ex)
             {
@@ -219,7 +243,6 @@ namespace Consul.Test
             }
             sema.Release();
         }
-
         [TestMethod]
         public void Lock_ReclaimLock()
         {
@@ -255,7 +278,7 @@ namespace Consul.Test
                 });
                 lock2Hold.Start();
 
-                Task.WaitAny(new[] {lock2Hold}, 1000);
+                Task.WaitAny(new[] { lock2Hold }, 1000);
 
                 Assert.IsTrue(lockKey2.IsHeld);
             }
@@ -324,7 +347,7 @@ namespace Consul.Test
 
                 checker.Start();
 
-                Task.WaitAny(new[] {checker}, 1000);
+                Task.WaitAny(new[] { checker }, 1000);
 
                 Assert.IsFalse(lockKey.IsHeld);
             }
@@ -336,7 +359,7 @@ namespace Consul.Test
                 }
                 catch (LockNotHeldException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof (LockNotHeldException));
+                    Assert.IsInstanceOfType(ex, typeof(LockNotHeldException));
                 }
                 catch (Exception ex)
                 {
@@ -368,7 +391,7 @@ namespace Consul.Test
 
                 checker.Start();
 
-                Task.WaitAny(new[] {checker}, 1000);
+                Task.WaitAny(new[] { checker }, 1000);
 
                 Assert.IsFalse(lockKey.IsHeld);
             }
@@ -380,7 +403,7 @@ namespace Consul.Test
                 }
                 catch (LockNotHeldException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof (LockNotHeldException));
+                    Assert.IsInstanceOfType(ex, typeof(LockNotHeldException));
                 }
                 catch (Exception ex)
                 {

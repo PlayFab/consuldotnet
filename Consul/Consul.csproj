@@ -65,6 +65,7 @@
     <Compile Include="Status.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Consul.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
