@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -148,8 +149,10 @@ namespace Consul
         private bool _isheld;
 
         private CancellationTokenSource _cts;
+        private Task _sessionRenewTask;
+        private Task _monitorTask;
 
-        internal Client Client { get; set; }
+        private readonly Client _client;
         internal LockOptions Opts { get; set; }
         internal string LockSession { get; set; }
 
@@ -177,9 +180,10 @@ namespace Consul
         }
 
 
-        public Lock(Client client)
+        internal Lock(Client c)
         {
-            Client = client;
+            _client = c;
+            _cts = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -189,9 +193,9 @@ namespace Consul
         /// Users of the Lock object should check the IsHeld property before entering the critical section of their code, e.g. in a "while (myLock.IsHeld) {criticalsection}" block.
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the lock being lost.
         /// </summary>
-        public void Acquire()
+        public CancellationToken Acquire()
         {
-            Acquire(CancellationToken.None);
+            return Acquire(CancellationToken.None);
         }
 
         /// <summary>
@@ -203,7 +207,7 @@ namespace Consul
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the lock being lost.
         /// </summary>
         /// <param name="ct">The cancellation token to cancel lock acquisition</param>
-        public void Acquire(CancellationToken ct)
+        public CancellationToken Acquire(CancellationToken ct)
         {
             lock (_lock)
             {
@@ -214,27 +218,32 @@ namespace Consul
                         // Check if we already hold the lock
                         throw new LockHeldException();
                     }
+
                     // Don't overwrite the CancellationTokenSource until AFTER we've tested for holding, since there might be tasks that are currently running for this lock.
-                    if (_cts != null && _cts.IsCancellationRequested)
+                    if (_cts.IsCancellationRequested)
                     {
                         _cts.Dispose();
-                        _cts = null;
+                        _cts = new CancellationTokenSource();
                     }
-                    _cts = new CancellationTokenSource();
-                    LockSession = Opts.Session;
+
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
                         try
                         {
                             Opts.Session = CreateSession();
-                            Client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
+                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
+                                WriteOptions.Empty, _cts.Token);
                             LockSession = Opts.Session;
                         }
                         catch (Exception ex)
                         {
                             throw new InvalidOperationException("Failed to create session", ex);
                         }
+                    }
+                    else
+                    {
+                        LockSession = Opts.Session;
                     }
 
                     var qOpts = new QueryOptions()
@@ -247,11 +256,11 @@ namespace Consul
                         QueryResult<KVPair> pair;
                         try
                         {
-                            pair = Client.KV.Get(Opts.Key, qOpts).GetAwaiter().GetResult();
+                            pair = _client.KV.Get(Opts.Key, qOpts).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)
                         {
-                            throw new ApplicationException("failed to read lock", ex);
+                            throw new ApplicationException("Failed to read lock key", ex);
                         }
 
                         if (pair.Response != null)
@@ -261,13 +270,20 @@ namespace Consul
                                 throw new LockConflictException();
                             }
 
-                            if (IsHeld == false && pair.Response.Session == LockSession)
+                            // Already locked by this session
+                            if (pair.Response.Session == LockSession)
                             {
+                                // Don't restart MonitorLock if this session already holds the lock
+                                if (IsHeld)
+                                {
+                                    return _cts.Token;
+                                }
                                 IsHeld = true;
-                                MonitorLock();
-                                return;
+                                _monitorTask = MonitorLock();
+                                return _cts.Token;
                             }
 
+                            // If it's not empty, some other session must have the lock
                             if (!string.IsNullOrEmpty(pair.Response.Session))
                             {
                                 qOpts.WaitIndex = pair.LastIndex;
@@ -275,46 +291,39 @@ namespace Consul
                             }
                         }
 
-                        pair.Response = LockEntry(Opts.Session);
-                        var acquisitionResult = Client.KV.Acquire(pair.Response).GetAwaiter().GetResult();
+                        // If the code executes this far, no other session has the lock, so try to lock it
+                        var kvPair = LockEntry(Opts.Session);
+                        var locked = _client.KV.Acquire(kvPair).GetAwaiter().GetResult().Response;
 
-                        if (!acquisitionResult.Response)
+                        // KV acquisition succeeded, so the session now holds the lock
+                        if (locked)
                         {
-                            qOpts.WaitIndex = pair.LastIndex;
-                            continue;
+                            IsHeld = true;
+                            _monitorTask = MonitorLock();
+                            return _cts.Token;
                         }
 
+                        // Handle the case of not getting the lock
                         if (ct.IsCancellationRequested)
                         {
-                            return;
+                            _cts.Cancel();
+                            throw new TaskCanceledException();
                         }
-
-                        if (pair.Response == null || (IsHeld == false && pair.Response.Session != LockSession))
+                        try
                         {
-                            try
-                            {
-                                Task.Delay(DefaultLockRetryTime, ct).Wait(ct);
-                            }
-                            catch (TaskCanceledException)
-                            {
-                            }
-
-                            continue;
+                            Task.Delay(DefaultLockRetryTime, ct).Wait(ct);
                         }
-
-                        IsHeld = true;
-                        MonitorLock();
-                        return;
+                        catch (TaskCanceledException)
+                        {
+                        }
                     }
+                    throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
                 finally
                 {
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
-                        if (_cts != null)
-                        {
-                            _cts.Cancel();
-                        }
+                        _cts.Cancel();
                     }
                 }
             }
@@ -336,11 +345,22 @@ namespace Consul
 
                 _cts.Cancel();
 
+                try
+                {
+                    if (_sessionRenewTask != null)
+                    {
+                        _sessionRenewTask.Wait();
+                    }
+                }
+                catch (AggregateException)
+                {
+                    // Ignore AggregateExceptions from the tasks during Release, since if they died, the developer will be Super Confused if they see the exception during Release.
+                }
+
                 var lockEnt = LockEntry(Opts.Session);
                 Opts.Session = null;
 
-                var releaseReq = Client.KV.Release(lockEnt);
-                releaseReq.Wait();
+                _client.KV.Release(lockEnt).Wait();
             }
         }
 
@@ -356,7 +376,7 @@ namespace Consul
                     throw new LockHeldException();
                 }
 
-                var keyReq = Client.KV.Get(Opts.Key);
+                var keyReq = _client.KV.Get(Opts.Key);
                 keyReq.Wait();
                 var pair = keyReq.Result.Response;
 
@@ -375,7 +395,7 @@ namespace Consul
                     throw new LockInUseException();
                 }
 
-                var removeReq = Client.KV.DeleteCAS(pair);
+                var removeReq = _client.KV.DeleteCAS(pair);
                 removeReq.Wait();
                 var didRemove = removeReq.Result.Response;
 
@@ -387,28 +407,34 @@ namespace Consul
         }
 
         /// <summary>
-        /// monitorLock is a long running routine to monitor a lock ownership. It sets IsHeld to false if we lose our leadership.
+        /// MonitorLock is a long running routine to monitor a lock ownership. It sets IsHeld to false if we lose our leadership.
         /// </summary>
-        private async void MonitorLock()
+        private async Task MonitorLock()
         {
             try
             {
                 var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                 while (IsHeld && !_cts.Token.IsCancellationRequested)
                 {
-                    var pair = await Client.KV.Get(Opts.Key, opts);
+                    // Check to see if the current session holds the lock
+                    var pair = await _client.KV.Get(Opts.Key, opts);
                     if (pair.Response != null)
                     {
+                        // Lock is no longer held! Shut down everything.
                         if (pair.Response.Session != Opts.Session)
                         {
                             IsHeld = false;
-                            break;
+                            _cts.Cancel();
+                            return;
                         }
+                        // Lock is still held, start a blocking query
                         opts.WaitIndex = pair.LastIndex;
                     }
                     else
                     {
+                        // Failsafe in case the KV store is unavailable
                         IsHeld = false;
+                        _cts.Cancel();
                         return;
                     }
                 }
@@ -428,9 +454,10 @@ namespace Consul
             var se = new SessionEntry
             {
                 Name = Opts.SessionName,
-                TTL = Opts.SessionTTL
+                TTL = Opts.SessionTTL,
+                Behavior = Opts.SessionBehavior
             };
-            return Client.Session.Create(se).GetAwaiter().GetResult().Response;
+            return _client.Session.Create(se).GetAwaiter().GetResult().Response;
         }
 
         /// <summary>
@@ -446,6 +473,31 @@ namespace Consul
                 Session = session,
                 Flags = LockFlagValue
             };
+        }
+    }
+
+    /// <summary>
+    /// A version of the lock that is acquired upon initialization and implements IDisposable to release, so it can be used with a "using" statement
+    /// </summary>
+    public class DisposableLock : Lock, IDisposable
+    {
+        public CancellationToken CancellationToken { get; private set; }
+        internal DisposableLock(Client client, LockOptions opts)
+            : base(client)
+        {
+            Opts = opts;
+            CancellationToken = Acquire();
+        }
+
+        /// <summary>
+        /// Releases the lock if it is held
+        /// </summary>
+        public void Dispose()
+        {
+            if (IsHeld)
+            {
+                Release();
+            }
         }
     }
 
@@ -469,37 +521,39 @@ namespace Consul
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
+        public SessionBehavior SessionBehavior { get; set; }
 
         public LockOptions(string key)
         {
             Key = key;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
+            SessionBehavior = SessionBehavior.Release;
         }
     }
 
     public partial class Client
     {
         /// <summary>
-        /// Lock returns a handle to a lock struct which can be used to acquire and release the mutex. The key used must have write permissions.
+        /// CreateLock returns an unlocked lock which can be used to acquire and release the mutex. The key used must have write permissions.
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public Lock Lock(string key)
+        public Lock CreateLock(string key)
         {
             if (string.IsNullOrEmpty(key))
             {
                 throw new ArgumentNullException("key");
             }
-            return Lock(new LockOptions(key));
+            return CreateLock(new LockOptions(key));
         }
 
         /// <summary>
-        /// Lock returns a handle to a lock struct which can be used to acquire and release the mutex. The key used must have write permissions.
+        /// CreateLock returns an unlocked lock which can be used to acquire and release the mutex. The key used must have write permissions.
         /// </summary>
         /// <param name="opts"></param>
         /// <returns></returns>
-        public Lock Lock(LockOptions opts)
+        public Lock CreateLock(LockOptions opts)
         {
             if (opts == null)
             {
@@ -507,6 +561,34 @@ namespace Consul
             }
             return new Lock(this) { Opts = opts };
         }
+        /// <summary>
+        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public DisposableLock AcquireLock(string key)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            return AcquireLock(new LockOptions(key));
+        }
+        /// <summary>
+        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <returns></returns>
+        public DisposableLock AcquireLock(LockOptions opts)
+        {
+            return new DisposableLock(this, opts);
+        }
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="a"></param>
+        /// <returns></returns>
         public void ExecuteLocked(string key, Action a)
         {
             if (string.IsNullOrEmpty(key))
@@ -515,23 +597,29 @@ namespace Consul
             }
             ExecuteLocked(new LockOptions(key), a);
         }
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="a"></param>
+        /// <returns></returns>
         public void ExecuteLocked(LockOptions opts, Action a)
         {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
             if (a == null)
             {
                 throw new ArgumentNullException("a");
             }
-            var l = Lock(opts);
-            l.Acquire();
-            if (l.IsHeld)
+            using (var l = new DisposableLock(this, opts))
             {
-                a();
+                if (l.IsHeld)
+                {
+                    a();
+                }
             }
-            else
-            {
-                throw new LockNotHeldException("Unable to acquire the lock");
-            }
-            l.Release();
         }
     }
 }

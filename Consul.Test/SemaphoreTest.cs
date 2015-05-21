@@ -299,7 +299,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var semaphoreLock = c.Lock("test/sema/.lock");
+            var semaphoreLock = c.CreateLock("test/sema/.lock");
 
             semaphoreLock.Acquire(CancellationToken.None);
 

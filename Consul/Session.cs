@@ -302,7 +302,7 @@ namespace Consul
         /// <param name="id">The session ID to renew</param>
         /// <param name="q">Customized write options</param>
         /// <param name="ct">The CancellationToken used to stop the session from being renewed (e.g. when the long-running action completes)</param>
-        public async void RenewPeriodic(TimeSpan initialTTL, string id, WriteOptions q, CancellationToken ct)
+        public async Task RenewPeriodic(TimeSpan initialTTL, string id, WriteOptions q, CancellationToken ct)
         {
             if (q == null)
             {
