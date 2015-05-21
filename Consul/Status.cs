@@ -33,9 +33,9 @@ namespace Consul
         /// Leader is used to query for a known leader
         /// </summary>
         /// <returns>A write result containing the leader node name</returns>
-        public async Task<string> Leader()
+        public string Leader()
         {
-            var res = await _client.CreateQueryRequest<string>("/v1/status/leader").Execute();
+            var res = _client.CreateQueryRequest<string>("/v1/status/leader").Execute();
             return res.Response;
         }
 
@@ -43,9 +43,9 @@ namespace Consul
         /// Peers is used to query for a known raft peers
         /// </summary>
         /// <returns>A write result containing the list of Raft peers</returns>
-        public async Task<string[]> Peers()
+        public string[] Peers()
         {
-            var res = await _client.CreateQueryRequest<string[]>("/v1/status/peers").Execute();
+            var res = _client.CreateQueryRequest<string[]>("/v1/status/peers").Execute();
             return res.Response;
         }
     }

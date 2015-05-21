@@ -89,6 +89,7 @@ namespace Consul.Test
             {
                 Assert.IsTrue(l.IsHeld);
             }
+            Assert.IsNull(c.KV.Get("test/ephemerallock").Response);
         }
 
         [TestMethod]
@@ -118,7 +119,7 @@ namespace Consul.Test
                 acquireTasks[i].Start();
             }
 
-            Task.WaitAll(acquireTasks, (int)(10 * Lock.DefaultLockRetryTime.TotalMilliseconds));
+            Task.WaitAll(acquireTasks, (int)(3 * Lock.DefaultLockRetryTime.TotalMilliseconds));
 
             foreach (var item in acquired)
             {
@@ -258,8 +259,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var sessReq = c.Session.Create();
-            sessReq.Wait();
-            var sess = sessReq.Result.Response;
+            var sess = sessReq.Response;
 
             var lockOpts = c.CreateLock(new LockOptions("test/lock")
             {
@@ -292,7 +292,7 @@ namespace Consul.Test
                 });
                 lock2Hold.Start();
 
-                Task.WaitAny(new[] { lock2Hold }, 100000);
+                Task.WaitAny(new[] { lock2Hold }, 1000);
 
                 Assert.IsTrue(lockKey2.IsHeld);
             }
@@ -335,7 +335,7 @@ namespace Consul.Test
 
             Assert.IsFalse(lockOpts.IsHeld);
             Assert.IsFalse(lockKey2.IsHeld);
-            c.Session.Destroy(sess).Wait();
+            c.Session.Destroy(sess);
         }
 
         [TestMethod]
@@ -349,7 +349,7 @@ namespace Consul.Test
 
                 Assert.IsTrue(lockKey.IsHeld);
 
-                Task.Run(() => { c.Session.Destroy(lockKey.LockSession).Wait(); });
+                Task.Run(() => { c.Session.Destroy(lockKey.LockSession); });
 
                 var checker = new Task(() =>
                 {
@@ -393,7 +393,7 @@ namespace Consul.Test
 
                 Assert.IsTrue(lockKey.IsHeld);
 
-                c.KV.Delete(lockKey.Opts.Key).Wait();
+                c.KV.Delete(lockKey.Opts.Key);
 
                 var checker = new Task(() =>
                 {

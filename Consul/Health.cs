@@ -16,8 +16,6 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
-using System.Threading.Tasks;
-
 namespace Consul
 {
     /// <summary>
@@ -62,9 +60,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Node(string node)
+        public QueryResult<HealthCheck[]> Node(string node)
         {
-            return await Node(node, QueryOptions.Empty);
+            return Node(node, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -73,10 +71,10 @@ namespace Consul
         /// <param name="node">The node name</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Node(string node, QueryOptions q)
+        public QueryResult<HealthCheck[]> Node(string node, QueryOptions q)
         {
             return
-                await _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute();
+                _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute();
         }
 
         /// <summary>
@@ -84,9 +82,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Checks(string service)
+        public QueryResult<HealthCheck[]> Checks(string service)
         {
-            return await Checks(service, QueryOptions.Empty);
+            return Checks(service, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -95,11 +93,9 @@ namespace Consul
         /// <param name="service">The service ID</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Checks(string service, QueryOptions q)
+        public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q)
         {
-            return
-                await
-                    _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
+            return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
                         .Execute();
         }
 
@@ -108,9 +104,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A query result containing the service members matching the provided service ID, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service)
+        public QueryResult<ServiceEntry[]> Service(string service)
         {
-            return await Service(service, string.Empty, false, QueryOptions.Empty);
+            return Service(service, string.Empty, false, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -119,9 +115,9 @@ namespace Consul
         /// <param name="service">The service ID</param>
         /// <param name="tag">The service member tag</param>
         /// <returns>A query result containing the service members matching the provided service ID and tag, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag)
+        public QueryResult<ServiceEntry[]> Service(string service, string tag)
         {
-            return await Service(service, tag, false, QueryOptions.Empty);
+            return Service(service, tag, false, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -131,9 +127,9 @@ namespace Consul
         /// <param name="tag">The service member tag</param>
         /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly)
+        public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly)
         {
-            return await Service(service, tag, passingOnly, QueryOptions.Empty);
+            return Service(service, tag, passingOnly, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -144,7 +140,7 @@ namespace Consul
         /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly,
+        public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly,
             QueryOptions q)
         {
             var req = _client.CreateQueryRequest<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
@@ -156,7 +152,7 @@ namespace Consul
             {
                 req.Params["passing"] = "1";
             }
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -164,9 +160,9 @@ namespace Consul
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public async Task<QueryResult<HealthCheck[]>> State(CheckStatus status)
+        public QueryResult<HealthCheck[]> State(CheckStatus status)
         {
-            return await State(status, QueryOptions.Empty);
+            return State(status, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -175,11 +171,9 @@ namespace Consul
         /// <param name="status">The health status to filter for</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public async Task<QueryResult<HealthCheck[]>> State(CheckStatus status, QueryOptions q)
+        public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q)
         {
-            return
-                await
-                    _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
+            return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
                         .Execute();
         }
     }

@@ -32,14 +32,12 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create();
-            res.Wait();
-            var id = res.Result.Response;
-            Assert.IsTrue(res.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Result.Response));
+            var id = res.Response;
+            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
             var des = s.Destroy(id);
-            des.Wait();
-            Assert.IsTrue(des.Result.Response);
+            Assert.IsTrue(des.Response);
         }
 
         [TestMethod]
@@ -48,14 +46,13 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.CreateNoChecks();
-            res.Wait();
-            var id = res.Result.Response;
-            Assert.IsTrue(res.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Result.Response));
+
+            var id = res.Response;
+            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
             var des = s.Destroy(id);
-            des.Wait();
-            Assert.IsTrue(des.Result.Response);
+            Assert.IsTrue(des.Response);
         }
 
         [TestMethod]
@@ -64,21 +61,19 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create(new SessionEntry() {TTL = TimeSpan.FromSeconds(10)});
-            res.Wait();
-            var id = res.Result.Response;
-            Assert.IsTrue(res.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Result.Response));
+
+            var id = res.Response;
+            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
             var renew = s.Renew(id);
-            renew.Wait();
-            Assert.IsTrue(renew.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsNotNull(renew.Result.Response.ID);
-            Assert.AreEqual(res.Result.Response, renew.Result.Response.ID);
-            Assert.AreEqual(renew.Result.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+            Assert.IsTrue(renew.RequestTime.TotalMilliseconds > 0);
+            Assert.IsNotNull(renew.Response.ID);
+            Assert.AreEqual(res.Response, renew.Response.ID);
+            Assert.AreEqual(renew.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
 
             var des = s.Destroy(id);
-            des.Wait();
-            Assert.IsTrue(des.Result.Response);
+            Assert.IsTrue(des.Response);
         }
 
         [TestMethod]
@@ -87,10 +82,10 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create(new SessionEntry() {TTL = TimeSpan.FromSeconds(10)});
-            res.Wait();
-            var id = res.Result.Response;
-            Assert.IsTrue(res.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Result.Response));
+
+            var id = res.Response;
+            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
@@ -101,13 +96,13 @@ namespace Consul.Test
 
             Task.Delay(3000, ct).Wait(ct);
 
-            var info = s.Info(id).GetAwaiter().GetResult();
+            var info = s.Info(id);
             Assert.IsTrue(info.LastIndex > 0);
             Assert.IsNotNull(info.KnownLeader);
 
             Assert.AreEqual(id, info.Response.ID);
 
-            Assert.IsTrue(s.Destroy(id).GetAwaiter().GetResult().Response);
+            Assert.IsTrue(s.Destroy(id).Response);
         }
 
         [TestMethod]
@@ -116,33 +111,32 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create();
-            res.Wait();
-            var id = res.Result.Response;
 
-            Assert.IsTrue(res.Result.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Result.Response));
+            var id = res.Response;
+
+            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
             var info = s.Info(id);
-            info.Wait();
-            Assert.IsTrue(info.Result.LastIndex > 0);
-            Assert.IsNotNull(info.Result.KnownLeader);
+            Assert.IsTrue(info.LastIndex > 0);
+            Assert.IsNotNull(info.KnownLeader);
 
-            Assert.AreEqual(id, info.Result.Response.ID);
+            Assert.AreEqual(id, info.Response.ID);
 
-            Assert.IsTrue(string.IsNullOrEmpty(info.Result.Response.Name));
-            Assert.IsFalse(string.IsNullOrEmpty(info.Result.Response.Node));
-            Assert.IsTrue(info.Result.Response.CreateIndex > 0);
-            Assert.AreEqual(info.Result.Response.Behavior, SessionBehavior.Release);
+            Assert.IsTrue(string.IsNullOrEmpty(info.Response.Name));
+            Assert.IsFalse(string.IsNullOrEmpty(info.Response.Node));
+            Assert.IsTrue(info.Response.CreateIndex > 0);
+            Assert.AreEqual(info.Response.Behavior, SessionBehavior.Release);
 
-            Assert.IsTrue(string.IsNullOrEmpty(info.Result.Response.Name));
-            Assert.IsNotNull(info.Result.KnownLeader);
+            Assert.IsTrue(string.IsNullOrEmpty(info.Response.Name));
+            Assert.IsNotNull(info.KnownLeader);
 
-            Assert.IsTrue(info.Result.LastIndex > 0);
-            Assert.IsNotNull(info.Result.KnownLeader);
+            Assert.IsTrue(info.LastIndex > 0);
+            Assert.IsNotNull(info.KnownLeader);
 
             var des = s.Destroy(id);
-            des.Wait();
-            Assert.IsTrue(des.Result.Response);
+
+            Assert.IsTrue(des.Response);
         }
 
         [TestMethod]
@@ -151,25 +145,23 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create();
-            res.Wait();
-            var id = res.Result.Response;
+
+            var id = res.Response;
             try
             {
                 var info = s.Info(id);
-                info.Wait();
 
-                var node = s.Node(info.Result.Response.Node);
-                node.Wait();
+                var node = s.Node(info.Response.Node);
 
-                Assert.AreEqual(node.Result.Response.Length, 1);
-                Assert.AreNotEqual(node.Result.LastIndex, 0);
-                Assert.IsTrue(node.Result.KnownLeader);
+                Assert.AreEqual(node.Response.Length, 1);
+                Assert.AreNotEqual(node.LastIndex, 0);
+                Assert.IsTrue(node.KnownLeader);
             }
             finally
             {
                 var des = s.Destroy(id);
-                des.Wait();
-                Assert.IsTrue(des.Result.Response);
+
+                Assert.IsTrue(des.Response);
             }
         }
 
@@ -179,22 +171,21 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var res = s.Create();
-            res.Wait();
-            var id = res.Result.Response;
+
+            var id = res.Response;
             try
             {
                 var list = s.List();
-                list.Wait();
 
-                Assert.AreEqual(list.Result.Response.Length, 1);
-                Assert.AreNotEqual(list.Result.LastIndex, 0);
-                Assert.IsTrue(list.Result.KnownLeader);
+                Assert.AreEqual(list.Response.Length, 1);
+                Assert.AreNotEqual(list.LastIndex, 0);
+                Assert.IsTrue(list.KnownLeader);
             }
             finally
             {
                 var des = s.Destroy(id);
-                des.Wait();
-                Assert.IsTrue(des.Result.Response);
+
+                Assert.IsTrue(des.Response);
             }
         }
     }

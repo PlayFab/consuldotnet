@@ -81,7 +81,7 @@ namespace Consul.Test
             var r = c.CreateQueryRequest<object>("/v1/kv/foo", q);
             try
             {
-                r.Execute().GetAwaiter().GetResult();
+                r.Execute();
             }
             catch (Exception)
             {
@@ -108,7 +108,7 @@ namespace Consul.Test
             var r = c.CreateWriteRequest<object, object>("/v1/kv/foo", q);
             try
             {
-                r.Execute().GetAwaiter().GetResult();
+                r.Execute();
             }
             catch (Exception)
             {

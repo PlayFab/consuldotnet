@@ -224,6 +224,8 @@ namespace Consul
         private CancellationTokenSource _cts;
 
         private readonly Client _client;
+        private Task _sessionRenewTask;
+        private Task _monitorTask;
         internal SemaphoreOptions Opts { get; set; }
 
         public bool IsHeld
@@ -297,7 +299,7 @@ namespace Consul
                         try
                         {
                             Opts.Session = CreateSession();
-                            _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
+                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
                             LockSession = Opts.Session;
                         }
                         catch (Exception ex)
@@ -310,7 +312,7 @@ namespace Consul
                         LockSession = Opts.Session;
                     }
 
-                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).GetAwaiter().GetResult().Response;
+                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).Response;
                     if (!contender)
                     {
                         throw new ApplicationException("Failed to make contender entry");
@@ -326,7 +328,7 @@ namespace Consul
                         QueryResult<KVPair[]> pairs;
                         try
                         {
-                            pairs = _client.KV.List(Opts.Prefix, qOpts).GetAwaiter().GetResult();
+                            pairs = _client.KV.List(Opts.Prefix, qOpts);
                         }
                         catch (Exception ex)
                         {
@@ -366,13 +368,13 @@ namespace Consul
                         }
 
                         // Handle the case of not getting the lock
-                        if (!_client.KV.CAS(newLock).GetAwaiter().GetResult().Response)
+                        if (!_client.KV.CAS(newLock).Response)
                         {
                             continue;
                         }
 
                         IsHeld = true;
-                        MonitorLock(LockSession);
+                        _monitorTask = MonitorLock(LockSession);
                         return _cts.Token;
                     }
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
@@ -382,7 +384,7 @@ namespace Consul
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
                         _cts.Cancel();
-                        _client.KV.Delete(ContenderEntry(LockSession).Key).GetAwaiter().GetResult();
+                        _client.KV.Delete(ContenderEntry(LockSession).Key);
                     }
                 }
             }
@@ -412,9 +414,7 @@ namespace Consul
 
                 while (!didSet)
                 {
-                    var pairReq = _client.KV.Get(key);
-                    pairReq.Wait();
-                    var pair = pairReq.Result;
+                    var pair = _client.KV.Get(key);
 
                     if (pair.Response == null)
                     {
@@ -428,9 +428,7 @@ namespace Consul
                         semaphoreLock.Holders.Remove(lockSession);
                         var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
 
-                        var setReq = _client.KV.CAS(newLock);
-                        setReq.Wait();
-                        didSet = setReq.Result.Response;
+                        didSet = _client.KV.CAS(newLock).Response;
                     }
                     else
                     {
@@ -440,7 +438,7 @@ namespace Consul
 
                 var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                _client.KV.Delete(contenderKey).Wait();
+                _client.KV.Delete(contenderKey);
             }
         }
 
@@ -459,9 +457,7 @@ namespace Consul
                 QueryResult<KVPair[]> pairs;
                 try
                 {
-                    var pairReq = _client.KV.List(Opts.Prefix);
-                    pairReq.Wait();
-                    pairs = pairReq.Result;
+                    pairs = _client.KV.List(Opts.Prefix);
                 }
                 catch (Exception ex)
                 {
@@ -488,9 +484,7 @@ namespace Consul
                     throw new SemaphoreInUseException();
                 }
 
-                var removeReq = _client.KV.DeleteCAS(lockPair);
-                removeReq.Wait();
-                var didRemove = removeReq.Result.Response;
+                var didRemove = _client.KV.DeleteCAS(lockPair).Response;
 
                 if (!didRemove)
                 {
@@ -504,46 +498,49 @@ namespace Consul
         /// It sets IsHeld to false if we lose our slot.
         /// </summary>
         /// <param name="lockSession">The session ID to monitor</param>
-        private async void MonitorLock(string lockSession)
+        private Task MonitorLock(string lockSession)
         {
-            try
+            return Task.Run(() =>
             {
-                var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
-                while (IsHeld && !_cts.Token.IsCancellationRequested)
+                try
                 {
-                    var pairs = await _client.KV.List(Opts.Prefix, opts);
-                    if (pairs.Response != null)
+                    var opts = new QueryOptions() {Consistency = ConsistencyMode.Consistent};
+                    while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        var lockPair = FindLock(pairs.Response);
-                        var semaphoreLock = DecodeLock(lockPair);
-                        PruneDeadHolders(semaphoreLock, pairs.Response);
-
-                        // Check to see if the current session holds a semaphore slot
-                        if (semaphoreLock.Holders.ContainsKey(lockSession))
+                        var pairs = _client.KV.List(Opts.Prefix, opts);
+                        if (pairs.Response != null)
                         {
-                            opts.WaitIndex = pairs.LastIndex;
+                            var lockPair = FindLock(pairs.Response);
+                            var semaphoreLock = DecodeLock(lockPair);
+                            PruneDeadHolders(semaphoreLock, pairs.Response);
+
+                            // Check to see if the current session holds a semaphore slot
+                            if (semaphoreLock.Holders.ContainsKey(lockSession))
+                            {
+                                opts.WaitIndex = pairs.LastIndex;
+                            }
+                            else
+                            {
+                                // Slot is no longer held! Shut down everything.
+                                IsHeld = false;
+                                _cts.Cancel();
+                                return;
+                            }
                         }
+                        // Failsafe in case the KV store is unavailable
                         else
                         {
-                            // Slot is no longer held! Shut down everything.
                             IsHeld = false;
                             _cts.Cancel();
                             return;
                         }
                     }
-                    // Failsafe in case the KV store is unavailable
-                    else
-                    {
-                        IsHeld = false;
-                        _cts.Cancel();
-                        return;
-                    }
                 }
-            }
-            finally
-            {
-                IsHeld = false;
-            }
+                finally
+                {
+                    IsHeld = false;
+                }
+            });
         }
 
         /// <summary>
@@ -557,7 +554,7 @@ namespace Consul
                 Name = Opts.SessionName,
                 TTL = Opts.SessionTTL
             };
-            return _client.Session.Create(se).GetAwaiter().GetResult().Response;
+            return _client.Session.Create(se).Response;
         }
 
         /// <summary>

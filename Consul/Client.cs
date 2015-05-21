@@ -23,7 +23,6 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
-using System.Threading.Tasks;
 using System.Web;
 using Newtonsoft.Json;
 
@@ -361,7 +360,7 @@ namespace Consul
             }
         }
 
-        public async Task<QueryResult<T>> Execute()
+        public QueryResult<T> Execute()
         {
             var stopwatch = Stopwatch.StartNew();
 
@@ -373,9 +372,7 @@ namespace Consul
 
             try
             {
-                var task = Task.Factory.FromAsync((cb, o) => ((HttpWebRequest) o).BeginGetResponse(cb, o),
-                    r => ((HttpWebRequest) r.AsyncState).EndGetResponse(r), req);
-                var res = (HttpWebResponse) (await task);
+                var res = (HttpWebResponse) (req.GetResponse());
 
                 var result = new QueryResult<T>()
                 {
@@ -483,7 +480,7 @@ namespace Consul
             RequestBody = body;
         }
 
-        public async Task<WriteResult<T2>> Execute()
+        public WriteResult<T2> Execute()
         {
             var stopwatch = Stopwatch.StartNew();
             var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
@@ -495,17 +492,15 @@ namespace Consul
             {
                 try
                 {
-                    var reqStream = Task.Factory.FromAsync(
-                        (cb, o) => ((HttpWebRequest) o).BeginGetRequestStream(cb, o),
-                        rq => ((HttpWebRequest) rq.AsyncState).EndGetRequestStream(rq), req);
+                    var reqStream = req.GetRequestStream();
 
                     if (UseRawRequestBody)
                     {
-                        WriteRawRequestBody(RequestBody, await reqStream);
+                        WriteRawRequestBody(RequestBody, reqStream);
                     }
                     else
                     {
-                        EncodeBody(RequestBody, await reqStream);
+                        EncodeBody(RequestBody, reqStream);
                     }
                 }
                 catch (Exception ex)
@@ -523,9 +518,7 @@ namespace Consul
 
             try
             {
-                var task = Task.Factory.FromAsync((cb, o) => ((HttpWebRequest) o).BeginGetResponse(cb, o),
-                    r => ((HttpWebRequest) r.AsyncState).EndGetResponse(r), req);
-                var res = await task;
+                var res = req.GetResponse();
 
                 if (((HttpWebResponse) res).StatusCode == HttpStatusCode.OK)
                 {

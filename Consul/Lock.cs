@@ -17,7 +17,6 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -256,7 +255,7 @@ namespace Consul
                         QueryResult<KVPair> pair;
                         try
                         {
-                            pair = _client.KV.Get(Opts.Key, qOpts).GetAwaiter().GetResult();
+                            pair = _client.KV.Get(Opts.Key, qOpts);
                         }
                         catch (Exception ex)
                         {
@@ -293,7 +292,7 @@ namespace Consul
 
                         // If the code executes this far, no other session has the lock, so try to lock it
                         var kvPair = LockEntry(Opts.Session);
-                        var locked = _client.KV.Acquire(kvPair).GetAwaiter().GetResult().Response;
+                        var locked = _client.KV.Acquire(kvPair).Response;
 
                         // KV acquisition succeeded, so the session now holds the lock
                         if (locked)
@@ -343,24 +342,39 @@ namespace Consul
 
                 IsHeld = false;
 
-                _cts.Cancel();
-
-                try
-                {
-                    if (_sessionRenewTask != null)
-                    {
-                        _sessionRenewTask.Wait();
-                    }
-                }
-                catch (AggregateException)
-                {
-                    // Ignore AggregateExceptions from the tasks during Release, since if they died, the developer will be Super Confused if they see the exception during Release.
-                }
-
                 var lockEnt = LockEntry(Opts.Session);
                 Opts.Session = null;
 
-                _client.KV.Release(lockEnt).Wait();
+                _cts.Cancel();
+
+                if (Equals(Opts.SessionBehavior, SessionBehavior.Delete))
+                {
+
+                    try
+                    {
+                        if (_sessionRenewTask != null)
+                            _sessionRenewTask.Wait();
+                    }
+                    catch (AggregateException)
+                    {
+                        // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                    }
+                    _client.KV.Release(lockEnt);
+                }
+                else
+                {
+                    _client.KV.Release(lockEnt);
+                    try
+                    {
+                        if (_sessionRenewTask != null)
+                            _sessionRenewTask.Wait();
+                    }
+                    catch (AggregateException)
+                    {
+                        // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                    }
+
+                }
             }
         }
 
@@ -376,9 +390,7 @@ namespace Consul
                     throw new LockHeldException();
                 }
 
-                var keyReq = _client.KV.Get(Opts.Key);
-                keyReq.Wait();
-                var pair = keyReq.Result.Response;
+                var pair = _client.KV.Get(Opts.Key).Response;
 
                 if (pair == null)
                 {
@@ -395,9 +407,7 @@ namespace Consul
                     throw new LockInUseException();
                 }
 
-                var removeReq = _client.KV.DeleteCAS(pair);
-                removeReq.Wait();
-                var didRemove = removeReq.Result.Response;
+                var didRemove = _client.KV.DeleteCAS(pair).Response;
 
                 if (!didRemove)
                 {
@@ -409,40 +419,43 @@ namespace Consul
         /// <summary>
         /// MonitorLock is a long running routine to monitor a lock ownership. It sets IsHeld to false if we lose our leadership.
         /// </summary>
-        private async Task MonitorLock()
+        private Task MonitorLock()
         {
-            try
+            return Task.Run(() =>
             {
-                var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
-                while (IsHeld && !_cts.Token.IsCancellationRequested)
+                try
                 {
-                    // Check to see if the current session holds the lock
-                    var pair = await _client.KV.Get(Opts.Key, opts);
-                    if (pair.Response != null)
+                    var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
+                    while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        // Lock is no longer held! Shut down everything.
-                        if (pair.Response.Session != Opts.Session)
+                        // Check to see if the current session holds the lock
+                        var pair = _client.KV.Get(Opts.Key, opts);
+                        if (pair.Response != null)
                         {
+                            // Lock is no longer held! Shut down everything.
+                            if (pair.Response.Session != Opts.Session)
+                            {
+                                IsHeld = false;
+                                _cts.Cancel();
+                                return;
+                            }
+                            // Lock is still held, start a blocking query
+                            opts.WaitIndex = pair.LastIndex;
+                        }
+                        else
+                        {
+                            // Failsafe in case the KV store is unavailable
                             IsHeld = false;
                             _cts.Cancel();
                             return;
                         }
-                        // Lock is still held, start a blocking query
-                        opts.WaitIndex = pair.LastIndex;
-                    }
-                    else
-                    {
-                        // Failsafe in case the KV store is unavailable
-                        IsHeld = false;
-                        _cts.Cancel();
-                        return;
                     }
                 }
-            }
-            finally
-            {
-                IsHeld = false;
-            }
+                finally
+                {
+                    IsHeld = false;
+                }
+            });
         }
 
         /// <summary>
@@ -457,7 +470,7 @@ namespace Consul
                 TTL = Opts.SessionTTL,
                 Behavior = Opts.SessionBehavior
             };
-            return _client.Session.Create(se).GetAwaiter().GetResult().Response;
+            return _client.Session.Create(se).Response;
         }
 
         /// <summary>

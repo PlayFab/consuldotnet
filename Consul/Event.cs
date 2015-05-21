@@ -18,7 +18,6 @@
 
 using System.Globalization;
 using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Consul
@@ -53,9 +52,9 @@ namespace Consul
             _client = c;
         }
 
-        public async Task<WriteResult<string>> Fire(UserEvent ue)
+        public WriteResult<string> Fire(UserEvent ue)
         {
-            return await Fire(ue, WriteOptions.Empty);
+            return Fire(ue, WriteOptions.Empty);
         }
 
         /// <summary>
@@ -64,7 +63,7 @@ namespace Consul
         /// <param name="ue">A User Event definition</param>
         /// <param name="q">Customized write options</param>
         /// <returns></returns>
-        public async Task<WriteResult<string>> Fire(UserEvent ue, WriteOptions q)
+        public WriteResult<string> Fire(UserEvent ue, WriteOptions q)
         {
             if (ue.Payload == null)
             {
@@ -85,7 +84,7 @@ namespace Consul
             {
                 req.Params["tag"] = ue.TagFilter;
             }
-            var res = await req.Execute();
+            var res = req.Execute();
             var ret = new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,
@@ -98,9 +97,9 @@ namespace Consul
         /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
         /// </summary>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List()
+        public QueryResult<UserEvent[]> List()
         {
-            return await List(string.Empty, QueryOptions.Empty);
+            return List(string.Empty, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -108,9 +107,9 @@ namespace Consul
         /// </summary>
         /// <param name="name">The name of the event to filter for</param>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List(string name)
+        public QueryResult<UserEvent[]> List(string name)
         {
-            return await List(name, QueryOptions.Empty);
+            return List(name, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -119,14 +118,14 @@ namespace Consul
         /// <param name="name">The name of the event to filter for</param>
         /// <param name="q">Customized query options</param>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q)
+        public QueryResult<UserEvent[]> List(string name, QueryOptions q)
         {
             var req = _client.CreateQueryRequest<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;
             }
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>

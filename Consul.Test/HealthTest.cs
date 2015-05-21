@@ -29,8 +29,8 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var info = c.Agent.Self().GetAwaiter().GetResult();
-            var checks = c.Health.Node((string) info.Response["Config"]["NodeName"]).GetAwaiter().GetResult();
+            var info = c.Agent.Self();
+            var checks = c.Health.Node((string) info.Response["Config"]["NodeName"]);
 
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
@@ -53,14 +53,14 @@ namespace Consul.Test
             };
             try
             {
-                c.Agent.ServiceRegister(reg).Wait();
-                var checks = c.Health.Checks("foo").GetAwaiter().GetResult();
+                c.Agent.ServiceRegister(reg);
+                var checks = c.Health.Checks("foo");
                 Assert.AreNotEqual(0, checks.LastIndex);
                 Assert.AreNotEqual(0, checks.Response.Length);
             }
             finally
             {
-                c.Agent.ServiceDeregister("foo").Wait();
+                c.Agent.ServiceDeregister("foo");
             }
         }
 
@@ -69,7 +69,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var checks = c.Health.Service("consul", "", true).GetAwaiter().GetResult();
+            var checks = c.Health.Service("consul", "", true);
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
         }
@@ -79,7 +79,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var checks = c.Health.State(CheckStatus.Any).GetAwaiter().GetResult();
+            var checks = c.Health.State(CheckStatus.Any);
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
         }
