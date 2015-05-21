@@ -28,14 +28,14 @@ namespace Consul.Test
     [TestClass]
     public class KVTest
     {
-        private static readonly Random Random = new Random((int) DateTime.Now.Ticks);
+        private static readonly Random Random = new Random((int)DateTime.Now.Ticks);
 
         internal static string TestKey()
         {
             var keyChars = new char[16];
             for (var i = 0; i < keyChars.Length; i++)
             {
-                keyChars[i] = Convert.ToChar(Convert.ToInt32(Math.Floor(26*Random.NextDouble() + 65)));
+                keyChars[i] = Convert.ToChar(Convert.ToInt32(Math.Floor(26 * Random.NextDouble() + 65)));
             }
             return new string(keyChars);
         }
@@ -51,8 +51,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var g = kv.Get(key);
-            g.Wait();
-            Assert.IsNull(g.Result.Response);
+            Assert.IsNull(g.Response);
 
             var pair = new KVPair(key)
             {
@@ -61,25 +60,21 @@ namespace Consul.Test
             };
 
             var p = kv.Put(pair);
-            p.Wait();
-            Assert.IsTrue(p.Result.Response);
+            Assert.IsTrue(p.Response);
 
             g = kv.Get(key);
-            g.Wait();
-            var res = g.Result.Response;
+            var res = g.Response;
 
             Assert.IsNotNull(res);
             Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
             Assert.AreEqual(pair.Flags, res.Flags);
-            Assert.IsTrue(g.Result.LastIndex > 0);
+            Assert.IsTrue(g.LastIndex > 0);
 
             var del = kv.Delete(key);
-            del.Wait();
-            Assert.IsTrue(del.Result.Response);
+            Assert.IsTrue(del.Response);
 
             g = kv.Get(key);
-            g.Wait();
-            Assert.IsNull(g.Result.Response);
+            Assert.IsNull(g.Response);
         }
 
         [TestMethod]
@@ -99,27 +94,24 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                putTasks[i] = kv.Put(p);
+                putTasks[i] = Task.Run(() => kv.Put(p));
             }
 
             Task.WaitAll(putTasks);
 
             var pairs = kv.List(prefix);
-            pairs.Wait();
-            Assert.IsNotNull(pairs.Result.Response);
-            Assert.AreEqual(pairs.Result.Response.Length, putTasks.Length);
-            foreach (var pair in pairs.Result.Response)
+            Assert.IsNotNull(pairs.Response);
+            Assert.AreEqual(pairs.Response.Length, putTasks.Length);
+            foreach (var pair in pairs.Response)
             {
                 Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
             }
-            Assert.IsFalse(pairs.Result.LastIndex == 0);
+            Assert.IsFalse(pairs.LastIndex == 0);
 
-            var deleteTree = kv.DeleteTree(prefix);
-            deleteTree.Wait();
+            kv.DeleteTree(prefix);
 
             pairs = kv.List(prefix);
-            pairs.Wait();
-            Assert.IsNull(pairs.Result.Response);
+            Assert.IsNull(pairs.Response);
         }
 
         [TestMethod]
@@ -138,28 +130,24 @@ namespace Consul.Test
             };
 
             var p = kv.CAS(pair);
-            p.Wait();
-            Assert.IsTrue(p.Result.Response);
+            Assert.IsTrue(p.Response);
 
             var g = kv.Get(key);
-            g.Wait();
-            pair = g.Result.Response;
+            pair = g.Response;
 
             Assert.IsNotNull(pair);
             Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
-            Assert.IsTrue(g.Result.LastIndex > 0);
+            Assert.IsTrue(g.LastIndex > 0);
 
             pair.ModifyIndex = 1;
             var dcas = kv.DeleteCAS(pair);
-            dcas.Wait();
 
-            Assert.IsFalse(dcas.Result.Response);
+            Assert.IsFalse(dcas.Response);
 
-            pair.ModifyIndex = g.Result.LastIndex;
+            pair.ModifyIndex = g.LastIndex;
             dcas = kv.DeleteCAS(pair);
-            dcas.Wait();
 
-            Assert.IsTrue(dcas.Result.Response);
+            Assert.IsTrue(dcas.Response);
         }
 
         [TestMethod]
@@ -178,35 +166,29 @@ namespace Consul.Test
             };
 
             var p = kv.CAS(pair);
-            p.Wait();
-            Assert.IsTrue(p.Result.Response);
+            Assert.IsTrue(p.Response);
 
             var g = kv.Get(key);
-            g.Wait();
-            pair = g.Result.Response;
+            pair = g.Response;
 
             Assert.IsNotNull(pair);
             Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
-            Assert.IsTrue(g.Result.LastIndex > 0);
+            Assert.IsTrue(g.LastIndex > 0);
 
             value = Encoding.UTF8.GetBytes("foo");
             pair.Value = value;
 
             pair.ModifyIndex = 1;
             var cas = kv.CAS(pair);
-            cas.Wait();
 
-            Assert.IsFalse(cas.Result.Response);
+            Assert.IsFalse(cas.Response);
 
-            pair.ModifyIndex = g.Result.LastIndex;
+            pair.ModifyIndex = g.LastIndex;
             cas = kv.CAS(pair);
-            cas.Wait();
-
-            Assert.IsTrue(cas.Result.Response);
+            Assert.IsTrue(cas.Response);
 
             var del = kv.Delete(key);
-            del.Wait();
-            Assert.IsTrue(del.Result.Response);
+            Assert.IsTrue(del.Response);
         }
 
         [TestMethod]
@@ -220,8 +202,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var g = kv.Get(key);
-            g.Wait();
-            Assert.IsNull(g.Result.Response);
+            Assert.IsNull(g.Response);
 
             var pair = new KVPair(key)
             {
@@ -232,28 +213,24 @@ namespace Consul.Test
             Task.Run(() =>
             {
                 Thread.Sleep(100);
-                var p = new KVPair(key) {Flags = 42, Value = value};
+                var p = new KVPair(key) { Flags = 42, Value = value };
                 var putRes = kv.Put(p);
-                putRes.Wait();
-                Assert.IsTrue(putRes.Result.Response);
+                Assert.IsTrue(putRes.Response);
             });
 
-            var g2 = kv.Get(key, new QueryOptions() {WaitIndex = g.Result.LastIndex});
-            g2.Wait();
-            var res = g2.Result.Response;
+            var g2 = kv.Get(key, new QueryOptions() { WaitIndex = g.LastIndex });
+            var res = g2.Response;
 
             Assert.IsNotNull(res);
             Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
             Assert.AreEqual(pair.Flags, res.Flags);
-            Assert.IsTrue(g2.Result.LastIndex > 0);
+            Assert.IsTrue(g2.LastIndex > 0);
 
             var del = kv.Delete(key);
-            del.Wait();
-            Assert.IsTrue(del.Result.Response);
+            Assert.IsTrue(del.Response);
 
             g = kv.Get(key);
-            g.Wait();
-            Assert.IsNull(g.Result.Response);
+            Assert.IsNull(g.Response);
         }
 
         [TestMethod]
@@ -267,29 +244,25 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var pairs = kv.List(prefix);
-            pairs.Wait();
-            Assert.IsNull(pairs.Result.Response);
+            Assert.IsNull(pairs.Response);
 
             Task.Run(() =>
             {
                 Thread.Sleep(100);
-                var p = new KVPair(prefix) {Flags = 42, Value = value};
+                var p = new KVPair(prefix) { Flags = 42, Value = value };
                 var putRes = kv.Put(p);
-                putRes.Wait();
-                Assert.IsTrue(putRes.Result.Response);
+                Assert.IsTrue(putRes.Response);
             });
 
-            var pairs2 = kv.List(prefix, new QueryOptions() {WaitIndex = pairs.Result.LastIndex});
-            pairs2.Wait();
-            Assert.IsNotNull(pairs2.Result.Response);
-            Assert.AreEqual(pairs2.Result.Response.Length, 1);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Result.Response[0].Value));
-            Assert.AreEqual(pairs2.Result.Response[0].Flags, (ulong) 42);
-            Assert.IsTrue(pairs2.Result.LastIndex > pairs.Result.LastIndex);
+            var pairs2 = kv.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
+            Assert.IsNotNull(pairs2.Response);
+            Assert.AreEqual(pairs2.Response.Length, 1);
+            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
+            Assert.AreEqual(pairs2.Response[0].Flags, (ulong)42);
+            Assert.IsTrue(pairs2.LastIndex > pairs.LastIndex);
 
             var deleteTree = kv.DeleteTree(prefix);
-            deleteTree.Wait();
-            Assert.IsTrue(deleteTree.Result.Response);
+            Assert.IsTrue(deleteTree.Response);
         }
 
         [TestMethod]
@@ -309,23 +282,20 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                putTasks[i] = kv.Put(p);
+                putTasks[i] = Task.Run(() => kv.Put(p));
             }
 
             Task.WaitAll(putTasks);
 
             var pairs = kv.Keys(prefix, "");
-            pairs.Wait();
-            Assert.IsNotNull(pairs.Result.Response);
-            Assert.AreEqual(pairs.Result.Response.Length, putTasks.Length);
-            Assert.IsFalse(pairs.Result.LastIndex == 0);
+            Assert.IsNotNull(pairs.Response);
+            Assert.AreEqual(pairs.Response.Length, putTasks.Length);
+            Assert.IsFalse(pairs.LastIndex == 0);
 
             var deleteTree = kv.DeleteTree(prefix);
-            deleteTree.Wait();
 
             pairs = kv.Keys(prefix, "");
-            pairs.Wait();
-            Assert.IsNull(pairs.Result.Response);
+            Assert.IsNull(pairs.Response);
         }
 
         [TestMethod]
@@ -334,10 +304,9 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
             var s = c.Session;
             var sesRes = s.CreateNoChecks(new SessionEntry());
-            sesRes.Wait();
-            var id = sesRes.Result.Response;
+            var id = sesRes.Response;
 
-            Assert.IsFalse(string.IsNullOrEmpty(sesRes.Result.Response));
+            Assert.IsFalse(string.IsNullOrEmpty(sesRes.Response));
 
             var kv = c.KV;
             var key = TestKey();
@@ -350,34 +319,30 @@ namespace Consul.Test
             };
 
             var g = kv.Acquire(pair);
-            g.Wait();
-            Assert.IsTrue(g.Result.Response);
+            Assert.IsTrue(g.Response);
 
             var res = kv.Get(key);
-            res.Wait();
-            Assert.IsNotNull(res.Result.Response);
-            Assert.AreEqual(id, res.Result.Response.Session);
-            Assert.AreEqual(res.Result.Response.LockIndex, (ulong) 1);
-            Assert.IsTrue(res.Result.LastIndex > 0);
+
+            Assert.IsNotNull(res.Response);
+            Assert.AreEqual(id, res.Response.Session);
+            Assert.AreEqual(res.Response.LockIndex, (ulong)1);
+            Assert.IsTrue(res.LastIndex > 0);
 
             g = kv.Release(pair);
-            g.Wait();
-            Assert.IsTrue(g.Result.Response);
+            Assert.IsTrue(g.Response);
 
             res = kv.Get(key);
-            res.Wait();
-            Assert.IsNotNull(res.Result.Response);
-            Assert.AreEqual(null, res.Result.Response.Session);
-            Assert.AreEqual(res.Result.Response.LockIndex, (ulong) 1);
-            Assert.IsTrue(res.Result.LastIndex > 0);
+
+            Assert.IsNotNull(res.Response);
+            Assert.AreEqual(null, res.Response.Session);
+            Assert.AreEqual(res.Response.LockIndex, (ulong)1);
+            Assert.IsTrue(res.LastIndex > 0);
 
             var sesDesRes = s.Destroy(id);
-            sesDesRes.Wait();
-            Assert.IsTrue(sesDesRes.Result.Response);
+            Assert.IsTrue(sesDesRes.Response);
 
             var del = kv.Delete(key);
-            del.Wait();
-            Assert.IsTrue(del.Result.Response);
+            Assert.IsTrue(del.Response);
         }
     }
 }

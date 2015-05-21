@@ -17,7 +17,6 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
-using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -84,9 +83,9 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog registration</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> Register(CatalogRegistration reg)
+        public WriteResult<object> Register(CatalogRegistration reg)
         {
-            return await Register(reg, WriteOptions.Empty);
+            return Register(reg, WriteOptions.Empty);
         }
 
         /// <summary>
@@ -95,10 +94,10 @@ namespace Consul
         /// <param name="reg">A catalog registration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> Register(CatalogRegistration reg, WriteOptions q)
+        public WriteResult<object> Register(CatalogRegistration reg, WriteOptions q)
         {
             return
-                await _client.CreateWriteRequest<CatalogRegistration, object>("/v1/catalog/register", reg, q).Execute();
+                _client.CreateWriteRequest<CatalogRegistration, object>("/v1/catalog/register", reg, q).Execute();
         }
 
         /// <summary>
@@ -106,9 +105,9 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog deregistration</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> Deregister(CatalogDeregistration reg)
+        public WriteResult<object> Deregister(CatalogDeregistration reg)
         {
-            return await Deregister(reg, WriteOptions.Empty);
+            return Deregister(reg, WriteOptions.Empty);
         }
 
         /// <summary>
@@ -117,11 +116,9 @@ namespace Consul
         /// <param name="reg">A catalog deregistration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> Deregister(CatalogDeregistration reg, WriteOptions q)
+        public WriteResult<object> Deregister(CatalogDeregistration reg, WriteOptions q)
         {
-            return
-                await
-                    _client.CreateWriteRequest<CatalogDeregistration, object>("/v1/catalog/deregister", reg, q)
+            return _client.CreateWriteRequest<CatalogDeregistration, object>("/v1/catalog/deregister", reg, q)
                         .Execute();
         }
 
@@ -129,18 +126,18 @@ namespace Consul
         /// Datacenters is used to query for all the known datacenters
         /// </summary>
         /// <returns>A list of datacenter names</returns>
-        public async Task<QueryResult<string[]>> Datacenters()
+        public QueryResult<string[]> Datacenters()
         {
-            return await _client.CreateQueryRequest<string[]>("/v1/catalog/datacenters").Execute();
+            return _client.CreateQueryRequest<string[]>("/v1/catalog/datacenters").Execute();
         }
 
         /// <summary>
         /// Nodes is used to query all the known nodes
         /// </summary>
         /// <returns>A list of all nodes</returns>
-        public async Task<QueryResult<Node[]>> Nodes()
+        public QueryResult<Node[]> Nodes()
         {
-            return await Nodes(QueryOptions.Empty);
+            return Nodes(QueryOptions.Empty);
         }
 
         /// <summary>
@@ -148,18 +145,18 @@ namespace Consul
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of all nodes</returns>
-        public async Task<QueryResult<Node[]>> Nodes(QueryOptions q)
+        public QueryResult<Node[]> Nodes(QueryOptions q)
         {
-            return await _client.CreateQueryRequest<Node[]>("/v1/catalog/nodes", q).Execute();
+            return _client.CreateQueryRequest<Node[]>("/v1/catalog/nodes", q).Execute();
         }
 
         /// <summary>
         /// Services is used to query for all known services
         /// </summary>
         /// <returns>A list of all services</returns>
-        public async Task<QueryResult<Dictionary<string, string[]>>> Services()
+        public QueryResult<Dictionary<string, string[]>> Services()
         {
-            return await Services(QueryOptions.Empty);
+            return Services(QueryOptions.Empty);
         }
 
         /// <summary>
@@ -167,9 +164,9 @@ namespace Consul
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of all services</returns>
-        public async Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q)
+        public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q)
         {
-            return await _client.CreateQueryRequest<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute();
+            return _client.CreateQueryRequest<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute();
         }
 
         /// <summary>
@@ -177,9 +174,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service)
+        public QueryResult<CatalogService[]> Service(string service)
         {
-            return await Service(service, string.Empty, QueryOptions.Empty);
+            return Service(service, string.Empty, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -188,9 +185,9 @@ namespace Consul
         /// <param name="service">The service ID</param>
         /// <param name="tag">A tag to filter on</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service, string tag)
+        public QueryResult<CatalogService[]> Service(string service, string tag)
         {
-            return await Service(service, tag, QueryOptions.Empty);
+            return Service(service, tag, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -200,14 +197,14 @@ namespace Consul
         /// <param name="tag">A tag to filter on</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q)
+        public QueryResult<CatalogService[]> Service(string service, string tag, QueryOptions q)
         {
             var req = _client.CreateQueryRequest<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
             }
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -215,9 +212,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name</param>
         /// <returns>The node information including a list of services</returns>
-        public async Task<QueryResult<CatalogNode>> Node(string node)
+        public QueryResult<CatalogNode> Node(string node)
         {
-            return await Node(node, QueryOptions.Empty);
+            return Node(node, QueryOptions.Empty);
         }
 
         /// <summary>
@@ -226,10 +223,10 @@ namespace Consul
         /// <param name="node">The node name</param>
         /// <param name="q">Customized query options</param>
         /// <returns>The node information including a list of services</returns>
-        public async Task<QueryResult<CatalogNode>> Node(string node, QueryOptions q)
+        public QueryResult<CatalogNode> Node(string node, QueryOptions q)
         {
             return
-                await _client.CreateQueryRequest<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
+                _client.CreateQueryRequest<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
         }
     }
 

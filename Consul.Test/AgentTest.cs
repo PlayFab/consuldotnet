@@ -29,7 +29,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var info = c.Agent.Self().GetAwaiter().GetResult();
+            var info = c.Agent.Self();
 
             Assert.IsNotNull(info);
             Assert.IsFalse(string.IsNullOrEmpty(info.Response["Config"]["NodeName"]));
@@ -42,10 +42,9 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
 
             var members = c.Agent.Members(false);
-            members.Wait();
 
-            Assert.IsNotNull(members.Result);
-            Assert.AreEqual(members.Result.Response.Length, 1);
+            Assert.IsNotNull(members);
+            Assert.AreEqual(members.Response.Length, 1);
         }
 
         [TestMethod]
@@ -62,19 +61,17 @@ namespace Consul.Test
                     TTL = TimeSpan.FromSeconds(15)
                 }
             };
-            c.Agent.ServiceRegister(reg).Wait();
+            c.Agent.ServiceRegister(reg);
 
             var services = c.Agent.Services();
-            services.Wait();
-            Assert.IsTrue(services.Result.Response.ContainsKey("foo"));
+            Assert.IsTrue(services.Response.ContainsKey("foo"));
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("service:foo"));
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
 
-            Assert.AreEqual(checks.Result.Response["service:foo"].Status, CheckStatus.Critical);
+            Assert.AreEqual(checks.Response["service:foo"].Status, CheckStatus.Critical);
 
-            c.Agent.ServiceDeregister("foo").Wait();
+            c.Agent.ServiceDeregister("foo");
         }
 
         [TestMethod]
@@ -92,19 +89,17 @@ namespace Consul.Test
                     Status = CheckStatus.Passing
                 }
             };
-            c.Agent.ServiceRegister(reg).Wait();
+            c.Agent.ServiceRegister(reg);
 
             var services = c.Agent.Services();
-            services.Wait();
-            Assert.IsTrue(services.Result.Response.ContainsKey("foo"));
+            Assert.IsTrue(services.Response.ContainsKey("foo"));
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("service:foo"));
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
 
-            Assert.AreEqual(checks.Result.Response["service:foo"].Status, CheckStatus.Passing);
+            Assert.AreEqual(checks.Response["service:foo"].Status, CheckStatus.Passing);
 
-            c.Agent.ServiceDeregister("foo").Wait();
+            c.Agent.ServiceDeregister("foo");
         }
 
         [TestMethod]
@@ -130,18 +125,17 @@ namespace Consul.Test
                 Port = 8000
             };
 
-            c.Agent.ServiceRegister(reg1).Wait();
-            c.Agent.ServiceRegister(reg2).Wait();
+            c.Agent.ServiceRegister(reg1);
+            c.Agent.ServiceRegister(reg2);
 
             var services = c.Agent.Services();
-            services.Wait();
-            Assert.IsTrue(services.Result.Response.ContainsKey("foo1"));
-            Assert.IsTrue(services.Result.Response.ContainsKey("foo2"));
-            Assert.AreEqual(services.Result.Response["foo1"].Address, "192.168.0.42");
-            Assert.IsTrue(string.IsNullOrEmpty(services.Result.Response["foo2"].Address));
+            Assert.IsTrue(services.Response.ContainsKey("foo1"));
+            Assert.IsTrue(services.Response.ContainsKey("foo2"));
+            Assert.AreEqual(services.Response["foo1"].Address, "192.168.0.42");
+            Assert.IsTrue(string.IsNullOrEmpty(services.Response["foo2"].Address));
 
-            c.Agent.ServiceDeregister("foo1").Wait();
-            c.Agent.ServiceDeregister("foo2").Wait();
+            c.Agent.ServiceDeregister("foo1");
+            c.Agent.ServiceDeregister("foo2");
         }
 
         [TestMethod]
@@ -165,18 +159,16 @@ namespace Consul.Test
                     }
                 }
             };
-            c.Agent.ServiceRegister(reg).Wait();
+            c.Agent.ServiceRegister(reg);
 
             var services = c.Agent.Services();
-            services.Wait();
-            Assert.IsTrue(services.Result.Response.ContainsKey("foo"));
+            Assert.IsTrue(services.Response.ContainsKey("foo"));
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("service:foo:1"));
-            Assert.IsTrue(checks.Result.Response.ContainsKey("service:foo:2"));
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo:1"));
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo:2"));
 
-            c.Agent.ServiceDeregister("foo").Wait();
+            c.Agent.ServiceDeregister("foo");
         }
 
         [TestMethod]
@@ -191,19 +183,16 @@ namespace Consul.Test
                     TTL = TimeSpan.FromSeconds(15)
                 }
             };
-            c.Agent.ServiceRegister(reg).Wait();
+            c.Agent.ServiceRegister(reg);
 
-            var services = c.Agent.Services();
-            services.Wait();
-            c.Agent.WarnTTL("service:foo", "test").Wait();
+            c.Agent.WarnTTL("service:foo", "test");
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("service:foo"));
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
 
-            Assert.AreEqual(checks.Result.Response["service:foo"].Status, CheckStatus.Warning);
+            Assert.AreEqual(checks.Response["service:foo"].Status, CheckStatus.Warning);
 
-            c.Agent.ServiceDeregister("foo").Wait();
+            c.Agent.ServiceDeregister("foo");
         }
 
         [TestMethod]
@@ -215,14 +204,13 @@ namespace Consul.Test
                 Name = "foo",
                 TTL = TimeSpan.FromSeconds(15)
             };
-            c.Agent.CheckRegister(reg).Wait();
+            c.Agent.CheckRegister(reg);
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("foo"));
-            Assert.AreEqual(checks.Result.Response["foo"].Status, CheckStatus.Critical);
+            Assert.IsTrue(checks.Response.ContainsKey("foo"));
+            Assert.AreEqual(checks.Response["foo"].Status, CheckStatus.Critical);
 
-            c.Agent.CheckDeregister("foo").Wait();
+            c.Agent.CheckDeregister("foo");
         }
 
         [TestMethod]
@@ -235,14 +223,13 @@ namespace Consul.Test
                 Status = CheckStatus.Passing,
                 TTL = TimeSpan.FromSeconds(15)
             };
-            c.Agent.CheckRegister(reg).Wait();
+            c.Agent.CheckRegister(reg);
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("foo"));
-            Assert.AreEqual(checks.Result.Response["foo"].Status, CheckStatus.Passing);
+            Assert.IsTrue(checks.Response.ContainsKey("foo"));
+            Assert.AreEqual(checks.Response["foo"].Status, CheckStatus.Passing);
 
-            c.Agent.CheckDeregister("foo").Wait();
+            c.Agent.CheckDeregister("foo");
         }
 
         [TestMethod]
@@ -254,7 +241,7 @@ namespace Consul.Test
             {
                 Name = "redis"
             };
-            c.Agent.ServiceRegister(serviceReg).Wait();
+            c.Agent.ServiceRegister(serviceReg);
 
             var reg = new AgentCheckRegistration()
             {
@@ -262,15 +249,14 @@ namespace Consul.Test
                 ServiceID = "redis",
                 TTL = TimeSpan.FromSeconds(15)
             };
-            c.Agent.CheckRegister(reg).Wait();
+            c.Agent.CheckRegister(reg);
 
             var checks = c.Agent.Checks();
-            checks.Wait();
-            Assert.IsTrue(checks.Result.Response.ContainsKey("redischeck"));
-            Assert.AreEqual(checks.Result.Response["redischeck"].ServiceID, "redis");
+            Assert.IsTrue(checks.Response.ContainsKey("redischeck"));
+            Assert.AreEqual(checks.Response["redischeck"].ServiceID, "redis");
 
-            c.Agent.CheckDeregister("redischeck").Wait();
-            c.Agent.ServiceDeregister("redis").Wait();
+            c.Agent.CheckDeregister("redischeck");
+            c.Agent.ServiceDeregister("redis");
         }
 
         [TestMethod]
@@ -278,15 +264,14 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var info = c.Agent.Self();
-            info.Wait();
-            c.Agent.Join(info.Result.Response["Config"]["AdvertiseAddr"], false);
+            c.Agent.Join(info.Response["Config"]["AdvertiseAddr"], false);
         }
 
         [TestMethod]
         public void Agent_ForceLeave()
         {
             var c = ClientTest.MakeClient();
-            c.Agent.ForceLeave("foo").Wait();
+            c.Agent.ForceLeave("foo");
         }
 
         [TestMethod]
@@ -298,11 +283,11 @@ namespace Consul.Test
             {
                 Name = "redis"
             };
-            c.Agent.ServiceRegister(serviceReg).Wait();
+            c.Agent.ServiceRegister(serviceReg);
 
-            c.Agent.EnableServiceMaintenance("redis", "broken").Wait();
+            c.Agent.EnableServiceMaintenance("redis", "broken");
 
-            var checks = c.Agent.Checks().GetAwaiter().GetResult();
+            var checks = c.Agent.Checks();
             var found = false;
             foreach (var check in checks.Response)
             {
@@ -315,15 +300,15 @@ namespace Consul.Test
             }
             Assert.IsTrue(found);
 
-            c.Agent.DisableServiceMaintenance("redis").Wait();
+            c.Agent.DisableServiceMaintenance("redis");
 
-            checks = c.Agent.Checks().GetAwaiter().GetResult();
+            checks = c.Agent.Checks();
             foreach (var check in checks.Response)
             {
                 Assert.IsFalse(check.Value.CheckID.Contains("maintenance"));
             }
 
-            c.Agent.ServiceDeregister("redis").Wait();
+            c.Agent.ServiceDeregister("redis");
         }
 
         [TestMethod]
@@ -331,8 +316,8 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            c.Agent.EnableNodeMaintenance("broken").Wait();
-            var checks = c.Agent.Checks().GetAwaiter().GetResult();
+            c.Agent.EnableNodeMaintenance("broken");
+            var checks = c.Agent.Checks();
 
             var found = false;
             foreach (var check in checks.Response)
@@ -346,14 +331,14 @@ namespace Consul.Test
             }
             Assert.IsTrue(found);
 
-            c.Agent.DisableNodeMaintenance().Wait();
+            c.Agent.DisableNodeMaintenance();
 
-            checks = c.Agent.Checks().GetAwaiter().GetResult();
+            checks = c.Agent.Checks();
             foreach (var check in checks.Response)
             {
                 Assert.IsFalse(check.Value.CheckID.Contains("maintenance"));
             }
-            c.Agent.CheckDeregister("foo").Wait();
+            c.Agent.CheckDeregister("foo");
         }
     }
 }

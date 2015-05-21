@@ -18,7 +18,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 namespace Consul
@@ -32,17 +31,17 @@ namespace Consul
 
         public static TTLStatus Pass
         {
-            get { return new TTLStatus() {Status = "pass"}; }
+            get { return new TTLStatus() { Status = "pass" }; }
         }
 
         public static TTLStatus Warn
         {
-            get { return new TTLStatus() {Status = "warn"}; }
+            get { return new TTLStatus() { Status = "warn" }; }
         }
 
         public static TTLStatus Fail
         {
-            get { return new TTLStatus() {Status = "fail"}; }
+            get { return new TTLStatus() { Status = "fail" }; }
         }
 
         public bool Equals(TTLStatus other)
@@ -53,7 +52,7 @@ namespace Consul
         public override bool Equals(object other)
         {
             // other could be a reference type, the is operator will return false if null
-            return other is TTLStatus && Equals((TTLStatus) other);
+            return other is TTLStatus && Equals((TTLStatus)other);
         }
 
         public override int GetHashCode()
@@ -66,13 +65,13 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, ((TTLStatus) value).Status);
+            serializer.Serialize(writer, ((TTLStatus)value).Status);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            var status = (string) serializer.Deserialize(reader, typeof (string));
+            var status = (string)serializer.Deserialize(reader, typeof(string));
             switch (status)
             {
                 case "pass":
@@ -88,7 +87,7 @@ namespace Consul
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof (TTLStatus);
+            return objectType == typeof(TTLStatus);
         }
     }
 
@@ -101,27 +100,27 @@ namespace Consul
 
         public static CheckStatus Passing
         {
-            get { return new CheckStatus() {Status = "passing"}; }
+            get { return new CheckStatus() { Status = "passing" }; }
         }
 
         public static CheckStatus Warning
         {
-            get { return new CheckStatus() {Status = "warnint"}; }
+            get { return new CheckStatus() { Status = "warnint" }; }
         }
 
         public static CheckStatus Critical
         {
-            get { return new CheckStatus() {Status = "critical"}; }
+            get { return new CheckStatus() { Status = "critical" }; }
         }
 
         public static CheckStatus Any
         {
-            get { return new CheckStatus() {Status = "any"}; }
+            get { return new CheckStatus() { Status = "any" }; }
         }
 
         public static CheckStatus Unknown
         {
-            get { return new CheckStatus() {Status = "unknown"}; }
+            get { return new CheckStatus() { Status = "unknown" }; }
         }
 
         public bool Equals(CheckStatus other)
@@ -146,13 +145,13 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, ((CheckStatus) value).Status);
+            serializer.Serialize(writer, ((CheckStatus)value).Status);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            var status = (string) serializer.Deserialize(reader, typeof (string));
+            var status = (string)serializer.Deserialize(reader, typeof(string));
             switch (status)
             {
                 case "passing":
@@ -168,7 +167,7 @@ namespace Consul
 
         public override bool CanConvert(Type objectType)
         {
-            if (objectType == typeof (CheckStatus))
+            if (objectType == typeof(CheckStatus))
             {
                 return true;
             }
@@ -185,7 +184,7 @@ namespace Consul
         public string CheckID { get; set; }
         public string Name { get; set; }
 
-        [JsonConverter(typeof (CheckStatusConverter))]
+        [JsonConverter(typeof(CheckStatusConverter))]
         public CheckStatus Status { get; set; }
 
         public string Notes { get; set; }
@@ -282,20 +281,20 @@ namespace Consul
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Script { get; set; }
 
-        [JsonConverter(typeof (DurationTimespanConverter))]
+        [JsonConverter(typeof(DurationTimespanConverter))]
         public TimeSpan Interval { get; set; }
 
-        [JsonConverter(typeof (DurationTimespanConverter))]
+        [JsonConverter(typeof(DurationTimespanConverter))]
         public TimeSpan Timeout { get; set; }
 
-        [JsonConverter(typeof (DurationTimespanConverter))]
+        [JsonConverter(typeof(DurationTimespanConverter))]
         public TimeSpan TTL { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string HTTP { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        [JsonConverter(typeof (CheckStatusConverter))]
+        [JsonConverter(typeof(CheckStatusConverter))]
         public CheckStatus Status { get; set; }
 
         public bool ShouldSerializeTTL()
@@ -333,11 +332,9 @@ namespace Consul
         /// Self is used to query the agent we are speaking to for information about itself
         /// </summary>
         /// <returns>A somewhat dynamic object representing the various data elements in Self</returns>
-        public async Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> Self()
+        public QueryResult<Dictionary<string, Dictionary<string, dynamic>>> Self()
         {
-            return
-                await
-                    _client.CreateQueryRequest<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self")
+            return _client.CreateQueryRequest<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self")
                         .Execute();
         }
 
@@ -351,8 +348,7 @@ namespace Consul
                 if (_nodeName == null)
                 {
                     var res = Self();
-                    res.Wait();
-                    _nodeName = (string) res.Result.Response["Config"]["NodeName"];
+                    _nodeName = (string)res.Response["Config"]["NodeName"];
                 }
                 return _nodeName;
             }
@@ -362,33 +358,33 @@ namespace Consul
         /// Checks returns the locally registered checks
         /// </summary>
         /// <returns>A map of the registered check names and check data</returns>
-        public async Task<QueryResult<Dictionary<string, AgentCheck>>> Checks()
+        public QueryResult<Dictionary<string, AgentCheck>> Checks()
         {
-            return await _client.CreateQueryRequest<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute();
+            return _client.CreateQueryRequest<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute();
         }
 
         /// <summary>
         /// Services returns the locally registered services
         /// </summary>
         /// <returns>A map of the registered services and service data</returns>
-        public async Task<QueryResult<Dictionary<string, AgentService>>> Services()
+        public QueryResult<Dictionary<string, AgentService>> Services()
         {
             var req = _client.CreateQueryRequest<Dictionary<string, AgentService>>("/v1/agent/services").Execute();
-            return await req;
+            return req;
         }
 
         /// <summary>
         /// Members returns the known gossip members. The WAN flag can be used to query a server for WAN members.
         /// </summary>
         /// <returns>An array of gossip peers</returns>
-        public async Task<QueryResult<AgentMember[]>> Members(bool wan)
+        public QueryResult<AgentMember[]> Members(bool wan)
         {
             var req = _client.CreateQueryRequest<AgentMember[]>("/v1/agent/members");
             if (wan)
             {
                 req.Params["wan"] = "1";
             }
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -396,10 +392,10 @@ namespace Consul
         /// </summary>
         /// <param name="service">A service registration object</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> ServiceRegister(AgentServiceRegistration service)
+        public WriteResult<object> ServiceRegister(AgentServiceRegistration service)
         {
             return
-                await
+
                     _client.CreateWriteRequest<AgentServiceRegistration, object>("/v1/agent/service/register", service)
                         .Execute();
         }
@@ -409,11 +405,9 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> ServiceDeregister(string serviceID)
+        public WriteResult<object> ServiceDeregister(string serviceID)
         {
-            return
-                await
-                    _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/deregister/{0}",
+            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/deregister/{0}",
                         serviceID)).Execute();
         }
 
@@ -422,9 +416,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task PassTTL(string checkID, string note)
+        public void PassTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Pass);
+            UpdateTTL(checkID, note, TTLStatus.Pass);
         }
 
         /// <summary>
@@ -432,9 +426,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task WarnTTL(string checkID, string note)
+        public void WarnTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Warn);
+            UpdateTTL(checkID, note, TTLStatus.Warn);
         }
 
         /// <summary>
@@ -442,9 +436,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task FailTTL(string checkID, string note)
+        public void FailTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Fail);
+            UpdateTTL(checkID, note, TTLStatus.Fail);
         }
 
         /// <summary>
@@ -454,11 +448,9 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         /// <param name="status">The state to set the check to</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> UpdateTTL(string checkID, string note, TTLStatus status)
+        public WriteResult<object> UpdateTTL(string checkID, string note, TTLStatus status)
         {
-            return
-                await
-                    _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/{0}/{1}", status.Status,
+            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/{0}/{1}", status.Status,
                         checkID)).Execute();
         }
 
@@ -467,11 +459,9 @@ namespace Consul
         /// </summary>
         /// <param name="check">A check registration object</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> CheckRegister(AgentCheckRegistration check)
+        public WriteResult<object> CheckRegister(AgentCheckRegistration check)
         {
-            return
-                await
-                    _client.CreateWriteRequest<AgentCheckRegistration, object>("/v1/agent/check/register", check)
+            return _client.CreateWriteRequest<AgentCheckRegistration, object>("/v1/agent/check/register", check)
                         .Execute();
         }
 
@@ -480,11 +470,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID to deregister</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> CheckDeregister(string checkID)
+        public WriteResult<object> CheckDeregister(string checkID)
         {
-            return
-                await
-                    _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/deregister/{0}", checkID))
+            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/deregister/{0}", checkID))
                         .Execute();
         }
 
@@ -494,14 +482,14 @@ namespace Consul
         /// <param name="addr">The address to join to</param>
         /// <param name="wan">Join the WAN pool</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> Join(string addr, bool wan)
+        public WriteResult<object> Join(string addr, bool wan)
         {
             var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/join/{0}", addr));
             if (wan)
             {
                 req.Params["wan"] = "1";
             }
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -509,11 +497,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name to remove. An attempt to eject a node that doesn't exist will still be successful</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> ForceLeave(string node)
+        public WriteResult<object> ForceLeave(string node)
         {
-            return
-                await
-                    _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/force-leave/{0}", node))
+            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/force-leave/{0}", node))
                         .Execute();
         }
 
@@ -523,13 +509,12 @@ namespace Consul
         /// <param name="serviceID">The service ID</param>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> EnableServiceMaintenance(string serviceID, string reason)
+        public WriteResult<object> EnableServiceMaintenance(string serviceID, string reason)
         {
-            var req =
-                _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -537,12 +522,11 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> DisableServiceMaintenance(string serviceID)
+        public WriteResult<object> DisableServiceMaintenance(string serviceID)
         {
-            var req =
-                _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "false";
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
@@ -550,23 +534,23 @@ namespace Consul
         /// </summary>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> EnableNodeMaintenance(string reason)
+        public WriteResult<object> EnableNodeMaintenance(string reason)
         {
             var req = _client.CreateWriteRequest<object, object>("/v1/agent/maintenance");
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
-            return await req.Execute();
+            return req.Execute();
         }
 
         /// <summary>
         /// DisableNodeMaintenance toggles node maintenance mode off for the agent we are connected to
         /// </summary>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult<object>> DisableNodeMaintenance()
+        public WriteResult<object> DisableNodeMaintenance()
         {
             var req = _client.CreateWriteRequest<object, object>("/v1/agent/maintenance");
             req.Params["enable"] = "false";
-            return await req.Execute();
+            return req.Execute();
         }
     }
 

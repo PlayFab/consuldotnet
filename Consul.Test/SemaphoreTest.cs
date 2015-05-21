@@ -222,7 +222,7 @@ namespace Consul.Test
 
                 Assert.IsTrue(s.IsHeld);
 
-                c.Session.Destroy(s.LockSession).Wait();
+                c.Session.Destroy(s.LockSession);
 
                 var checker = new Task(() =>
                 {
@@ -264,8 +264,7 @@ namespace Consul.Test
                 Assert.IsTrue(s.IsHeld);
 
                 var req = c.KV.DeleteTree(s.Opts.Prefix);
-                req.Wait();
-                Assert.IsTrue(req.Result.Response);
+                Assert.IsTrue(req.Response);
 
                 var checker = new Task(() =>
                 {
@@ -299,7 +298,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
 
-            var semaphoreLock = c.Lock("test/sema/.lock");
+            var semaphoreLock = c.CreateLock("test/sema/.lock");
 
             semaphoreLock.Acquire(CancellationToken.None);
 

@@ -224,6 +224,8 @@ namespace Consul
         private CancellationTokenSource _cts;
 
         private readonly Client _client;
+        private Task _sessionRenewTask;
+        private Task _monitorTask;
         internal SemaphoreOptions Opts { get; set; }
 
         public bool IsHeld
@@ -249,6 +251,7 @@ namespace Consul
         internal Semaphore(Client c)
         {
             _client = c;
+            _cts = new CancellationTokenSource();
         }
 
         /// <summary>
@@ -257,9 +260,9 @@ namespace Consul
         /// It is NOT safe to assume that the slot is held until Release() unless the Session is specifically created without any associated health checks.
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the session being lost.
         /// </summary>
-        public void Acquire()
+        public CancellationToken Acquire()
         {
-            Acquire(CancellationToken.None);
+            return Acquire(CancellationToken.None);
         }
 
         /// <summary>
@@ -270,7 +273,7 @@ namespace Consul
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the session being lost.
         /// </summary>
         /// <param name="ct">The cancellation token to cancel semaphore acquisition</param>
-        public void Acquire(CancellationToken ct)
+        public CancellationToken Acquire(CancellationToken ct)
         {
             lock (_lock)
             {
@@ -282,20 +285,21 @@ namespace Consul
                         throw new SemaphoreHeldException();
                     }
                     // Don't overwrite the CancellationTokenSource until AFTER we've tested for holding, since there might be tasks that are currently running for this lock.
-                    if (_cts != null && _cts.IsCancellationRequested)
+                    if (_cts.IsCancellationRequested)
                     {
                         _cts.Dispose();
-                        _cts = null;
+                        _cts = new CancellationTokenSource();
                     }
                     _cts = new CancellationTokenSource();
                     LockSession = Opts.Session;
+
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
                         try
                         {
                             Opts.Session = CreateSession();
-                            _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
+                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
                             LockSession = Opts.Session;
                         }
                         catch (Exception ex)
@@ -303,10 +307,13 @@ namespace Consul
                             throw new InvalidOperationException("Failed to create session", ex);
                         }
                     }
+                    else
+                    {
+                        LockSession = Opts.Session;
+                    }
 
-                    var acquire = _client.KV.Acquire(ContenderEntry(LockSession)).GetAwaiter().GetResult().Response;
-
-                    if (!acquire)
+                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).Response;
+                    if (!contender)
                     {
                         throw new ApplicationException("Failed to make contender entry");
                     }
@@ -321,7 +328,7 @@ namespace Consul
                         QueryResult<KVPair[]> pairs;
                         try
                         {
-                            pairs = _client.KV.List(Opts.Prefix, qOpts).GetAwaiter().GetResult();
+                            pairs = _client.KV.List(Opts.Prefix, qOpts);
                         }
                         catch (Exception ex)
                         {
@@ -329,14 +336,12 @@ namespace Consul
                         }
 
                         var lockPair = FindLock(pairs.Response);
-
                         if (lockPair.Flags != SemaphoreFlagValue)
                         {
                             throw new SemaphoreConflictException();
                         }
 
                         var semaphoreLock = DecodeLock(lockPair);
-
                         if (semaphoreLock.Limit != Opts.Limit)
                         {
                             throw new SemaphoreLimitConflictException(
@@ -346,7 +351,6 @@ namespace Consul
                         }
 
                         PruneDeadHolders(semaphoreLock, pairs.Response);
-
                         if (semaphoreLock.Holders.Count >= semaphoreLock.Limit)
                         {
                             qOpts.WaitIndex = pairs.LastIndex;
@@ -359,27 +363,28 @@ namespace Consul
 
                         if (ct.IsCancellationRequested)
                         {
-                            return;
+                            _cts.Cancel();
+                            throw new TaskCanceledException();
                         }
 
-                        if (!_client.KV.CAS(newLock).GetAwaiter().GetResult().Response)
+                        // Handle the case of not getting the lock
+                        if (!_client.KV.CAS(newLock).Response)
                         {
                             continue;
                         }
+
                         IsHeld = true;
-                        MonitorLock(LockSession);
-                        return;
+                        _monitorTask = MonitorLock(LockSession);
+                        return _cts.Token;
                     }
+                    throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
                 }
                 finally
                 {
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
-                        if (_cts != null)
-                        {
-                            _cts.Cancel();
-                        }
-                        _client.KV.Delete(ContenderEntry(LockSession).Key).GetAwaiter().GetResult();
+                        _cts.Cancel();
+                        _client.KV.Delete(ContenderEntry(LockSession).Key);
                     }
                 }
             }
@@ -398,7 +403,6 @@ namespace Consul
                 }
 
                 IsHeld = false;
-
                 _cts.Cancel();
 
                 var lockSession = LockSession;
@@ -408,13 +412,9 @@ namespace Consul
 
                 var didSet = false;
 
-                var holders = 0;
-
                 while (!didSet)
                 {
-                    var pairReq = _client.KV.Get(key);
-                    pairReq.Wait();
-                    var pair = pairReq.Result;
+                    var pair = _client.KV.Get(key);
 
                     if (pair.Response == null)
                     {
@@ -428,22 +428,17 @@ namespace Consul
                         semaphoreLock.Holders.Remove(lockSession);
                         var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
 
-                        holders = semaphoreLock.Holders.Count;
-
-                        var setReq = _client.KV.CAS(newLock);
-                        setReq.Wait();
-                        didSet = setReq.Result.Response;
+                        didSet = _client.KV.CAS(newLock).Response;
                     }
                     else
                     {
-                        holders = semaphoreLock.Holders.Count;
                         break;
                     }
                 }
 
                 var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                _client.KV.Delete(contenderKey).Wait();
+                _client.KV.Delete(contenderKey);
             }
         }
 
@@ -462,9 +457,7 @@ namespace Consul
                 QueryResult<KVPair[]> pairs;
                 try
                 {
-                    var pairReq = _client.KV.List(Opts.Prefix);
-                    pairReq.Wait();
-                    pairs = pairReq.Result;
+                    pairs = _client.KV.List(Opts.Prefix);
                 }
                 catch (Exception ex)
                 {
@@ -491,9 +484,7 @@ namespace Consul
                     throw new SemaphoreInUseException();
                 }
 
-                var removeReq = _client.KV.DeleteCAS(lockPair);
-                removeReq.Wait();
-                var didRemove = removeReq.Result.Response;
+                var didRemove = _client.KV.DeleteCAS(lockPair).Response;
 
                 if (!didRemove)
                 {
@@ -507,40 +498,49 @@ namespace Consul
         /// It sets IsHeld to false if we lose our slot.
         /// </summary>
         /// <param name="lockSession">The session ID to monitor</param>
-        private async void MonitorLock(string lockSession)
+        private Task MonitorLock(string lockSession)
         {
-            try
+            return Task.Run(() =>
             {
-                var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
-                while (IsHeld && !_cts.Token.IsCancellationRequested)
+                try
                 {
-                    var pairs = await _client.KV.List(Opts.Prefix, opts);
-                    if (pairs.Response != null)
+                    var opts = new QueryOptions() {Consistency = ConsistencyMode.Consistent};
+                    while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        var lockPair = FindLock(pairs.Response);
-                        var semaphoreLock = DecodeLock(lockPair);
-                        PruneDeadHolders(semaphoreLock, pairs.Response);
-                        if (semaphoreLock.Holders.ContainsKey(lockSession))
+                        var pairs = _client.KV.List(Opts.Prefix, opts);
+                        if (pairs.Response != null)
                         {
-                            opts.WaitIndex = pairs.LastIndex;
+                            var lockPair = FindLock(pairs.Response);
+                            var semaphoreLock = DecodeLock(lockPair);
+                            PruneDeadHolders(semaphoreLock, pairs.Response);
+
+                            // Check to see if the current session holds a semaphore slot
+                            if (semaphoreLock.Holders.ContainsKey(lockSession))
+                            {
+                                opts.WaitIndex = pairs.LastIndex;
+                            }
+                            else
+                            {
+                                // Slot is no longer held! Shut down everything.
+                                IsHeld = false;
+                                _cts.Cancel();
+                                return;
+                            }
                         }
+                        // Failsafe in case the KV store is unavailable
                         else
                         {
                             IsHeld = false;
+                            _cts.Cancel();
                             return;
                         }
                     }
-                    else
-                    {
-                        IsHeld = false;
-                        return;
-                    }
                 }
-            }
-            finally
-            {
-                IsHeld = false;
-            }
+                finally
+                {
+                    IsHeld = false;
+                }
+            });
         }
 
         /// <summary>
@@ -554,7 +554,7 @@ namespace Consul
                 Name = Opts.SessionName,
                 TTL = Opts.SessionTTL
             };
-            return _client.Session.Create(se).GetAwaiter().GetResult().Response;
+            return _client.Session.Create(se).Response;
         }
 
         /// <summary>
@@ -650,6 +650,24 @@ namespace Consul
         }
     }
 
+    public class AutoSemaphore : Semaphore, IDisposable
+    {
+        public CancellationToken CancellationToken { get; private set; }
+        internal AutoSemaphore(Client c, SemaphoreOptions opts) : base(c)
+        {
+            Opts = opts;
+            CancellationToken = Acquire();
+        }
+
+        public void Dispose()
+        {
+            if (IsHeld)
+            {
+                Release();
+            }
+        }
+    }
+
     /// <summary>
     /// SemaphoreOptions is used to parameterize the Semaphore
     /// </summary>
@@ -726,6 +744,10 @@ namespace Consul
         /// <returns>An unlocked semaphore</returns>
         public Semaphore Semaphore(string prefix, int limit)
         {
+            if (prefix == null)
+            {
+                throw new ArgumentNullException("prefix");
+            }
             return Semaphore(new SemaphoreOptions(prefix, limit));
         }
 
@@ -743,6 +765,49 @@ namespace Consul
                 throw new ArgumentNullException("opts");
             }
             return new Semaphore(this) { Opts = opts };
+        }
+        public AutoSemaphore AcquireSemaphore(string prefix, int limit)
+        {
+            if (string.IsNullOrEmpty(prefix))
+            {
+                throw new ArgumentNullException("prefix");
+            }
+            return AcquireSemaphore(new SemaphoreOptions(prefix, limit));
+        }
+        public AutoSemaphore AcquireSemaphore(SemaphoreOptions opts)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            return new AutoSemaphore(this, opts);
+        }
+
+        public void ExecuteInSemaphore(string prefix, int limit, Action a)
+        {
+            if (string.IsNullOrEmpty(prefix))
+            {
+                throw new ArgumentNullException("prefix");
+            }
+            ExecuteInSemaphore(new SemaphoreOptions(prefix, limit), a);
+        }
+        public void ExecuteInSemaphore(SemaphoreOptions opts, Action a)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            if (a == null)
+            {
+                throw new ArgumentNullException("a");
+            }
+            using (var l = new AutoSemaphore(this, opts))
+            {
+                if (l.IsHeld)
+                {
+                    a();
+                }
+            }
         }
     }
 }

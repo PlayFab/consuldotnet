@@ -31,7 +31,7 @@ namespace Consul.Test
         public void Lock_AcquireRelease()
         {
             var c = ClientTest.MakeClient();
-            var lockKey = c.Lock("test/lock");
+            var lockKey = c.CreateLock("test/lock");
 
             try
             {
@@ -82,6 +82,17 @@ namespace Consul.Test
         }
 
         [TestMethod]
+        public void Lock_EphemeralAcquireRelease()
+        {
+            var c = ClientTest.MakeClient();
+            using (var l = c.AcquireLock(new LockOptions("test/ephemerallock") { SessionBehavior = SessionBehavior.Delete }))
+            {
+                Assert.IsTrue(l.IsHeld);
+            }
+            Assert.IsNull(c.KV.Get("test/ephemerallock").Response);
+        }
+
+        [TestMethod]
         public void Lock_Contend()
         {
             var c = ClientTest.MakeClient();
@@ -96,7 +107,7 @@ namespace Consul.Test
                 var v = i;
                 acquireTasks[i] = new Task(() =>
                 {
-                    var lockKey = c.Lock(key);
+                    var lockKey = c.CreateLock(key);
                     lockKey.Acquire(CancellationToken.None);
                     acquired[v] = lockKey.IsHeld;
                     if (lockKey.IsHeld)
@@ -121,7 +132,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var key = "test/lock";
-            var lockKey = c.Lock(key);
+            var lockKey = c.CreateLock(key);
             try
             {
                 lockKey.Acquire(CancellationToken.None);
@@ -142,7 +153,7 @@ namespace Consul.Test
 
                 Assert.IsFalse(lockKey.IsHeld);
 
-                var lockKey2 = c.Lock(key);
+                var lockKey2 = c.CreateLock(key);
 
                 lockKey2.Acquire(CancellationToken.None);
 
@@ -216,7 +227,7 @@ namespace Consul.Test
 
             Assert.IsTrue(sema.IsHeld);
 
-            var lockKey = c.Lock("test/lock/.lock");
+            var lockKey = c.CreateLock("test/lock/.lock");
             try
             {
                 lockKey.Acquire(CancellationToken.None);
@@ -248,15 +259,14 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var sessReq = c.Session.Create();
-            sessReq.Wait();
-            var sess = sessReq.Result.Response;
+            var sess = sessReq.Response;
 
-            var lockOpts = c.Lock(new LockOptions("test/lock")
+            var lockOpts = c.CreateLock(new LockOptions("test/lock")
             {
                 Session = sess
             });
 
-            var lockKey2 = c.Lock(new LockOptions("test/lock")
+            var lockKey2 = c.CreateLock(new LockOptions("test/lock")
             {
                 Session = sess
             });
@@ -267,7 +277,11 @@ namespace Consul.Test
 
                 Assert.IsTrue(lockOpts.IsHeld);
 
-                Task.Run(() => lockKey2.Acquire(CancellationToken.None));
+                Task.Run(() =>
+                {
+                    Debugger.Break();
+                    lockKey2.Acquire(CancellationToken.None);
+                });
 
                 var lock2Hold = new Task(() =>
                 {
@@ -321,21 +335,21 @@ namespace Consul.Test
 
             Assert.IsFalse(lockOpts.IsHeld);
             Assert.IsFalse(lockKey2.IsHeld);
-            c.Session.Destroy(sess).Wait();
+            c.Session.Destroy(sess);
         }
 
         [TestMethod]
         public void Lock_ForceInvalidate()
         {
             var c = ClientTest.MakeClient();
-            var lockKey = c.Lock("test/lock");
+            var lockKey = c.CreateLock("test/lock");
             try
             {
                 lockKey.Acquire(CancellationToken.None);
 
                 Assert.IsTrue(lockKey.IsHeld);
 
-                Task.Run(() => { c.Session.Destroy(lockKey.LockSession).Wait(); });
+                Task.Run(() => { c.Session.Destroy(lockKey.LockSession); });
 
                 var checker = new Task(() =>
                 {
@@ -372,14 +386,14 @@ namespace Consul.Test
         public void Lock_DeleteKey()
         {
             var c = ClientTest.MakeClient();
-            var lockKey = c.Lock("test/lock");
+            var lockKey = c.CreateLock("test/lock");
             try
             {
                 lockKey.Acquire(CancellationToken.None);
 
                 Assert.IsTrue(lockKey.IsHeld);
 
-                c.KV.Delete(lockKey.Opts.Key).Wait();
+                c.KV.Delete(lockKey.Opts.Key);
 
                 var checker = new Task(() =>
                 {

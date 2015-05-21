@@ -41,20 +41,20 @@ namespace Consul.Test
                 Type = ACLType.Client,
                 Rules = "key \"\" { policy = \"deny\" }"
             };
-            var res = c.ACL.Create(ae).GetAwaiter().GetResult();
+            var res = c.ACL.Create(ae);
             var id = res.Response;
 
             Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
-            var ae2 = c.ACL.Info(id).GetAwaiter().GetResult();
+            var ae2 = c.ACL.Info(id);
 
             Assert.IsNotNull(ae2.Response);
             Assert.AreEqual(ae.Name, ae2.Response.Name);
             Assert.AreEqual(ae.Type, ae2.Response.Type);
             Assert.AreEqual(ae.Rules, ae2.Response.Rules);
 
-            var des = c.ACL.Destroy(id).GetAwaiter().GetResult();
+            var des = c.ACL.Destroy(id);
             Assert.IsTrue(des.Response);
         }
 
@@ -67,13 +67,13 @@ namespace Consul.Test
             }
             var c = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.Clone(ConsulRoot).GetAwaiter().GetResult();
+            var res = c.ACL.Clone(ConsulRoot);
 
-            var ae = c.ACL.Info(res.Response).GetAwaiter().GetResult();
+            var ae = c.ACL.Info(res.Response);
             ae.Response.Rules = "key \"\" { policy = \"deny\" }";
-            c.ACL.Update(ae.Response).GetAwaiter().GetResult();
+            c.ACL.Update(ae.Response);
 
-            var ae2 = c.ACL.Info(res.Response).GetAwaiter().GetResult();
+            var ae2 = c.ACL.Info(res.Response);
             Assert.AreEqual("key \"\" { policy = \"deny\" }", ae2.Response.Rules);
 
             var id = res.Response;
@@ -81,7 +81,7 @@ namespace Consul.Test
             Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
-            var des = c.ACL.Destroy(id).GetAwaiter().GetResult();
+            var des = c.ACL.Destroy(id);
             Assert.IsTrue(des.Response);
         }
 
@@ -94,7 +94,7 @@ namespace Consul.Test
             }
             var c = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.Info(ConsulRoot).GetAwaiter().GetResult();
+            var res = c.ACL.Info(ConsulRoot);
 
             Assert.IsNotNull(res.Response);
             Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
@@ -111,7 +111,7 @@ namespace Consul.Test
             }
             var c = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.List().GetAwaiter().GetResult();
+            var res = c.ACL.List();
 
             Assert.IsNotNull(res.Response);
             Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);

@@ -28,8 +28,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var s = c.Status.Leader();
-            s.Wait();
-            Assert.IsFalse(string.IsNullOrEmpty(s.Result));
+            Assert.IsFalse(string.IsNullOrEmpty(s));
         }
 
         [TestMethod]
@@ -37,8 +36,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var s = c.Status.Peers();
-            s.Wait();
-            Assert.IsTrue(s.Result.Length > 0);
+            Assert.IsTrue(s.Length > 0);
         }
     }
 }

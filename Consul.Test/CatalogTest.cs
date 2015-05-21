@@ -28,9 +28,8 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var res = c.Catalog.Datacenters();
-            res.Wait();
 
-            Assert.AreNotEqual(0, res.Result.Response.Length);
+            Assert.AreNotEqual(0, res.Response.Length);
         }
 
         [TestMethod]
@@ -38,10 +37,10 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var res = c.Catalog.Nodes();
-            res.Wait();
 
-            Assert.AreNotEqual(0, res.Result.LastIndex);
-            Assert.AreNotEqual(0, res.Result.Response.Length);
+
+            Assert.AreNotEqual(0, res.LastIndex);
+            Assert.AreNotEqual(0, res.Response.Length);
         }
 
         [TestMethod]
@@ -49,10 +48,10 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var res = c.Catalog.Services();
-            res.Wait();
 
-            Assert.AreNotEqual(0, res.Result.LastIndex);
-            Assert.AreNotEqual(0, res.Result.Response.Count);
+
+            Assert.AreNotEqual(0, res.LastIndex);
+            Assert.AreNotEqual(0, res.Response.Count);
         }
 
         [TestMethod]
@@ -60,10 +59,10 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var res = c.Catalog.Service("consul");
-            res.Wait();
 
-            Assert.AreNotEqual(0, res.Result.LastIndex);
-            Assert.AreNotEqual(0, res.Result.Response.Length);
+
+            Assert.AreNotEqual(0, res.LastIndex);
+            Assert.AreNotEqual(0, res.Response.Length);
         }
 
         [TestMethod]
@@ -72,10 +71,10 @@ namespace Consul.Test
             var c = ClientTest.MakeClient();
 
             var res = c.Catalog.Node(c.Agent.NodeName);
-            res.Wait();
 
-            Assert.AreNotEqual(0, res.Result.LastIndex);
-            Assert.IsNotNull(res.Result.Response.Services);
+
+            Assert.AreNotEqual(0, res.LastIndex);
+            Assert.IsNotNull(res.Response.Services);
         }
 
         [TestMethod]
@@ -109,15 +108,13 @@ namespace Consul.Test
                 Check = check
             };
 
-            c.Catalog.Register(reg).Wait();
+            c.Catalog.Register(reg);
 
             var node = c.Catalog.Node("foobar");
-            node.Wait();
-            Assert.IsTrue(node.Result.Response.Services.ContainsKey("redis1"));
+            Assert.IsTrue(node.Response.Services.ContainsKey("redis1"));
 
             var health = c.Health.Node("foobar");
-            health.Wait();
-            Assert.AreEqual("service:redis1", health.Result.Response[0].CheckID);
+            Assert.AreEqual("service:redis1", health.Response[0].CheckID);
 
             var dereg = new CatalogDeregistration()
             {
@@ -127,11 +124,10 @@ namespace Consul.Test
                 CheckID = "service:redis1"
             };
 
-            c.Catalog.Deregister(dereg).Wait();
+            c.Catalog.Deregister(dereg);
 
             health = c.Health.Node("foobar");
-            health.Wait();
-            Assert.AreEqual(0, health.Result.Response.Length);
+            Assert.AreEqual(0, health.Response.Length);
 
             dereg = new CatalogDeregistration()
             {
@@ -140,11 +136,10 @@ namespace Consul.Test
                 Address = "192.168.10.10"
             };
 
-            c.Catalog.Deregister(dereg).Wait();
+            c.Catalog.Deregister(dereg);
 
             node = c.Catalog.Node("foobar");
-            node.Wait();
-            Assert.IsNull(node.Result.Response);
+            Assert.IsNull(node.Response);
         }
     }
 }

@@ -33,12 +33,12 @@ namespace Consul.Test
                 Name = "foo"
             };
 
-            var res = c.Event.Fire(p).GetAwaiter().GetResult();
+            var res = c.Event.Fire(p);
 
             Assert.AreNotEqual(0, res.RequestTime);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
-            var events = c.Event.List().GetAwaiter().GetResult();
+            var events = c.Event.List();
             Assert.AreNotEqual(0, events.Response.Length);
             Assert.AreEqual(res.Response, events.Response[events.Response.Length - 1].ID);
             Assert.AreEqual(c.Event.IDToIndex(res.Response), events.LastIndex);

@@ -38,9 +38,9 @@ namespace Consul
         /// <param name="endpoint">The URL endpoint to access</param>
         /// <param name="q">Custom query options</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public async Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q)
+        public  QueryResult<dynamic> Query(string endpoint, QueryOptions q)
         {
-            return await Client.CreateQueryRequest<dynamic>(endpoint, q).Execute();
+            return Client.CreateQueryRequest<dynamic>(endpoint, q).Execute();
         }
 
         /// <summary>
@@ -50,9 +50,9 @@ namespace Consul
         /// <param name="obj">The object to serialize and send to the endpoint. Must be able to be JSON serialized, or be an object of type byte[], which is sent without serialzation.</param>
         /// <param name="q">Custom write options</param>
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
-        public async Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q)
+        public WriteResult<dynamic> Write(string endpoint, object obj, WriteOptions q)
         {
-            return await Client.CreateWriteRequest<object, dynamic>(endpoint, obj, q).Execute();
+            return Client.CreateWriteRequest<object, dynamic>(endpoint, obj, q).Execute();
         }
     }
 
