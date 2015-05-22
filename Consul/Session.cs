@@ -30,12 +30,12 @@ namespace Consul
 
         public static SessionBehavior Release
         {
-            get { return new SessionBehavior() {Behavior = "release"}; }
+            get { return new SessionBehavior() { Behavior = "release" }; }
         }
 
         public static SessionBehavior Delete
         {
-            get { return new SessionBehavior() {Behavior = "delete"}; }
+            get { return new SessionBehavior() { Behavior = "delete" }; }
         }
 
         public bool Equals(SessionBehavior other)
@@ -60,13 +60,13 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, ((SessionBehavior) value).Behavior);
+            serializer.Serialize(writer, ((SessionBehavior)value).Behavior);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            var behavior = (string) serializer.Deserialize(reader, typeof (string));
+            var behavior = (string)serializer.Deserialize(reader, typeof(string));
             switch (behavior)
             {
                 case "release":
@@ -80,7 +80,7 @@ namespace Consul
 
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof (SessionBehavior);
+            return objectType == typeof(SessionBehavior);
         }
     }
 
@@ -100,14 +100,14 @@ namespace Consul
 
         public List<string> Checks { get; set; }
 
-        [JsonConverter(typeof (NanoSecTimespanConverter))]
+        [JsonConverter(typeof(NanoSecTimespanConverter))]
         public TimeSpan LockDelay { get; set; }
 
-        [JsonConverter(typeof (SessionBehaviorConverter))]
+        [JsonConverter(typeof(SessionBehaviorConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public SessionBehavior Behavior { get; set; }
 
-        [JsonConverter(typeof (DurationTimespanConverter))]
+        [JsonConverter(typeof(DurationTimespanConverter))]
         public TimeSpan TTL { get; set; }
 
         public SessionEntry()
@@ -266,7 +266,7 @@ namespace Consul
         public WriteResult<SessionEntry> Renew(string id, WriteOptions q)
         {
             var res = _client.CreateWriteRequest<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute();
-            var ret = new WriteResult<SessionEntry>() {RequestTime = res.RequestTime};
+            var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
             if (res.Response != null && res.Response.Length > 0)
             {
                 ret.Response = res.Response[0];
@@ -302,43 +302,57 @@ namespace Consul
                 {
                     throw new ArgumentNullException("q");
                 }
-                var waitDuration = (int) (initialTTL.TotalMilliseconds/2);
+                var waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                 var lastRenewTime = DateTime.Now;
-                while (!ct.IsCancellationRequested)
+                Exception lastException = new TaskCanceledException("Session timed out");
+                try
                 {
-                    if (DateTime.Now.Subtract(lastRenewTime) > initialTTL)
+                    while (!ct.IsCancellationRequested)
                     {
-                        throw new TaskCanceledException("Session timed out");
-                    }
-
-                    try
-                    {
-                        Task.Delay(waitDuration, ct).Wait(ct);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        // Ignore OperationCanceledException since it just means the Wait task stopped cleanly.
-                    }
-
-                    try
-                    {
-                        var res = Renew(id, q);
-                        if (res.Response == null)
+                        if (DateTime.Now.Subtract(lastRenewTime) > initialTTL)
                         {
-                            throw new TaskCanceledException("Session no longer exists");
+                            throw lastException;
                         }
-                        initialTTL = res.Response.TTL;
-                        waitDuration = (int) (initialTTL.TotalMilliseconds/2);
-                        lastRenewTime = DateTime.Now;
-                    }
-                    catch (Exception)
-                    {
-                        waitDuration = 1000;
+                        try
+                        {
+                            Task.Delay(waitDuration, ct).Wait(ct);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Ignore OperationCanceledException because it means the wait cancelled in response to a CancellationToken being cancelled.
+                        }
+
+                        try
+                        {
+                            var res = Renew(id, q);
+                            if (res.Response != null)
+                            {
+                                lastException = new TaskCanceledException("Session no longer exists");
+                            }
+                            else
+                            {
+                                initialTTL = res.Response.TTL;
+                                waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
+                                lastRenewTime = DateTime.Now;
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // Ignore OperationCanceledException/TaskCanceledException since it means the session no longer exists or the task is stopping.
+                        }
+                        catch (Exception ex)
+                        {
+                            waitDuration = 1000;
+                            lastException = ex;
+                        }
                     }
                 }
-                if (ct.IsCancellationRequested)
+                finally
                 {
-                    _client.Session.Destroy(id);
+                    if (ct.IsCancellationRequested)
+                    {
+                        _client.Session.Destroy(id);
+                    }
                 }
             }, ct);
         }

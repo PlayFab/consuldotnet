@@ -323,6 +323,17 @@ namespace Consul
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
                         _cts.Cancel();
+                        if (_sessionRenewTask != null)
+                        {
+                            try
+                            {
+                                _sessionRenewTask.Wait();
+                            }
+                            catch (AggregateException)
+                            {
+                                // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                            }
+                        }
                     }
                 }
             }
@@ -335,45 +346,36 @@ namespace Consul
         {
             lock (_lock)
             {
-                if (!IsHeld)
+                try
                 {
-                    throw new LockNotHeldException();
-                }
-
-                IsHeld = false;
-
-                var lockEnt = LockEntry(Opts.Session);
-                Opts.Session = null;
-
-                _cts.Cancel();
-
-                if (Equals(Opts.SessionBehavior, SessionBehavior.Delete))
-                {
-
-                    try
+                    if (!IsHeld)
                     {
-                        if (_sessionRenewTask != null)
-                            _sessionRenewTask.Wait();
+                        throw new LockNotHeldException();
                     }
-                    catch (AggregateException)
-                    {
-                        // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                    }
+                    _cts.Cancel();
+                    IsHeld = false;
+
+                    var lockEnt = LockEntry(Opts.Session);
+
+                    Opts.Session = null;
                     _client.KV.Release(lockEnt);
                 }
-                else
+                finally
                 {
-                    _client.KV.Release(lockEnt);
-                    try
+                    if (_sessionRenewTask != null)
                     {
                         if (_sessionRenewTask != null)
-                            _sessionRenewTask.Wait();
+                        {
+                            try
+                            {
+                                _sessionRenewTask.Wait();
+                            }
+                            catch (AggregateException)
+                            {
+                                // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                            }
+                        }
                     }
-                    catch (AggregateException)
-                    {
-                        // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                    }
-
                 }
             }
         }
@@ -467,8 +469,7 @@ namespace Consul
             var se = new SessionEntry
             {
                 Name = Opts.SessionName,
-                TTL = Opts.SessionTTL,
-                Behavior = Opts.SessionBehavior
+                TTL = Opts.SessionTTL
             };
             return _client.Session.Create(se).Response;
         }
@@ -534,14 +535,12 @@ namespace Consul
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
-        public SessionBehavior SessionBehavior { get; set; }
 
         public LockOptions(string key)
         {
             Key = key;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
-            SessionBehavior = SessionBehavior.Release;
         }
     }
 

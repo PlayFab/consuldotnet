@@ -391,7 +391,7 @@ namespace Consul
                 {
                     throw new ApplicationException("Unexpected HTTP exception calling Consul", ex);
                 }
-                else if (res.StatusCode == HttpStatusCode.NotFound)
+                if (res.StatusCode == HttpStatusCode.NotFound)
                 {
                     var result = new QueryResult<T>();
                     ParseQueryHeaders(res, ref result);
@@ -399,22 +399,16 @@ namespace Consul
                     result.RequestTime = stopwatch.Elapsed;
                     return result;
                 }
-                else
+                var stream = res.GetResponseStream();
+                if (stream == null)
                 {
-                    var stream = res.GetResponseStream();
-                    if (stream == null)
-                    {
-                        throw new ArgumentException(string.Format("Unexpected response code {0}",
-                            res.StatusCode));
-                    }
-                    else
-                    {
-                        using (var sr = new StreamReader(stream))
-                        {
-                            throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
-                                res.StatusCode, sr.ReadToEnd()));
-                        }
-                    }
+                    throw new ArgumentException(string.Format("Unexpected response code {0}",
+                        res.StatusCode));
+                }
+                using (var sr = new StreamReader(stream))
+                {
+                    throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
+                        res.StatusCode, sr.ReadToEnd()));
                 }
             }
         }

@@ -385,6 +385,17 @@ namespace Consul
                     {
                         _cts.Cancel();
                         _client.KV.Delete(ContenderEntry(LockSession).Key);
+                        if (_sessionRenewTask != null)
+                        {
+                            try
+                            {
+                                _sessionRenewTask.Wait();
+                            }
+                            catch (AggregateException)
+                            {
+                                // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                            }
+                        }
                     }
                 }
             }
@@ -397,48 +408,65 @@ namespace Consul
         {
             lock (_lock)
             {
-                if (!IsHeld)
+                try
                 {
-                    throw new SemaphoreNotHeldException();
+                    _cts.Cancel();
+
+                    if (!IsHeld)
+                    {
+                        throw new SemaphoreNotHeldException();
+                    }
+                    IsHeld = false;
+
+                    var lockSession = LockSession;
+                    LockSession = null;
+
+                    var key = string.Join("/", Opts.Prefix, DefaultSemaphoreKey);
+
+                    var didSet = false;
+
+                    while (!didSet)
+                    {
+                        var pair = _client.KV.Get(key);
+
+                        if (pair.Response == null)
+                        {
+                            pair.Response = new KVPair(key);
+                        }
+
+                        var semaphoreLock = DecodeLock(pair.Response);
+
+                        if (semaphoreLock.Holders.ContainsKey(lockSession))
+                        {
+                            semaphoreLock.Holders.Remove(lockSession);
+                            var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
+
+                            didSet = _client.KV.CAS(newLock).Response;
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+
+                    var contenderKey = string.Join("/", Opts.Prefix, lockSession);
+
+                    _client.KV.Delete(contenderKey);
                 }
-
-                IsHeld = false;
-                _cts.Cancel();
-
-                var lockSession = LockSession;
-                LockSession = null;
-
-                var key = string.Join("/", Opts.Prefix, DefaultSemaphoreKey);
-
-                var didSet = false;
-
-                while (!didSet)
+                finally
                 {
-                    var pair = _client.KV.Get(key);
-
-                    if (pair.Response == null)
+                    if (_sessionRenewTask != null)
                     {
-                        pair.Response = new KVPair(key);
-                    }
-
-                    var semaphoreLock = DecodeLock(pair.Response);
-
-                    if (semaphoreLock.Holders.ContainsKey(lockSession))
-                    {
-                        semaphoreLock.Holders.Remove(lockSession);
-                        var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
-
-                        didSet = _client.KV.CAS(newLock).Response;
-                    }
-                    else
-                    {
-                        break;
+                        try
+                        {
+                            _sessionRenewTask.Wait();
+                        }
+                        catch (AggregateException)
+                        {
+                            // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                        }
                     }
                 }
-
-                var contenderKey = string.Join("/", Opts.Prefix, lockSession);
-
-                _client.KV.Delete(contenderKey);
             }
         }
 
@@ -504,7 +532,7 @@ namespace Consul
             {
                 try
                 {
-                    var opts = new QueryOptions() {Consistency = ConsistencyMode.Consistent};
+                    var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
                         var pairs = _client.KV.List(Opts.Prefix, opts);
@@ -653,7 +681,8 @@ namespace Consul
     public class AutoSemaphore : Semaphore, IDisposable
     {
         public CancellationToken CancellationToken { get; private set; }
-        internal AutoSemaphore(Client c, SemaphoreOptions opts) : base(c)
+        internal AutoSemaphore(Client c, SemaphoreOptions opts)
+            : base(c)
         {
             Opts = opts;
             CancellationToken = Acquire();

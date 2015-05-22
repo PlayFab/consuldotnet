@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Consul.Test
@@ -35,6 +36,7 @@ namespace Consul.Test
 
             var res = c.Event.Fire(p);
 
+            Thread.Sleep(100);
             Assert.AreNotEqual(0, res.RequestTime);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 

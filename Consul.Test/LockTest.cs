@@ -85,9 +85,11 @@ namespace Consul.Test
         public void Lock_EphemeralAcquireRelease()
         {
             var c = ClientTest.MakeClient();
-            using (var l = c.AcquireLock(new LockOptions("test/ephemerallock") { SessionBehavior = SessionBehavior.Delete }))
+            var s = c.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
+            using (var l = c.AcquireLock(new LockOptions("test/ephemerallock") { Session = s.Response }))
             {
                 Assert.IsTrue(l.IsHeld);
+                c.Session.Destroy(s.Response);
             }
             Assert.IsNull(c.KV.Get("test/ephemerallock").Response);
         }
@@ -218,43 +220,6 @@ namespace Consul.Test
         }
 
         [TestMethod]
-        public void Lock_SemaphoreConflict()
-        {
-            var c = ClientTest.MakeClient();
-            var sema = c.Semaphore("test/lock", 2);
-
-            sema.Acquire(CancellationToken.None);
-
-            Assert.IsTrue(sema.IsHeld);
-
-            var lockKey = c.CreateLock("test/lock/.lock");
-            try
-            {
-                lockKey.Acquire(CancellationToken.None);
-            }
-            catch (LockConflictException ex)
-            {
-                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.ToString());
-            }
-            try
-            {
-                lockKey.Destroy();
-            }
-            catch (LockConflictException ex)
-            {
-                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
-            }
-            catch (Exception ex)
-            {
-                Assert.Fail(ex.ToString());
-            }
-            sema.Release();
-        }
-        [TestMethod]
         public void Lock_ReclaimLock()
         {
             var c = ClientTest.MakeClient();
@@ -338,6 +303,43 @@ namespace Consul.Test
             c.Session.Destroy(sess);
         }
 
+        [TestMethod]
+        public void Lock_SemaphoreConflict()
+        {
+            var c = ClientTest.MakeClient();
+            var sema = c.Semaphore("test/lock", 2);
+
+            sema.Acquire(CancellationToken.None);
+
+            Assert.IsTrue(sema.IsHeld);
+
+            var lockKey = c.CreateLock("test/lock/.lock");
+            try
+            {
+                lockKey.Acquire(CancellationToken.None);
+            }
+            catch (LockConflictException ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.ToString());
+            }
+            try
+            {
+                lockKey.Destroy();
+            }
+            catch (LockConflictException ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(LockConflictException));
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.ToString());
+            }
+            sema.Release();
+        }
         [TestMethod]
         public void Lock_ForceInvalidate()
         {
