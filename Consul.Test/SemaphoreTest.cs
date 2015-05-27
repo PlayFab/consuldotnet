@@ -112,6 +112,29 @@ namespace Consul.Test
             Assert.IsFalse(s.IsHeld);
         }
 
+        [TestMethod]
+        public void Semaphore_AcquireWaitRelease()
+        {
+            const string Name = "XService";
+            const string Prefix = Name + "/lock";
+            const int Limit = 1;
+            var _semaphoreOptions = new SemaphoreOptions(Prefix, Limit) { SessionName = Name + "_Session", SessionTTL = TimeSpan.FromSeconds(10) };
+            var c = ClientTest.MakeClient();
+
+            var s = c.Semaphore(_semaphoreOptions);
+
+            s.Acquire(CancellationToken.None);
+
+            Assert.IsTrue(s.IsHeld);
+            Thread.Sleep(30000);
+            Assert.IsTrue(s.IsHeld);
+
+            Assert.IsTrue(s.IsHeld);
+
+            s.Release();
+
+            Assert.IsFalse(s.IsHeld);
+        }
 
         [TestMethod]
         public void Semaphore_Contend()
