@@ -115,10 +115,12 @@ namespace Consul.Test
         [TestMethod]
         public void Semaphore_AcquireWaitRelease()
         {
-            const string Name = "XService";
-            const string Prefix = Name + "/lock";
             const int Limit = 1;
-            var _semaphoreOptions = new SemaphoreOptions(Prefix, Limit) { SessionName = Name + "_Session", SessionTTL = TimeSpan.FromSeconds(10) };
+            var _semaphoreOptions = new SemaphoreOptions("test/semaphore", Limit)
+            {
+                SessionName = "test_semaphoresession",
+                SessionTTL = TimeSpan.FromSeconds(10)
+            };
             var c = ClientTest.MakeClient();
 
             var s = c.Semaphore(_semaphoreOptions);
@@ -126,14 +128,16 @@ namespace Consul.Test
             s.Acquire(CancellationToken.None);
 
             Assert.IsTrue(s.IsHeld);
-            Thread.Sleep(30000);
-            Assert.IsTrue(s.IsHeld);
 
+            // Wait for multiple renewal cycles to ensure the semaphore session stays renewed.
+            Task.Delay(TimeSpan.FromSeconds(60)).Wait();
             Assert.IsTrue(s.IsHeld);
 
             s.Release();
 
             Assert.IsFalse(s.IsHeld);
+
+            s.Destroy();
         }
 
         [TestMethod]
