@@ -93,7 +93,32 @@ namespace Consul.Test
             }
             Assert.IsNull(c.KV.Get("test/ephemerallock").Response);
         }
+        [TestMethod]
+        public void Lock_AcquireWaitRelease()
+        {
+            var _lockOptions = new LockOptions("test/lock")
+            {
+                SessionName = "test_locksession",
+                SessionTTL = TimeSpan.FromSeconds(10)
+            };
+            var c = ClientTest.MakeClient();
 
+            var l = c.CreateLock(_lockOptions);
+
+            l.Acquire(CancellationToken.None);
+
+            Assert.IsTrue(l.IsHeld);
+
+            // Wait for multiple renewal cycles to ensure the semaphore session stays renewed.
+            Task.Delay(TimeSpan.FromSeconds(60)).Wait();
+            Assert.IsTrue(l.IsHeld);
+
+            l.Release();
+
+            Assert.IsFalse(l.IsHeld);
+
+            l.Destroy();
+        }
         [TestMethod]
         public void Lock_Contend()
         {
