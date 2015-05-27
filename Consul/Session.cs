@@ -325,7 +325,7 @@ namespace Consul
                         try
                         {
                             var res = Renew(id, q);
-                            if (res.Response != null)
+                            if (res.Response == null)
                             {
                                 lastException = new TaskCanceledException("Session no longer exists");
                             }
