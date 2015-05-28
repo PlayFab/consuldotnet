@@ -711,7 +711,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="action"></param>
@@ -729,7 +729,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="action"></param>
@@ -747,7 +747,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="ct"></param>
@@ -766,7 +766,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="ct"></param>
