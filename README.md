@@ -36,7 +36,7 @@ using Consul;
 Write a function to talk to the KV store:
 
 ```csharp
-public string HelloConsul()
+public static string HelloConsul()
 {
     var client = new Client();
 
