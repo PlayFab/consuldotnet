@@ -115,15 +115,14 @@ namespace Consul.Test
         [TestMethod]
         public void Semaphore_AcquireWaitRelease()
         {
-            const int Limit = 1;
-            var _semaphoreOptions = new SemaphoreOptions("test/semaphore", Limit)
+            var semaphoreOptions = new SemaphoreOptions("test/semaphore", 1)
             {
                 SessionName = "test_semaphoresession",
                 SessionTTL = TimeSpan.FromSeconds(10)
             };
             var c = ClientTest.MakeClient();
 
-            var s = c.Semaphore(_semaphoreOptions);
+            var s = c.Semaphore(semaphoreOptions);
 
             s.Acquire(CancellationToken.None);
 
