@@ -86,7 +86,7 @@ namespace Consul.Test
         {
             var c = ClientTest.MakeClient();
             var s = c.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
-            using (var l = c.AcquireLock(new LockOptions("test/ephemerallock") { Session = s.Response }))
+            using (var l = c.AcquireLock(new LockOptions("test/ephemerallock") { Session = s.Response }, CancellationToken.None))
             {
                 Assert.IsTrue(l.IsHeld);
                 c.Session.Destroy(s.Response);
@@ -96,14 +96,14 @@ namespace Consul.Test
         [TestMethod]
         public void Lock_AcquireWaitRelease()
         {
-            var _lockOptions = new LockOptions("test/lock")
+            var lockOptions = new LockOptions("test/lock")
             {
                 SessionName = "test_locksession",
                 SessionTTL = TimeSpan.FromSeconds(10)
             };
             var c = ClientTest.MakeClient();
 
-            var l = c.CreateLock(_lockOptions);
+            var l = c.CreateLock(lockOptions);
 
             l.Acquire(CancellationToken.None);
 
@@ -243,7 +243,40 @@ namespace Consul.Test
                 });
             }));
         }
-
+        [TestMethod]
+        public void Lock_AbortAction()
+        {
+            var c = ClientTest.MakeClient();
+            using (var cts = new CancellationTokenSource())
+            {
+                try
+                {
+                    string ls = c.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) }).Response;
+                    c.Session.RenewPeriodic(TimeSpan.FromSeconds(10), ls, cts.Token);
+                    Task.Delay(1000).ContinueWith((t1) => { c.Session.Destroy(ls); });
+                    c.ExecuteAbortableLocked(new LockOptions("test/lock") { Session = ls }, CancellationToken.None, () =>
+                    {
+                        Thread.Sleep(60000);
+                    });
+                }
+                catch (TimeoutException ex)
+                {
+                    Assert.IsInstanceOfType(ex, typeof(TimeoutException));
+                }
+                cts.Cancel();
+            }
+            using (var cts = new CancellationTokenSource())
+            {
+                string ls = c.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) }).Response;
+                c.Session.RenewPeriodic(TimeSpan.FromSeconds(10), ls, cts.Token);
+                c.ExecuteAbortableLocked(new LockOptions("test/lock") { Session = ls }, CancellationToken.None, () =>
+                {
+                    Thread.Sleep(1000);
+                    Assert.IsTrue(true);
+                });
+                cts.Cancel();
+            }
+        }
         [TestMethod]
         public void Lock_ReclaimLock()
         {

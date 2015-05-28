@@ -496,11 +496,11 @@ namespace Consul
     public class DisposableLock : Lock, IDisposable
     {
         public CancellationToken CancellationToken { get; private set; }
-        internal DisposableLock(Client client, LockOptions opts)
+        internal DisposableLock(Client client, LockOptions opts, CancellationToken ct)
             : base(client)
         {
             Opts = opts;
-            CancellationToken = Acquire();
+            CancellationToken = Acquire(ct);
         }
 
         /// <summary>
@@ -573,6 +573,7 @@ namespace Consul
             }
             return new Lock(this) { Opts = opts };
         }
+
         /// <summary>
         /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
         /// </summary>
@@ -584,53 +585,216 @@ namespace Consul
             {
                 throw new ArgumentNullException("key");
             }
-            return AcquireLock(new LockOptions(key));
+            return AcquireLock(new LockOptions(key), CancellationToken.None);
         }
+
         /// <summary>
         /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
         /// </summary>
-        /// <param name="opts"></param>
-        /// <returns></returns>
-        public DisposableLock AcquireLock(LockOptions opts)
-        {
-            return new DisposableLock(this, opts);
-        }
-        /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
-        /// </summary>
         /// <param name="key"></param>
-        /// <param name="a"></param>
+        /// <param name="ct"></param>
         /// <returns></returns>
-        public void ExecuteLocked(string key, Action a)
+        public DisposableLock AcquireLock(string key, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(key))
             {
                 throw new ArgumentNullException("key");
             }
-            ExecuteLocked(new LockOptions(key), a);
+            return AcquireLock(new LockOptions(key), ct);
         }
+
+
         /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
         /// </summary>
         /// <param name="opts"></param>
-        /// <param name="a"></param>
+        /// <param name="ct"></param>
         /// <returns></returns>
-        public void ExecuteLocked(LockOptions opts, Action a)
+        public DisposableLock AcquireLock(LockOptions opts)
         {
             if (opts == null)
             {
                 throw new ArgumentNullException("opts");
             }
-            if (a == null)
+            return new DisposableLock(this, opts, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public DisposableLock AcquireLock(LockOptions opts, CancellationToken ct)
+        {
+            if (opts == null)
             {
-                throw new ArgumentNullException("a");
+                throw new ArgumentNullException("opts");
             }
-            using (var l = new DisposableLock(this, opts))
+            return new DisposableLock(this, opts, ct);
+        }
+
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public void ExecuteLocked(string key, Action action)
+        {
+            if (string.IsNullOrEmpty(key))
             {
-                if (l.IsHeld)
+                throw new ArgumentNullException("key");
+            }
+            ExecuteLocked(new LockOptions(key), CancellationToken.None, action);
+        }
+
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public void ExecuteLocked(LockOptions opts, Action action)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            ExecuteLocked(opts, CancellationToken.None, action);
+        }
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public void ExecuteLocked(string key, CancellationToken ct, Action action)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            ExecuteLocked(new LockOptions(key), ct, action);
+        }
+
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        public void ExecuteLocked(LockOptions opts, CancellationToken ct, Action action)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            using (var l = AcquireLock(opts, ct))
+            {
+                if (!l.IsHeld)
                 {
-                    a();
+                    throw new LockNotHeldException("Could not obtain the lock");
                 }
+                action();
+            }
+        }
+
+        /// <summary>
+        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="action"></param>
+        public void ExecuteAbortableLocked(string key, Action action)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            ExecuteAbortableLocked(new LockOptions(key), CancellationToken.None, action);
+        }
+
+        /// <summary>
+        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="action"></param>
+        public void ExecuteAbortableLocked(LockOptions opts, Action action)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            ExecuteAbortableLocked(opts, CancellationToken.None, action);
+        }
+
+        /// <summary>
+        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        public void ExecuteAbortableLocked(string key, CancellationToken ct, Action action)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            ExecuteAbortableLocked(new LockOptions(key), ct, action);
+        }
+
+        /// <summary>
+        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        public void ExecuteAbortableLocked(LockOptions opts, CancellationToken ct, Action action)
+        {
+            using (var l = AcquireLock(opts, ct))
+            {
+                if (!l.IsHeld)
+                {
+                    throw new LockNotHeldException("Could not obtain the lock");
+                }
+                var thread = new Thread(() => { action(); });
+                thread.Start();
+                while (!l.CancellationToken.IsCancellationRequested && thread.IsAlive) { }
+                if (!thread.IsAlive)
+                {
+                    return;
+                }
+                var delayTask = Task.Delay(15000);
+                while (!delayTask.IsCompleted && thread.IsAlive) { }
+                if (!thread.IsAlive)
+                {
+                    return;
+                }
+                // Now entering the "zone of danger"
+                thread.Abort();
+                throw new TimeoutException("Thread was aborted because the lock was lost and the action did not complete within the lock delay");
             }
         }
     }
