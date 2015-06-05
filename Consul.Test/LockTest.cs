@@ -109,7 +109,7 @@ namespace Consul.Test
 
             Assert.IsTrue(l.IsHeld);
 
-            // Wait for multiple renewal cycles to ensure the semaphore session stays renewed.
+            // Wait for multiple renewal cycles to ensure the lock session stays renewed.
             Task.Delay(TimeSpan.FromSeconds(60)).Wait();
             Assert.IsTrue(l.IsHeld);
 
@@ -141,6 +141,7 @@ namespace Consul.Test
                     {
                         Debug.WriteLine("Contender {0} acquired", v);
                     }
+                    Task.Delay(1000).Wait();
                     lockKey.Release();
                 });
                 acquireTasks[i].Start();
@@ -154,6 +155,40 @@ namespace Consul.Test
             }
         }
 
+        [TestMethod]
+        public void Lock_Contend_LockDelay()
+        {
+            var c = ClientTest.MakeClient();
+            const string key = "test/lock";
+
+            var acquired = new bool[3];
+
+            var acquireTasks = new Task[3];
+
+            for (var i = 0; i < 3; i++)
+            {
+                var v = i;
+                acquireTasks[i] = new Task(() =>
+                {
+                    var lockKey = c.CreateLock(key);
+                    lockKey.Acquire(CancellationToken.None);
+                    acquired[v] = lockKey.IsHeld;
+                    if (lockKey.IsHeld)
+                    {
+                        Debug.WriteLine("Contender {0} acquired", v);
+                    }
+                    c.Session.Destroy(lockKey.LockSession);
+                });
+                acquireTasks[i].Start();
+            }
+
+            Task.WaitAll(acquireTasks, (int)(4 * Lock.DefaultLockWaitTime.TotalMilliseconds));
+
+            foreach (var item in acquired)
+            {
+                Assert.IsTrue(item);
+            }
+        }
         [TestMethod]
         public void Lock_Destroy()
         {

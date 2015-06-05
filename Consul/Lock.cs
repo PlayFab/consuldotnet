@@ -308,13 +308,20 @@ namespace Consul
                             _cts.Cancel();
                             throw new TaskCanceledException();
                         }
-                        try
+
+                        // Failed to get the lock, determine why by querying for the key again
+                        pair = _client.KV.Get(Opts.Key);
+
+                        // If the session is not null, this means that a wait can safely happen using a long poll
+                        if (pair.Response != null && pair.Response.Session != null)
                         {
-                            Task.Delay(DefaultLockRetryTime, ct).Wait(ct);
+                            qOpts.WaitIndex = pair.LastIndex;
+                            continue;
                         }
-                        catch (TaskCanceledException)
-                        {
-                        }
+
+                        // If the session is null and the lock failed to acquire, then it means a lock-delay is in effect and a timed wait must be used to avoid a hot loop.
+                        try { Task.Delay(DefaultLockRetryTime, ct).Wait(ct); }
+                        catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
                     }
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
