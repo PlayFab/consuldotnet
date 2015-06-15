@@ -212,7 +212,7 @@ namespace Consul.Test
 
             Task.Run(() =>
             {
-                Thread.Sleep(100);
+                Task.Delay(1100).Wait();
                 var p = new KVPair(key) { Flags = 42, Value = value };
                 var putRes = kv.Put(p);
                 Assert.IsTrue(putRes.Response);

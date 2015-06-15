@@ -308,13 +308,21 @@ namespace Consul
                             _cts.Cancel();
                             throw new TaskCanceledException();
                         }
-                        try
+
+                        // Failed to get the lock, determine why by querying for the key again
+                        qOpts.WaitIndex = 0;
+                        pair = _client.KV.Get(Opts.Key, qOpts);
+
+                        // If the session is not null, this means that a wait can safely happen using a long poll
+                        if (pair.Response != null && pair.Response.Session != null)
                         {
-                            Task.Delay(DefaultLockRetryTime, ct).Wait(ct);
+                            qOpts.WaitIndex = pair.LastIndex;
+                            continue;
                         }
-                        catch (TaskCanceledException)
-                        {
-                        }
+
+                        // If the session is null and the lock failed to acquire, then it means a lock-delay is in effect and a timed wait must be used to avoid a hot loop.
+                        try { Task.Delay(DefaultLockRetryTime, ct).Wait(ct); }
+                        catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
                     }
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
@@ -711,7 +719,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="action"></param>
@@ -729,7 +737,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="action"></param>
@@ -747,7 +755,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="ct"></param>
@@ -766,7 +774,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Do not use except unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
+        /// Do not use unless you need this. Executes an action in a new thread under a lock, ABORTING THE THREAD if the lock is lost and the action does not complete within the lock-delay.
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="ct"></param>
