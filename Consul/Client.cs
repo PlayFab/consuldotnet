@@ -365,6 +365,8 @@ namespace Consul
             var stopwatch = Stopwatch.StartNew();
 
             var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
+            req.Timeout = _requestTimeout;
+            req.ReadWriteTimeout = _requestTimeout;
             req.Method = Method.Method;
             req.Accept = "application/json";
             req.KeepAlive = true;
@@ -478,6 +480,8 @@ namespace Consul
         {
             var stopwatch = Stopwatch.StartNew();
             var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
+            req.Timeout = _requestTimeout;
+            req.ReadWriteTimeout = _requestTimeout;
             req.Method = Method.Method;
             req.Accept = "application/json";
             req.KeepAlive = true;
@@ -597,6 +601,9 @@ namespace Consul
     /// </summary>
     public abstract class Request
     {
+        // 15 minute HTTP timeout
+        protected const int _requestTimeout = 900000;
+
         public Config Config { get; set; }
         public HttpMethod Method { get; set; }
         public Uri Url { get; set; }

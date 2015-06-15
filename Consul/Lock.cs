@@ -310,7 +310,8 @@ namespace Consul
                         }
 
                         // Failed to get the lock, determine why by querying for the key again
-                        pair = _client.KV.Get(Opts.Key);
+                        qOpts.WaitIndex = 0;
+                        pair = _client.KV.Get(Opts.Key, qOpts);
 
                         // If the session is not null, this means that a wait can safely happen using a long poll
                         if (pair.Response != null && pair.Response.Session != null)

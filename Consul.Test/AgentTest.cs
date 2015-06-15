@@ -233,7 +233,7 @@ namespace Consul.Test
         }
 
         [TestMethod]
-        public void Agent_Checks_serviceBound()
+        public void Agent_Checks_ServiceBound()
         {
             var c = ClientTest.MakeClient();
 
