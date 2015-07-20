@@ -54,13 +54,14 @@ namespace Consul.Test
             var reg = new AgentServiceRegistration()
             {
                 Name = "foo",
-                Tags = new[] {"bar", "baz"},
+                Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Check = new AgentServiceCheck
                 {
                     TTL = TimeSpan.FromSeconds(15)
                 }
             };
+
             c.Agent.ServiceRegister(reg);
 
             var services = c.Agent.Services();
@@ -81,7 +82,7 @@ namespace Consul.Test
             var reg = new AgentServiceRegistration()
             {
                 Name = "foo",
-                Tags = new[] {"bar", "baz"},
+                Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Check = new AgentServiceCheck
                 {
@@ -145,7 +146,7 @@ namespace Consul.Test
             var reg = new AgentServiceRegistration()
             {
                 Name = "foo",
-                Tags = new[] {"bar", "baz"},
+                Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Checks = new[]
                 {
