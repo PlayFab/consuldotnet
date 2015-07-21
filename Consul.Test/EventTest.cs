@@ -27,23 +27,23 @@ namespace Consul.Test
         [TestMethod]
         public void Event_FireList()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var p = new UserEvent()
+            var userevent = new UserEvent()
             {
                 Name = "foo"
             };
 
-            var res = c.Event.Fire(p);
+            var res = client.Event.Fire(userevent);
 
             Thread.Sleep(100);
             Assert.AreNotEqual(0, res.RequestTime);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
-            var events = c.Event.List();
+            var events = client.Event.List();
             Assert.AreNotEqual(0, events.Response.Length);
             Assert.AreEqual(res.Response, events.Response[events.Response.Length - 1].ID);
-            Assert.AreEqual(c.Event.IDToIndex(res.Response), events.LastIndex);
+            Assert.AreEqual(client.Event.IDToIndex(res.Response), events.LastIndex);
         }
     }
 }

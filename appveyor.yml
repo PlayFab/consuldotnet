@@ -1,0 +1,47 @@
+version: 0.5.2.{build}
+skip_tags: true
+configuration: Release
+platform: Any CPU
+clone_depth: 1
+clone_folder: C:\consul
+assembly_info:
+  patch: true
+  file: '**\AssemblyInfo.*'
+  assembly_version: '{version}'
+  assembly_file_version: '{version}'
+  assembly_informational_version: '{version}'
+install:
+- ps: >-
+    cinst 7zip
+
+    (new-object net.webclient).DownloadFile('https://dl.bintray.com/mitchellh/consul/0.5.2_windows_386.zip', 'C:\consul\0.5.2_windows_386.zip')
+
+    7z x -y C:\consul\0.5.2_windows_386.zip -oC:\consul\Consul.Test
+before_build:
+- nuget restore
+build:
+  publish_nuget: true
+  publish_nuget_symbols: true
+  verbosity: normal
+before_test:
+- ps: >-
+    $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -config-file C:\consul\Consul.Test\test_config.json -advertise 127.0.0.1 -bind 127.0.0.1}
+
+    $running = $false
+
+    do {
+      Receive-Job -Job $consulJob
+      if ($running -and $consulJob.State -ne "Running") {break}
+      if ($consulJob.State -eq "Running") {
+        $running = $true
+        try {$result = convertfrom-json (invoke-webrequest -UseBasicParsing -TimeoutSec 1 -Uri http://localhost:8500/v1/status/leader).Content; sleep 1} catch {write-output "Waiting for Consul to come up..."}
+      }
+    } until (![string]::IsNullOrEmpty($result))
+
+    Receive-Job $consulJob
+after_test:
+- ps: >-
+    Get-Job | Stop-Job
+
+    Get-Job | Receive-Job
+deploy: off

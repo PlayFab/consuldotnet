@@ -26,61 +26,59 @@ namespace Consul.Test
         [TestMethod]
         public void Catalog_Datacenters()
         {
-            var c = ClientTest.MakeClient();
-            var res = c.Catalog.Datacenters();
+            var client = new Client();
+            var datacenterList = client.Catalog.Datacenters();
 
-            Assert.AreNotEqual(0, res.Response.Length);
+            Assert.AreNotEqual(0, datacenterList.Response.Length);
         }
 
         [TestMethod]
         public void Catalog_Nodes()
         {
-            var c = ClientTest.MakeClient();
-            var res = c.Catalog.Nodes();
+            var client = new Client();
+            var nodeList = client.Catalog.Nodes();
 
 
-            Assert.AreNotEqual(0, res.LastIndex);
-            Assert.AreNotEqual(0, res.Response.Length);
+            Assert.AreNotEqual(0, nodeList.LastIndex);
+            Assert.AreNotEqual(0, nodeList.Response.Length);
         }
 
         [TestMethod]
         public void Catalog_Services()
         {
-            var c = ClientTest.MakeClient();
-            var res = c.Catalog.Services();
+            var client = new Client();
+            var servicesList = client.Catalog.Services();
 
 
-            Assert.AreNotEqual(0, res.LastIndex);
-            Assert.AreNotEqual(0, res.Response.Count);
+            Assert.AreNotEqual(0, servicesList.LastIndex);
+            Assert.AreNotEqual(0, servicesList.Response.Count);
         }
 
         [TestMethod]
         public void Catalog_Service()
         {
-            var c = ClientTest.MakeClient();
-            var res = c.Catalog.Service("consul");
+            var client = new Client();
+            var serviceList = client.Catalog.Service("consul");
 
-
-            Assert.AreNotEqual(0, res.LastIndex);
-            Assert.AreNotEqual(0, res.Response.Length);
+            Assert.AreNotEqual(0, serviceList.LastIndex);
+            Assert.AreNotEqual(0, serviceList.Response.Length);
         }
 
         [TestMethod]
         public void Catalog_Node()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var res = c.Catalog.Node(c.Agent.NodeName);
+            var node = client.Catalog.Node(client.Agent.NodeName);
 
-
-            Assert.AreNotEqual(0, res.LastIndex);
-            Assert.IsNotNull(res.Response.Services);
+            Assert.AreNotEqual(0, node.LastIndex);
+            Assert.IsNotNull(node.Response.Services);
         }
 
         [TestMethod]
         public void Catalog_RegistrationDeregistration()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
             var service = new AgentService()
             {
                 ID = "redis1",
@@ -99,7 +97,7 @@ namespace Consul.Test
                 ServiceID = "redis1"
             };
 
-            var reg = new CatalogRegistration()
+            var registration = new CatalogRegistration()
             {
                 Datacenter = "dc1",
                 Node = "foobar",
@@ -108,12 +106,12 @@ namespace Consul.Test
                 Check = check
             };
 
-            c.Catalog.Register(reg);
+            client.Catalog.Register(registration);
 
-            var node = c.Catalog.Node("foobar");
+            var node = client.Catalog.Node("foobar");
             Assert.IsTrue(node.Response.Services.ContainsKey("redis1"));
 
-            var health = c.Health.Node("foobar");
+            var health = client.Health.Node("foobar");
             Assert.AreEqual("service:redis1", health.Response[0].CheckID);
 
             var dereg = new CatalogDeregistration()
@@ -124,9 +122,9 @@ namespace Consul.Test
                 CheckID = "service:redis1"
             };
 
-            c.Catalog.Deregister(dereg);
+            client.Catalog.Deregister(dereg);
 
-            health = c.Health.Node("foobar");
+            health = client.Health.Node("foobar");
             Assert.AreEqual(0, health.Response.Length);
 
             dereg = new CatalogDeregistration()
@@ -136,9 +134,9 @@ namespace Consul.Test
                 Address = "192.168.10.10"
             };
 
-            c.Catalog.Deregister(dereg);
+            client.Catalog.Deregister(dereg);
 
-            node = c.Catalog.Node("foobar");
+            node = client.Catalog.Node("foobar");
             Assert.IsNull(node.Response);
         }
     }

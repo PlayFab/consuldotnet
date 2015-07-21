@@ -27,10 +27,10 @@ namespace Consul.Test
         [TestMethod]
         public void Health_Node()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var info = c.Agent.Self();
-            var checks = c.Health.Node((string) info.Response["Config"]["NodeName"]);
+            var info = client.Agent.Self();
+            var checks = client.Health.Node((string) info.Response["Config"]["NodeName"]);
 
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
@@ -39,9 +39,9 @@ namespace Consul.Test
         [TestMethod]
         public void Health_Checks()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var reg = new AgentServiceRegistration()
+            var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
                 Tags = new[] {"bar", "baz"},
@@ -53,23 +53,23 @@ namespace Consul.Test
             };
             try
             {
-                c.Agent.ServiceRegister(reg);
-                var checks = c.Health.Checks("foo");
+                client.Agent.ServiceRegister(registration);
+                var checks = client.Health.Checks("foo");
                 Assert.AreNotEqual(0, checks.LastIndex);
                 Assert.AreNotEqual(0, checks.Response.Length);
             }
             finally
             {
-                c.Agent.ServiceDeregister("foo");
+                client.Agent.ServiceDeregister("foo");
             }
         }
 
         [TestMethod]
         public void Health_Service()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var checks = c.Health.Service("consul", "", true);
+            var checks = client.Health.Service("consul", "", true);
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
         }
@@ -77,9 +77,9 @@ namespace Consul.Test
         [TestMethod]
         public void Health_State()
         {
-            var c = ClientTest.MakeClient();
+            var client = new Client();
 
-            var checks = c.Health.State(CheckStatus.Any);
+            var checks = client.Health.State(CheckStatus.Any);
             Assert.AreNotEqual(0, checks.LastIndex);
             Assert.AreNotEqual(0, checks.Response.Length);
         }
