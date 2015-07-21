@@ -118,12 +118,13 @@ namespace Consul.Test
             var client = new Client();
 
             const string keyName = "test/lock/contend";
+            const int contenderPool = 3;
 
-            var acquired = new bool[3];
+            var acquired = new bool[contenderPool];
 
-            var acquireTasks = new Task[3];
+            var acquireTasks = new Task[contenderPool];
 
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < contenderPool; i++)
             {
                 var v = i;
                 acquireTasks[i] = Task.Run(() =>
@@ -140,10 +141,12 @@ namespace Consul.Test
             }
 
             Task.WaitAll(acquireTasks, (int)(3 * Lock.DefaultLockRetryTime.TotalMilliseconds));
-
-            foreach (var item in acquired)
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i], "Contender " + i.ToString() + "did not acquire the lock");
+                }
             }
         }
 
