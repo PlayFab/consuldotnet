@@ -127,7 +127,7 @@ namespace Consul.Test
             for (var i = 0; i < contenderPool; i++)
             {
                 var v = i;
-                acquireTasks[i] = Task.Run(() =>
+                acquireTasks[v] = Task.Run(() =>
                 {
                     var lockKey = client.CreateLock(keyName);
                     lockKey.Acquire(CancellationToken.None);
@@ -140,7 +140,7 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(3 * Lock.DefaultLockRetryTime.TotalMilliseconds));
+            Task.WaitAll(acquireTasks, (int)(contenderPool * Lock.DefaultLockRetryTime.TotalMilliseconds));
             for (var i = 0; i < contenderPool; i++)
             {
                 if (acquired[i])
