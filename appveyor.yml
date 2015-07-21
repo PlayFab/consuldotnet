@@ -18,12 +18,12 @@ install:
     choco install 7zip.commandline
 
     $consul_zip = "$($env:CONSUL_VERSION)_windows_386.zip"
-
-    if (!(Test-Path "C:\consul\$consul_zip")) {(new-object net.webclient).DownloadFile("https://dl.bintray.com/mitchellh/consul/$consul_zip", "C:\consul\$consul_zip");7z x -y C:\consul\$consul_zip -oC:\consul\Consul.Test}
+    if (!(Test-Path "C:\consul_install")) {mkdir C:\consul_install}
+    if (!(Test-Path "C:\consul_install\$consul_zip")) {(new-object net.webclient).DownloadFile("https://dl.bintray.com/mitchellh/consul/$consul_zip", "C:\consul_install\$consul_zip");7z x -y C:\consul_install\$consul_zip -oC:\consul\Consul.Test}
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
-- C:\consul\*_windows_386.zip
+- C:\consul_install
 nuget:
   disable_publish_on_pr: true
 before_build:
