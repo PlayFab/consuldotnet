@@ -21,7 +21,9 @@ install:
 
     if (!(Test-Path "C:\consul_install")) {mkdir C:\consul_install}
 
-    if (!(Test-Path "C:\consul_install\$consul_zip")) {(new-object net.webclient).DownloadFile("https://dl.bintray.com/mitchellh/consul/$consul_zip", "C:\consul_install\$consul_zip");7z x -y C:\consul_install\$consul_zip -oC:\consul\Consul.Test}
+    if (!(Test-Path "C:\consul_install\$consul_zip")) {(new-object net.webclient).DownloadFile("https://dl.bintray.com/mitchellh/consul/$consul_zip", "C:\consul_install\$consul_zip")}
+
+    7z x -y C:\consul_install\$consul_zip -oC:\consul\Consul.Test
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
