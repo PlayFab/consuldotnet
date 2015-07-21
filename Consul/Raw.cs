@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Consul
@@ -31,16 +32,27 @@ namespace Consul
         {
             Client = client;
         }
-
         /// <summary>
         /// Query is used to do a GET request against an endpoint and deserialize the response into an interface using standard Consul conventions.
         /// </summary>
         /// <param name="endpoint">The URL endpoint to access</param>
         /// <param name="q">Custom query options</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public  QueryResult<dynamic> Query(string endpoint, QueryOptions q)
+        public QueryResult<dynamic> Query(string endpoint, QueryOptions q)
         {
-            return Client.CreateQueryRequest<dynamic>(endpoint, q).Execute();
+            return Query(endpoint, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Query is used to do a GET request against an endpoint and deserialize the response into an interface using standard Consul conventions.
+        /// </summary>
+        /// <param name="endpoint">The URL endpoint to access</param>
+        /// <param name="q">Custom query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>The data returned by the custom endpoint</returns>
+        public  QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct)
+        {
+            return Client.CreateQueryRequest<dynamic>(endpoint, q).Execute(ct);
         }
 
         /// <summary>

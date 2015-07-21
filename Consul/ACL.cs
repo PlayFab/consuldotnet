@@ -18,6 +18,7 @@
 
 using System;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace Consul
 {
@@ -267,9 +268,8 @@ namespace Consul
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
         public QueryResult<ACLEntry> Info(string id)
         {
-            return Info(id, QueryOptions.Empty);
+            return Info(id, QueryOptions.Empty, CancellationToken.None);
         }
-
         /// <summary>
         /// Info is used to query for information about an ACL token
         /// </summary>
@@ -278,7 +278,18 @@ namespace Consul
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
         public QueryResult<ACLEntry> Info(string id, QueryOptions q)
         {
-            var res = _client.CreateQueryRequest<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute();
+            return Info(id, q, CancellationToken.None);
+        }
+        /// <summary>
+        /// Info is used to query for information about an ACL token
+        /// </summary>
+        /// <param name="id">The ACL ID to request information about</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
+        public QueryResult<ACLEntry> Info(string id, QueryOptions q, CancellationToken ct)
+        {
+            var res = _client.CreateQueryRequest<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
             var ret = new QueryResult<ACLEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -299,9 +310,8 @@ namespace Consul
         /// <returns>A write result containing the list of all ACLs</returns>
         public QueryResult<ACLEntry[]> List()
         {
-            return List(QueryOptions.Empty);
+            return List(QueryOptions.Empty, CancellationToken.None);
         }
-
         /// <summary>
         /// List is used to get all the ACL tokens
         /// </summary>
@@ -309,7 +319,17 @@ namespace Consul
         /// <returns>A write result containing the list of all ACLs</returns>
         public QueryResult<ACLEntry[]> List(QueryOptions q)
         {
-            return _client.CreateQueryRequest<ACLEntry[]>("/v1/acl/list", q).Execute();
+            return List(q, CancellationToken.None);
+        }
+        /// <summary>
+        /// List is used to get all the ACL tokens
+        /// </summary>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A write result containing the list of all ACLs</returns>
+        public QueryResult<ACLEntry[]> List(QueryOptions q, CancellationToken ct)
+        {
+            return _client.CreateQueryRequest<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
         }
     }
 

@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading;
 namespace Consul
 {
     /// <summary>
@@ -62,19 +63,28 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Node(string node)
         {
-            return Node(node, QueryOptions.Empty);
+            return Node(node, QueryOptions.Empty, CancellationToken.None);
         }
-
+        /// <summary>
+        /// Node is used to query for checks belonging to a given node
+        /// </summary>
+        /// <param name="node">The node name</param>
+        /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
+        public QueryResult<HealthCheck[]> Node(string node, QueryOptions q)
+        {
+            return Node(node, q, CancellationToken.None);
+        }
         /// <summary>
         /// Node is used to query for checks belonging to a given node
         /// </summary>
         /// <param name="node">The node name</param>
         /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public QueryResult<HealthCheck[]> Node(string node, QueryOptions q)
+        public QueryResult<HealthCheck[]> Node(string node, QueryOptions q, CancellationToken ct)
         {
             return
-                _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute();
+                _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
         }
 
         /// <summary>
@@ -84,19 +94,28 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Checks(string service)
         {
-            return Checks(service, QueryOptions.Empty);
+            return Checks(service, QueryOptions.Empty, CancellationToken.None);
         }
-
+        /// <summary>
+        /// Checks is used to return the checks associated with a service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
+        public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q)
+        {
+            return Checks(service, q, CancellationToken.None);
+        }
         /// <summary>
         /// Checks is used to return the checks associated with a service
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q)
+        public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q, CancellationToken ct)
         {
             return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
-                        .Execute();
+                        .Execute(ct);
         }
 
         /// <summary>
@@ -106,7 +125,7 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service)
         {
-            return Service(service, string.Empty, false, QueryOptions.Empty);
+            return Service(service, string.Empty, false, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -117,7 +136,7 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID and tag, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service, string tag)
         {
-            return Service(service, tag, false, QueryOptions.Empty);
+            return Service(service, tag, false, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -129,9 +148,20 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly)
         {
-            return Service(service, tag, passingOnly, QueryOptions.Empty);
+            return Service(service, tag, passingOnly, QueryOptions.Empty, CancellationToken.None);
         }
-
+        /// <summary>
+        /// Service is used to query health information along with service info for a given service. It can optionally do server-side filtering on a tag or nodes with passing health checks only.
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="tag">The service member tag</param>
+        /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
+        /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
+        public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly,
+            QueryOptions q)
+        {
+            return Service(service, tag, passingOnly, q, CancellationToken.None);
+        }
         /// <summary>
         /// Service is used to query health information along with service info for a given service. It can optionally do server-side filtering on a tag or nodes with passing health checks only.
         /// </summary>
@@ -139,9 +169,10 @@ namespace Consul
         /// <param name="tag">The service member tag</param>
         /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
         /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly,
-            QueryOptions q)
+            QueryOptions q, CancellationToken ct)
         {
             var req = _client.CreateQueryRequest<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
@@ -152,7 +183,7 @@ namespace Consul
             {
                 req.Params["passing"] = "1";
             }
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -162,7 +193,17 @@ namespace Consul
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
         public QueryResult<HealthCheck[]> State(CheckStatus status)
         {
-            return State(status, QueryOptions.Empty);
+            return State(status, QueryOptions.Empty, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// </summary>
+        /// <param name="status">The health status to filter for</param>
+        /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
+        public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q)
+        {
+            return State(status, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -170,11 +211,12 @@ namespace Consul
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q)
+        public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q, CancellationToken ct)
         {
             return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
-                        .Execute();
+                        .Execute(ct);
         }
     }
 

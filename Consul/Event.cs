@@ -19,6 +19,7 @@
 using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace Consul
 {
@@ -109,7 +110,7 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List(string name)
         {
-            return List(name, QueryOptions.Empty);
+            return List(name, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -120,12 +121,24 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List(string name, QueryOptions q)
         {
+            return List(name, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
+        /// </summary>
+        /// <param name="name">The name of the event to filter for</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>An array of events</returns>
+        public QueryResult<UserEvent[]> List(string name, QueryOptions q, CancellationToken ct)
+        {
             var req = _client.CreateQueryRequest<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;
             }
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
