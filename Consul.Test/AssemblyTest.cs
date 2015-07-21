@@ -16,10 +16,10 @@ namespace Consul.Test
         [TestMethod]
         public void Assembly_IsStrongNamed()
         {
-            Type t = typeof(Consul.Client);
-            string s = t.Assembly.FullName.ToString();
-            Trace.WriteLine(s);
-            Assert.IsTrue(t.Assembly.FullName.Contains("PublicKeyToken"));
+            Type type = typeof(Consul.Client);
+            string name = type.Assembly.FullName.ToString();
+            Trace.WriteLine(name);
+            Assert.IsTrue(type.Assembly.FullName.Contains("PublicKeyToken"));
         }
     }
 }

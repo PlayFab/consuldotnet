@@ -26,17 +26,17 @@ namespace Consul.Test
         [TestMethod]
         public void Status_Leader()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Status.Leader();
-            Assert.IsFalse(string.IsNullOrEmpty(s));
+            var client = new Client();
+            var leader = client.Status.Leader();
+            Assert.IsFalse(string.IsNullOrEmpty(leader));
         }
 
         [TestMethod]
         public void Status_Peers()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Status.Peers();
-            Assert.IsTrue(s.Length > 0);
+            var client = new Client();
+            var peers = client.Status.Peers();
+            Assert.IsTrue(peers.Length > 0);
         }
     }
 }

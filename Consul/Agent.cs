@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Web;
 using Newtonsoft.Json;
 
 namespace Consul
@@ -450,8 +451,10 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult<object> UpdateTTL(string checkID, string note, TTLStatus status)
         {
-            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/{0}/{1}", status.Status,
-                        checkID)).Execute();
+            var request = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
+            if(!string.IsNullOrEmpty(note))
+                request.Params.Add("note", HttpUtility.UrlEncode(note));
+            return request.Execute(); 
         }
 
         /// <summary>

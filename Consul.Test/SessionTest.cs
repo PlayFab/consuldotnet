@@ -29,163 +29,157 @@ namespace Consul.Test
         [TestMethod]
         public void Session_CreateDestroy()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create();
-            var id = res.Response;
-            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            var client = new Client();
+            var sessionRequest = client.Session.Create();
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
-            var des = s.Destroy(id);
-            Assert.IsTrue(des.Response);
+            var destroyRequest = client.Session.Destroy(id);
+            Assert.IsTrue(destroyRequest.Response);
         }
 
         [TestMethod]
         public void Session_CreateNoChecksDestroy()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.CreateNoChecks();
+            var client = new Client();
+            var sessionRequest = client.Session.CreateNoChecks();
 
-            var id = res.Response;
-            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
-            var des = s.Destroy(id);
-            Assert.IsTrue(des.Response);
+            var destroyRequest = client.Session.Destroy(id);
+            Assert.IsTrue(destroyRequest.Response);
         }
 
         [TestMethod]
         public void Session_CreateRenewDestroy()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create(new SessionEntry() {TTL = TimeSpan.FromSeconds(10)});
+            var client = new Client();
+            var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
-            var id = res.Response;
-            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
-            var renew = s.Renew(id);
-            Assert.IsTrue(renew.RequestTime.TotalMilliseconds > 0);
-            Assert.IsNotNull(renew.Response.ID);
-            Assert.AreEqual(res.Response, renew.Response.ID);
-            Assert.AreEqual(renew.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+            var renewRequest = client.Session.Renew(id);
+            Assert.IsTrue(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsNotNull(renewRequest.Response.ID);
+            Assert.AreEqual(sessionRequest.Response, renewRequest.Response.ID);
+            Assert.AreEqual(renewRequest.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
 
-            var des = s.Destroy(id);
-            Assert.IsTrue(des.Response);
+            var destroyRequest = client.Session.Destroy(id);
+            Assert.IsTrue(destroyRequest.Response);
         }
 
         [TestMethod]
         public void Session_Create_RenewPeriodic_Destroy()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create(new SessionEntry() {TTL = TimeSpan.FromSeconds(10)});
+            var client = new Client();
+            var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
-            var id = res.Response;
-            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
 
-            s.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
+            client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
 
             tokenSource.CancelAfter(3000);
 
             Task.Delay(3000, ct).Wait(ct);
 
-            var info = s.Info(id);
-            Assert.IsTrue(info.LastIndex > 0);
-            Assert.IsNotNull(info.KnownLeader);
+            var infoRequest = client.Session.Info(id);
+            Assert.IsTrue(infoRequest.LastIndex > 0);
+            Assert.IsNotNull(infoRequest.KnownLeader);
 
-            Assert.AreEqual(id, info.Response.ID);
+            Assert.AreEqual(id, infoRequest.Response.ID);
 
-            Assert.IsTrue(s.Destroy(id).Response);
+            Assert.IsTrue(client.Session.Destroy(id).Response);
         }
 
         [TestMethod]
         public void Session_Info()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create();
+            var client = new Client();
+            var sessionRequest = client.Session.Create();
 
-            var id = res.Response;
+            var id = sessionRequest.Response;
 
-            Assert.IsTrue(res.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
-            var info = s.Info(id);
-            Assert.IsTrue(info.LastIndex > 0);
-            Assert.IsNotNull(info.KnownLeader);
+            var infoRequest = client.Session.Info(id);
+            Assert.IsTrue(infoRequest.LastIndex > 0);
+            Assert.IsNotNull(infoRequest.KnownLeader);
 
-            Assert.AreEqual(id, info.Response.ID);
+            Assert.AreEqual(id, infoRequest.Response.ID);
 
-            Assert.IsTrue(string.IsNullOrEmpty(info.Response.Name));
-            Assert.IsFalse(string.IsNullOrEmpty(info.Response.Node));
-            Assert.IsTrue(info.Response.CreateIndex > 0);
-            Assert.AreEqual(info.Response.Behavior, SessionBehavior.Release);
+            Assert.IsTrue(string.IsNullOrEmpty(infoRequest.Response.Name));
+            Assert.IsFalse(string.IsNullOrEmpty(infoRequest.Response.Node));
+            Assert.IsTrue(infoRequest.Response.CreateIndex > 0);
+            Assert.AreEqual(infoRequest.Response.Behavior, SessionBehavior.Release);
 
-            Assert.IsTrue(string.IsNullOrEmpty(info.Response.Name));
-            Assert.IsNotNull(info.KnownLeader);
+            Assert.IsTrue(string.IsNullOrEmpty(infoRequest.Response.Name));
+            Assert.IsNotNull(infoRequest.KnownLeader);
 
-            Assert.IsTrue(info.LastIndex > 0);
-            Assert.IsNotNull(info.KnownLeader);
+            Assert.IsTrue(infoRequest.LastIndex > 0);
+            Assert.IsNotNull(infoRequest.KnownLeader);
 
-            var des = s.Destroy(id);
+            var destroyRequest = client.Session.Destroy(id);
 
-            Assert.IsTrue(des.Response);
+            Assert.IsTrue(destroyRequest.Response);
         }
 
         [TestMethod]
         public void Session_Node()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create();
+            var client = new Client();
+            var sessionRequest = client.Session.Create();
 
-            var id = res.Response;
+            var id = sessionRequest.Response;
             try
             {
-                var info = s.Info(id);
+                var infoRequest = client.Session.Info(id);
 
-                var node = s.Node(info.Response.Node);
+                var nodeRequest = client.Session.Node(infoRequest.Response.Node);
 
-                Assert.AreEqual(node.Response.Length, 1);
-                Assert.AreNotEqual(node.LastIndex, 0);
-                Assert.IsTrue(node.KnownLeader);
+                Assert.AreEqual(nodeRequest.Response.Length, 1);
+                Assert.AreNotEqual(nodeRequest.LastIndex, 0);
+                Assert.IsTrue(nodeRequest.KnownLeader);
             }
             finally
             {
-                var des = s.Destroy(id);
+                var destroyRequest = client.Session.Destroy(id);
 
-                Assert.IsTrue(des.Response);
+                Assert.IsTrue(destroyRequest.Response);
             }
         }
 
         [TestMethod]
         public void Session_List()
         {
-            var c = ClientTest.MakeClient();
-            var s = c.Session;
-            var res = s.Create();
+            var client = new Client();
+            var sessionRequest = client.Session.Create();
 
-            var id = res.Response;
+            var id = sessionRequest.Response;
+
             try
             {
-                var list = s.List();
+                var listRequest = client.Session.List();
 
-                Assert.AreEqual(list.Response.Length, 1);
-                Assert.AreNotEqual(list.LastIndex, 0);
-                Assert.IsTrue(list.KnownLeader);
+                Assert.AreEqual(listRequest.Response.Length, 1);
+                Assert.AreNotEqual(listRequest.LastIndex, 0);
+                Assert.IsTrue(listRequest.KnownLeader);
             }
             finally
             {
-                var des = s.Destroy(id);
+                var destroyRequest = client.Session.Destroy(id);
 
-                Assert.IsTrue(des.Response);
+                Assert.IsTrue(destroyRequest.Response);
             }
         }
     }
