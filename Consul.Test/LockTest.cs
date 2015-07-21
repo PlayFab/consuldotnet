@@ -145,7 +145,11 @@ namespace Consul.Test
             {
                 if (acquired[i])
                 {
-                    Assert.IsTrue(acquired[i], "Contender " + i.ToString() + "did not acquire the lock");
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
                 }
             }
         }
