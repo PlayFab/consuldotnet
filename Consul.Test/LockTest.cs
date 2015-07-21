@@ -113,7 +113,7 @@ namespace Consul.Test
             l.Destroy();
         }
         [TestMethod]
-        public void Lock_Contend()
+        public void Lock_ContendWait()
         {
             var client = new Client();
 
@@ -133,6 +133,43 @@ namespace Consul.Test
                     if (lockKey.IsHeld)
                     {
                         Task.Delay(1000).Wait();
+                        lockKey.Release();
+                    }
+                });
+            }
+
+            for (var i = 0; i < contenderPool; i++)
+            {
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
+            }
+        }
+        [TestMethod]
+        public void Lock_ContendFast()
+        {
+            var client = new Client();
+
+            const string keyName = "test/lock/contend";
+            const int contenderPool = 10;
+
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter(contenderPool * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
+                {
+                    var lockKey = client.CreateLock(keyName);
+                    lockKey.Acquire(CancellationToken.None);
+                    Assert.IsTrue(acquired.TryAdd(v, lockKey.IsHeld));
+                    if (lockKey.IsHeld)
+                    {
                         lockKey.Release();
                     }
                 });
