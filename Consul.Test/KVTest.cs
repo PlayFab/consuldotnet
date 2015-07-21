@@ -247,6 +247,7 @@ namespace Consul.Test
                 try
                 {
                     getRequest = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
+                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
                 }
                 catch (OperationCanceledException ex)
                 {
@@ -304,6 +305,7 @@ namespace Consul.Test
                 try
                 {
                     pairs = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
+                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
                 }
                 catch (OperationCanceledException ex)
                 {
