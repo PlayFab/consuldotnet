@@ -23,6 +23,7 @@ using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Threading;
 using System.Web;
 using Newtonsoft.Json;
 
@@ -362,6 +363,11 @@ namespace Consul
 
         public QueryResult<T> Execute()
         {
+            return Execute(CancellationToken.None);
+        }
+
+        public QueryResult<T> Execute(CancellationToken cancel)
+        {
             var stopwatch = Stopwatch.StartNew();
 
             var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
@@ -372,45 +378,52 @@ namespace Consul
             req.KeepAlive = true;
             req.Credentials = Config.HttpAuth;
 
-            try
+            using (cancel.Register(req.Abort))
             {
-                var res = (HttpWebResponse) (req.GetResponse());
 
-                var result = new QueryResult<T>()
+                try
                 {
-                    Response = DecodeBody<T>(res.GetResponseStream())
-                };
+                    var res = (HttpWebResponse)(req.GetResponse());
 
-                ParseQueryHeaders(res, ref result);
-                stopwatch.Stop();
-                result.RequestTime = stopwatch.Elapsed;
-                return result;
-            }
-            catch (WebException ex)
-            {
-                var res = (HttpWebResponse) ex.Response;
-                if (res == null)
-                {
-                    throw new ApplicationException("Unexpected HTTP exception calling Consul", ex);
-                }
-                if (res.StatusCode == HttpStatusCode.NotFound)
-                {
-                    var result = new QueryResult<T>();
+                    var result = new QueryResult<T>()
+                    {
+                        Response = DecodeBody<T>(res.GetResponseStream())
+                    };
+
                     ParseQueryHeaders(res, ref result);
                     stopwatch.Stop();
                     result.RequestTime = stopwatch.Elapsed;
                     return result;
                 }
-                var stream = res.GetResponseStream();
-                if (stream == null)
+                catch (WebException ex)
                 {
-                    throw new ArgumentException(string.Format("Unexpected response code {0}",
-                        res.StatusCode));
-                }
-                using (var sr = new StreamReader(stream))
-                {
-                    throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
-                        res.StatusCode, sr.ReadToEnd()));
+                    if(cancel.IsCancellationRequested)
+                        throw new OperationCanceledException();
+
+                    var res = (HttpWebResponse)ex.Response;
+                    if (res == null)
+                    {
+                        throw new ApplicationException("Unexpected HTTP exception calling Consul", ex);
+                    }
+                    if (res.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        var result = new QueryResult<T>();
+                        ParseQueryHeaders(res, ref result);
+                        stopwatch.Stop();
+                        result.RequestTime = stopwatch.Elapsed;
+                        return result;
+                    }
+                    var stream = res.GetResponseStream();
+                    if (stream == null)
+                    {
+                        throw new ArgumentException(string.Format("Unexpected response code {0}",
+                            res.StatusCode));
+                    }
+                    using (var sr = new StreamReader(stream))
+                    {
+                        throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
+                            res.StatusCode, sr.ReadToEnd()));
+                    }
                 }
             }
         }

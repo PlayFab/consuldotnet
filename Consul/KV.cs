@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System.Net.Http;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace Consul
@@ -112,9 +113,22 @@ namespace Consul
         /// <returns>A query result containing the keys matching the prefix</returns>
         public QueryResult<KVPair[]> List(string prefix, QueryOptions q)
         {
+            return List(prefix, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// <see cref="List(string,QueryOptions)"/>
+        /// </summary>
+        /// <param name="prefix"><see cref="List(string,QueryOptions)"/></param>
+        /// <param name="q"><see cref="List(string,QueryOptions)"/></param>
+        /// <param name="cancel">Cancellation token for long poll request. If set, OperationCanceledException will 
+        /// be thrown</param>
+        /// <returns></returns>
+        public QueryResult<KVPair[]> List(string prefix, QueryOptions q, CancellationToken cancel)
+        {
             var req = _client.CreateQueryRequest<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["recurse"] = string.Empty;
-            return req.Execute();
+            return req.Execute(cancel);
         }
 
         /// <summary>
