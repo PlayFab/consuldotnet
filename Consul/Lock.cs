@@ -360,8 +360,9 @@ namespace Consul
                     {
                         throw new LockNotHeldException();
                     }
-                    _cts.Cancel();
                     IsHeld = false;
+
+                    _cts.Cancel();
 
                     var lockEnt = LockEntry(Opts.Session);
 
