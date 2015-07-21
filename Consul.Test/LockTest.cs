@@ -163,7 +163,7 @@ namespace Consul.Test
             var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
             using (var cts = new CancellationTokenSource())
             {
-                cts.CancelAfter(contenderPool + 1 * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
+                cts.CancelAfter((contenderPool + 1) * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
 
                 Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {

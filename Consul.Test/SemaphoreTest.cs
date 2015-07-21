@@ -160,13 +160,14 @@ namespace Consul.Test
             var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
             using (var cts = new CancellationTokenSource())
             {
-                cts.CancelAfter(contenderPool-1 * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
+                cts.CancelAfter((contenderPool - 1) * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
 
                 Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
                     var semaphore = client.Semaphore(keyName, 2);
                     semaphore.Acquire(CancellationToken.None);
                     acquired[v] = semaphore.IsHeld;
+                    Task.Delay(1000).Wait();
                     semaphore.Release();
                 });
             }
