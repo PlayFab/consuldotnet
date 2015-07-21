@@ -158,13 +158,11 @@ namespace Consul.Test
             const int contenderPool = 4;
 
             var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
-
-            var acquireTasks = new Task[contenderPool];
-
-            for (var i = 0; i < contenderPool; i++)
+            using (var cts = new CancellationTokenSource())
             {
-                var v = i;
-                acquireTasks[i] = Task.Run(() =>
+                cts.CancelAfter(contenderPool-1 * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
                     var semaphore = client.Semaphore(keyName, 2);
                     semaphore.Acquire(CancellationToken.None);
@@ -173,7 +171,6 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(contenderPool * Semaphore.DefaultSemaphoreRetryTime.TotalMilliseconds));
             for (var i = 0; i < contenderPool; i++)
             {
                 if (acquired[i])
