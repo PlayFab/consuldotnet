@@ -267,6 +267,36 @@ namespace Consul.Test
             var pairs = client.KV.List(prefix);
             Assert.IsNull(pairs.Response);
 
+            Task.Run(() =>
+            {
+                Thread.Sleep(100);
+                var p = new KVPair(prefix) { Flags = 42, Value = value };
+                var putRes = client.KV.Put(p);
+                Assert.IsTrue(putRes.Response);
+            });
+
+            var pairs2 = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
+            Assert.IsNotNull(pairs2.Response);
+            Assert.AreEqual(pairs2.Response.Length, 1);
+            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
+            Assert.AreEqual(pairs2.Response[0].Flags, (ulong)42);
+            Assert.IsTrue(pairs2.LastIndex > pairs.LastIndex);
+
+            var deleteTree = client.KV.DeleteTree(prefix);
+            Assert.IsTrue(deleteTree.Response);
+        }
+        [TestMethod]
+        public void KV_WatchList_Cancel()
+        {
+            var client = new Client();
+
+            var prefix = GenerateTestKeyName();
+
+            var value = Encoding.UTF8.GetBytes("test");
+
+            var pairs = client.KV.List(prefix);
+            Assert.IsNull(pairs.Response);
+
             using (var cts = new CancellationTokenSource())
             {
                 cts.CancelAfter(1000);
@@ -281,7 +311,6 @@ namespace Consul.Test
                 }
             }
         }
-
         [TestMethod]
         public void KV_Keys_DeleteRecurse()
         {
