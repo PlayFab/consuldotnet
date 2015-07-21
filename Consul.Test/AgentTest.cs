@@ -70,7 +70,7 @@ namespace Consul.Test
             var checks = client.Agent.Checks();
             Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
 
-            Assert.AreEqual(checks.Response["service:foo"].Status, CheckStatus.Critical);
+            Assert.AreEqual(CheckStatus.Critical, checks.Response["service:foo"].Status);
 
             client.Agent.ServiceDeregister("foo");
         }
@@ -98,11 +98,45 @@ namespace Consul.Test
             var checks = client.Agent.Checks();
             Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
 
-            Assert.AreEqual(checks.Response["service:foo"].Status, CheckStatus.Passing);
+            Assert.AreEqual(CheckStatus.Passing, checks.Response["service:foo"].Status);
 
             client.Agent.ServiceDeregister("foo");
         }
 
+        [TestMethod]
+        public void Agent_Services_CheckTTLNote()
+        {
+            var client = new Client();
+            var registration = new AgentServiceRegistration()
+            {
+                Name = "foo",
+                Tags = new[] { "bar", "baz" },
+                Port = 8000,
+                Check = new AgentServiceCheck
+                {
+                    TTL = TimeSpan.FromSeconds(15),
+                    Status = CheckStatus.Critical
+                }
+            };
+            client.Agent.ServiceRegister(registration);
+
+            var services = client.Agent.Services();
+            Assert.IsTrue(services.Response.ContainsKey("foo"));
+
+            var checks = client.Agent.Checks();
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
+
+            Assert.AreEqual(CheckStatus.Critical, checks.Response["service:foo"].Status);
+
+            client.Agent.PassTTL("service:foo", "ok");
+            checks = client.Agent.Checks();
+
+            Assert.IsTrue(checks.Response.ContainsKey("service:foo"));
+            Assert.AreEqual(CheckStatus.Passing, checks.Response["service:foo"].Status);
+            Assert.AreEqual("ok", checks.Response["service:foo"].Output);
+
+            client.Agent.ServiceDeregister("foo");
+        }
         [TestMethod]
         public void Agent_Services_CheckBadStatus()
         {

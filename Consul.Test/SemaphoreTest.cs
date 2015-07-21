@@ -150,20 +150,54 @@ namespace Consul.Test
         }
 
         [TestMethod]
-        public void Semaphore_Contend()
+        public void Semaphore_ContendWait()
         {
             var client = new Client();
 
             const string keyName = "test/semaphore/contend";
+            const int contenderPool = 4;
 
-            var acquired = new bool[4];
-
-            var acquireTasks = new Task[4];
-
-            for (var i = 0; i < 4; i++)
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
             {
-                var v = i;
-                acquireTasks[i] = Task.Run(() =>
+                cts.CancelAfter((contenderPool - 1) * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
+                {
+                    var semaphore = client.Semaphore(keyName, 2);
+                    semaphore.Acquire(CancellationToken.None);
+                    acquired[v] = semaphore.IsHeld;
+                    Task.Delay(1000).Wait();
+                    semaphore.Release();
+                });
+            }
+
+            for (var i = 0; i < contenderPool; i++)
+            {
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
+            }
+        }
+        [TestMethod]
+        public void Semaphore_ContendFast()
+        {
+            var client = new Client();
+
+            const string keyName = "test/semaphore/contend";
+            const int contenderPool = 15;
+
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter((contenderPool - 1) * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
                     var semaphore = client.Semaphore(keyName, 2);
                     semaphore.Acquire(CancellationToken.None);
@@ -172,11 +206,16 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(3 * Semaphore.DefaultSemaphoreRetryTime.TotalMilliseconds));
-
-            foreach (var item in acquired)
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
             }
         }
 

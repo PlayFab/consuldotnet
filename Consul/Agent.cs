@@ -106,7 +106,7 @@ namespace Consul
 
         public static CheckStatus Warning
         {
-            get { return new CheckStatus() { Status = "warnint" }; }
+            get { return new CheckStatus() { Status = "warning" }; }
         }
 
         public static CheckStatus Critical

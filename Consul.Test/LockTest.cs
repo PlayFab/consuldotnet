@@ -113,24 +113,23 @@ namespace Consul.Test
             l.Destroy();
         }
         [TestMethod]
-        public void Lock_Contend()
+        public void Lock_ContendWait()
         {
             var client = new Client();
 
             const string keyName = "test/lock/contend";
+            const int contenderPool = 3;
 
-            var acquired = new bool[3];
-
-            var acquireTasks = new Task[3];
-
-            for (var i = 0; i < 3; i++)
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
             {
-                var v = i;
-                acquireTasks[i] = Task.Run(() =>
+                cts.CancelAfter(contenderPool * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
                     var lockKey = client.CreateLock(keyName);
                     lockKey.Acquire(CancellationToken.None);
-                    acquired[v] = lockKey.IsHeld;
+                    Assert.IsTrue(acquired.TryAdd(v, lockKey.IsHeld));
                     if (lockKey.IsHeld)
                     {
                         Task.Delay(1000).Wait();
@@ -139,11 +138,53 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(3 * Lock.DefaultLockRetryTime.TotalMilliseconds));
-
-            foreach (var item in acquired)
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
+            }
+        }
+        [TestMethod]
+        public void Lock_ContendFast()
+        {
+            var client = new Client();
+
+            const string keyName = "test/lock/contend";
+            const int contenderPool = 10;
+
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter(contenderPool * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
+                {
+                    var lockKey = client.CreateLock(keyName);
+                    lockKey.Acquire(CancellationToken.None);
+                    Assert.IsTrue(acquired.TryAdd(v, lockKey.IsHeld));
+                    if (lockKey.IsHeld)
+                    {
+                        lockKey.Release();
+                    }
+                });
+            }
+
+            for (var i = 0; i < contenderPool; i++)
+            {
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
             }
         }
 
@@ -154,30 +195,35 @@ namespace Consul.Test
 
             const string keyName = "test/lock/contendlockdelay";
 
-            var acquired = new bool[3];
+            const int contenderPool = 3;
 
-            var acquireTasks = new Task[3];
-
-            for (var i = 0; i < 3; i++)
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
+            using (var cts = new CancellationTokenSource())
             {
-                var v = i;
-                acquireTasks[i] = Task.Run(() =>
+                cts.CancelAfter((contenderPool + 1) * (int)Lock.DefaultLockWaitTime.TotalMilliseconds);
+
+                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
                     var lockKey = client.CreateLock(keyName);
                     lockKey.Acquire(CancellationToken.None);
-                    acquired[v] = lockKey.IsHeld;
                     if (lockKey.IsHeld)
                     {
+                        Assert.IsTrue(acquired.TryAdd(v, lockKey.IsHeld));
                         client.Session.Destroy(lockKey.LockSession);
                     }
                 });
             }
-
-            Task.WaitAll(acquireTasks, (int)(4 * Lock.DefaultLockWaitTime.TotalMilliseconds));
-
-            foreach (var item in acquired)
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                bool didContend = false;
+                if (acquired.TryGetValue(i, out didContend))
+                {
+                    Assert.IsTrue(didContend);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
             }
         }
         [TestMethod]
