@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System.Net.Http;
+using System.Threading;
 using Newtonsoft.Json;
 
 namespace Consul
@@ -48,7 +49,7 @@ namespace Consul
     }
 
     /// <summary>
-    /// KV is used to manipulate the K/V API
+    /// KV is used to manipulate the key/value pair API
     /// </summary>
     public class KV
     {
@@ -66,9 +67,8 @@ namespace Consul
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
         public QueryResult<KVPair> Get(string key)
         {
-            return Get(key, QueryOptions.Empty);
+            return Get(key, QueryOptions.Empty, CancellationToken.None);
         }
-
         /// <summary>
         /// Get is used to lookup a single key
         /// </summary>
@@ -77,8 +77,19 @@ namespace Consul
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
         public QueryResult<KVPair> Get(string key, QueryOptions q)
         {
+            return Get(key, q, CancellationToken.None);
+        }
+        /// <summary>
+        /// Get is used to lookup a single key
+        /// </summary>
+        /// <param name="key">The key name</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
+        public QueryResult<KVPair> Get(string key, QueryOptions q, CancellationToken ct)
+        {
             var req = _client.CreateQueryRequest<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
-            var res = req.Execute();
+            var res = req.Execute(ct);
             var ret = new QueryResult<KVPair>()
             {
                 KnownLeader = res.KnownLeader,
@@ -97,11 +108,10 @@ namespace Consul
         /// List is used to lookup all keys under a prefix
         /// </summary>
         /// <param name="prefix">The prefix to search under. Does not have to be a full path - e.g. a prefix of "ab" will find keys "abcd" and "ab11" but not "acdc"</param>
-        /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the keys matching the prefix</returns>
         public QueryResult<KVPair[]> List(string prefix)
         {
-            return List(prefix, QueryOptions.Empty);
+            return List(prefix, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -112,9 +122,21 @@ namespace Consul
         /// <returns>A query result containing the keys matching the prefix</returns>
         public QueryResult<KVPair[]> List(string prefix, QueryOptions q)
         {
+            return List(prefix, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// <see cref="List(string,QueryOptions)"/>
+        /// </summary>
+        /// <param name="prefix">The prefix to search under. Does not have to be a full path - e.g. a prefix of "ab" will find keys "abcd" and "ab11" but not "acdc"</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns></returns>
+        public QueryResult<KVPair[]> List(string prefix, QueryOptions q, CancellationToken ct)
+        {
             var req = _client.CreateQueryRequest<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["recurse"] = string.Empty;
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -124,7 +146,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix)
         {
-            return Keys(prefix, string.Empty, QueryOptions.Empty);
+            return Keys(prefix, string.Empty, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -135,7 +157,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix, string separator)
         {
-            return Keys(prefix, separator, QueryOptions.Empty);
+            return Keys(prefix, separator, QueryOptions.Empty, CancellationToken.None);
         }
 
         /// <summary>
@@ -147,13 +169,26 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix, string separator, QueryOptions q)
         {
+            return Keys(prefix, separator, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Keys is used to list all the keys under a prefix. Optionally, a separator can be used to limit the responses.
+        /// </summary>
+        /// <param name="prefix">The key prefix to filter on</param>
+        /// <param name="separator">The terminating suffix of the filter - e.g. a separator of "/" and a prefix of "/web/" will match "/web/foo" and "/web/foo/" but not "/web/foo/baz"</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A query result containing a list of key names</returns>
+        public QueryResult<string[]> Keys(string prefix, string separator, QueryOptions q, CancellationToken ct)
+        {
             var req = _client.CreateQueryRequest<string[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["keys"] = string.Empty;
             if (!string.IsNullOrEmpty(separator))
             {
                 req.Params["separator"] = separator;
             }
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>

@@ -410,13 +410,13 @@ namespace Consul
             {
                 try
                 {
-                    _cts.Cancel();
-
                     if (!IsHeld)
                     {
                         throw new SemaphoreNotHeldException();
                     }
                     IsHeld = false;
+
+                    _cts.Cancel();
 
                     var lockSession = LockSession;
                     LockSession = null;

@@ -30,7 +30,7 @@ namespace Consul.Test
     {
         private static readonly Random Random = new Random((int)DateTime.Now.Ticks);
 
-        internal static string TestKey()
+        internal static string GenerateTestKeyName()
         {
             var keyChars = new char[16];
             for (var i = 0; i < keyChars.Length; i++)
@@ -46,7 +46,7 @@ namespace Consul.Test
             var client = new Client();
             var kv = client.KV;
 
-            var key = TestKey();
+            var key = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
@@ -82,14 +82,14 @@ namespace Consul.Test
         {
             var client = new Client();
 
-            var prefix = TestKey();
+            var prefix = GenerateTestKeyName();
 
             var putTasks = new Task[100];
 
             var value = Encoding.UTF8.GetBytes("test");
             for (var i = 0; i < 100; i++)
             {
-                var p = new KVPair(string.Join("/", prefix, TestKey()))
+                var p = new KVPair(string.Join("/", prefix, GenerateTestKeyName()))
                 {
                     Value = value
                 };
@@ -118,7 +118,7 @@ namespace Consul.Test
         {
             var client = new Client();
 
-            var key = TestKey();
+            var key = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
@@ -153,7 +153,7 @@ namespace Consul.Test
         {
             var client = new Client();
 
-            var key = TestKey();
+            var key = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
@@ -193,7 +193,7 @@ namespace Consul.Test
         {
             var client = new Client();
 
-            var key = TestKey();
+            var key = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
@@ -228,52 +228,104 @@ namespace Consul.Test
             getRequest = client.KV.Get(key);
             Assert.IsNull(getRequest.Response);
         }
+        [TestMethod]
+        public void KV_WatchGet_Cancel()
+        {
+            var client = new Client();
+
+            var key = GenerateTestKeyName();
+
+            var value = Encoding.UTF8.GetBytes("test");
+
+            var getRequest = client.KV.Get(key);
+            Assert.IsNull(getRequest.Response);
+
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter(1000);
+
+                try
+                {
+                    getRequest = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
+                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
+                }
+                catch (OperationCanceledException ex)
+                {
+                    Assert.IsInstanceOfType(ex, typeof(OperationCanceledException));
+                }
+            }
+        }
 
         [TestMethod]
         public void KV_WatchList()
         {
-            var c = new Client();
-            var kv = c.KV;
+            var client = new Client();
 
-            var prefix = TestKey();
+            var prefix = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var pairs = kv.List(prefix);
+            var pairs = client.KV.List(prefix);
             Assert.IsNull(pairs.Response);
 
             Task.Run(() =>
             {
                 Thread.Sleep(100);
                 var p = new KVPair(prefix) { Flags = 42, Value = value };
-                var putRes = kv.Put(p);
+                var putRes = client.KV.Put(p);
                 Assert.IsTrue(putRes.Response);
             });
 
-            var pairs2 = kv.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
+            var pairs2 = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
             Assert.IsNotNull(pairs2.Response);
             Assert.AreEqual(pairs2.Response.Length, 1);
             Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
             Assert.AreEqual(pairs2.Response[0].Flags, (ulong)42);
             Assert.IsTrue(pairs2.LastIndex > pairs.LastIndex);
 
-            var deleteTree = kv.DeleteTree(prefix);
+            var deleteTree = client.KV.DeleteTree(prefix);
             Assert.IsTrue(deleteTree.Response);
         }
+        [TestMethod]
+        public void KV_WatchList_Cancel()
+        {
+            var client = new Client();
 
+            var prefix = GenerateTestKeyName();
+
+            var value = Encoding.UTF8.GetBytes("test");
+
+            var pairs = client.KV.List(prefix);
+            Assert.IsNull(pairs.Response);
+
+            using (var cts = new CancellationTokenSource())
+            {
+                cts.CancelAfter(1000);
+
+                try
+                {
+                    pairs = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
+                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
+                }
+                catch (OperationCanceledException ex)
+                {
+                    Assert.IsInstanceOfType(ex, typeof(OperationCanceledException));
+                }
+            }
+        }
         [TestMethod]
         public void KV_Keys_DeleteRecurse()
         {
             var client = new Client();
 
-            var prefix = TestKey();
+            var prefix = GenerateTestKeyName();
 
             var putTasks = new Task[100];
 
             var value = Encoding.UTF8.GetBytes("test");
             for (var i = 0; i < 100; i++)
             {
-                var pair = new KVPair(string.Join("/", prefix, TestKey()))
+                var pair = new KVPair(string.Join("/", prefix, GenerateTestKeyName()))
                 {
                     Value = value
                 };
@@ -302,7 +354,7 @@ namespace Consul.Test
 
             Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
 
-            var key = TestKey();
+            var key = GenerateTestKeyName();
             var value = Encoding.UTF8.GetBytes("test");
 
             var pair = new KVPair(key)

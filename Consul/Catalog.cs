@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Consul
 {
@@ -137,17 +138,25 @@ namespace Consul
         /// <returns>A list of all nodes</returns>
         public QueryResult<Node[]> Nodes()
         {
-            return Nodes(QueryOptions.Empty);
+            return Nodes(QueryOptions.Empty, CancellationToken.None);
         }
-
+        /// <summary>
+        /// Nodes is used to query all the known nodes
+        /// </summary>
+        /// <returns>A list of all nodes</returns>
+        public QueryResult<Node[]> Nodes(QueryOptions q)
+        {
+            return Nodes(q, CancellationToken.None);
+        }
         /// <summary>
         /// Nodes is used to query all the known nodes
         /// </summary>
         /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A list of all nodes</returns>
-        public QueryResult<Node[]> Nodes(QueryOptions q)
+        public QueryResult<Node[]> Nodes(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<Node[]>("/v1/catalog/nodes", q).Execute();
+            return _client.CreateQueryRequest<Node[]>("/v1/catalog/nodes", q).Execute(ct);
         }
 
         /// <summary>
@@ -156,9 +165,8 @@ namespace Consul
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services()
         {
-            return Services(QueryOptions.Empty);
+            return Services(QueryOptions.Empty, CancellationToken.None);
         }
-
         /// <summary>
         /// Services is used to query for all known services
         /// </summary>
@@ -166,7 +174,17 @@ namespace Consul
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q)
         {
-            return _client.CreateQueryRequest<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute();
+            return Services(q, CancellationToken.None);
+        }
+        /// <summary>
+        /// Services is used to query for all known services
+        /// </summary>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A list of all services</returns>
+        public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q, CancellationToken ct)
+        {
+            return _client.CreateQueryRequest<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
         }
 
         /// <summary>
