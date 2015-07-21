@@ -26,11 +26,6 @@ namespace Consul.Test
     [TestClass]
     public class ClientTest
     {
-        public static Client MakeClient()
-        {
-            return new Client();
-        }
-
         [TestMethod]
         public void Client_DefaultConfig_env()
         {
@@ -45,12 +40,12 @@ namespace Consul.Test
 
             var config = new Config();
 
-            Assert.AreEqual(config.Address, addr);
-            Assert.AreEqual(config.Token, token);
+            Assert.AreEqual(addr, config.Address);
+            Assert.AreEqual(token, config.Token);
             Assert.IsNotNull(config.HttpAuth);
-            Assert.AreEqual(config.HttpAuth.UserName, "username");
-            Assert.AreEqual(config.HttpAuth.Password, "password");
-            Assert.AreEqual(config.Scheme, "https");
+            Assert.AreEqual("username", config.HttpAuth.UserName);
+            Assert.AreEqual("password", config.HttpAuth.Password);
+            Assert.AreEqual("https", config.Scheme);
             Assert.IsTrue(ServicePointManager.ServerCertificateValidationCallback(null, null, null,
                 SslPolicyErrors.RemoteCertificateChainErrors));
 
@@ -69,8 +64,8 @@ namespace Consul.Test
         [TestMethod]
         public void Client_SetQueryOptions()
         {
-            var c = MakeClient();
-            var q = new QueryOptions()
+            var client = new Client();
+            var opts = new QueryOptions()
             {
                 Datacenter = "foo",
                 Consistency = ConsistencyMode.Consistent,
@@ -78,45 +73,45 @@ namespace Consul.Test
                 WaitTime = new TimeSpan(0, 0, 100),
                 Token = "12345"
             };
-            var r = c.CreateQueryRequest<object>("/v1/kv/foo", q);
+            var request = client.CreateQueryRequest<object>("/v1/kv/foo", opts);
             try
             {
-                r.Execute();
+                request.Execute();
             }
             catch (Exception)
             {
                 // ignored
             }
-            Assert.AreEqual(r.Params["dc"], "foo");
-            Assert.IsTrue(r.Params.ContainsKey("consistent"));
-            Assert.AreEqual(r.Params["index"], "1000");
-            Assert.AreEqual(r.Params["wait"], "1m40s");
-            Assert.AreEqual(r.Params["token"], "12345");
+            Assert.AreEqual("foo", request.Params["dc"]);
+            Assert.IsTrue(request.Params.ContainsKey("consistent"));
+            Assert.AreEqual("1000", request.Params["index"]);
+            Assert.AreEqual("1m40s", request.Params["wait"]);
+            Assert.AreEqual("12345", request.Params["token"]);
         }
 
         [TestMethod]
         public void Client_SetWriteOptions()
         {
-            var c = MakeClient();
+            var client = new Client();
 
-            var q = new WriteOptions()
+            var opts = new WriteOptions()
             {
                 Datacenter = "foo",
                 Token = "12345"
             };
 
-            var r = c.CreateWriteRequest<object, object>("/v1/kv/foo", q);
+            var request = client.CreateWriteRequest<object, object>("/v1/kv/foo", opts);
             try
             {
-                r.Execute();
+                request.Execute();
             }
             catch (Exception)
             {
                 // ignored
             }
 
-            Assert.AreEqual(r.Params["dc"], "foo");
-            Assert.AreEqual(r.Params["token"], "12345");
+            Assert.AreEqual("foo", request.Params["dc"]);
+            Assert.AreEqual("12345", request.Params["token"]);
         }
     }
 }

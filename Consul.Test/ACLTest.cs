@@ -33,29 +33,27 @@ namespace Consul.Test
                 Assert.Inconclusive();
             }
 
-            var client = new Client();
-            var c = new Client(new Config() {Token = ConsulRoot});
-            var ae = new ACLEntry()
+            var client = new Client(new Config() {Token = ConsulRoot});
+            var aclEntry = new ACLEntry()
             {
                 Name = "API Test",
                 Type = ACLType.Client,
                 Rules = "key \"\" { policy = \"deny\" }"
             };
-            var res = c.ACL.Create(ae);
+            var res = client.ACL.Create(aclEntry);
             var id = res.Response;
 
-            Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
+            Assert.AreNotEqual(0, res.RequestTime.TotalMilliseconds);
             Assert.IsFalse(string.IsNullOrEmpty(res.Response));
 
-            var ae2 = c.ACL.Info(id);
+            var aclEntry2 = client.ACL.Info(id);
 
-            Assert.IsNotNull(ae2.Response);
-            Assert.AreEqual(ae.Name, ae2.Response.Name);
-            Assert.AreEqual(ae.Type, ae2.Response.Type);
-            Assert.AreEqual(ae.Rules, ae2.Response.Rules);
+            Assert.IsNotNull(aclEntry2.Response);
+            Assert.AreEqual(aclEntry2.Response.Name, aclEntry.Name);
+            Assert.AreEqual(aclEntry2.Response.Type, aclEntry.Type);
+            Assert.AreEqual(aclEntry2.Response.Rules, aclEntry.Rules);
 
-            var des = c.ACL.Destroy(id);
-            Assert.IsTrue(des.Response);
+            Assert.IsTrue(client.ACL.Destroy(id).Response);
         }
 
         [TestMethod]
@@ -65,24 +63,25 @@ namespace Consul.Test
             {
                 Assert.Inconclusive();
             }
-            var c = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.Clone(ConsulRoot);
+            var client = new Client(new Config() {Token = ConsulRoot});
 
-            var ae = c.ACL.Info(res.Response);
-            ae.Response.Rules = "key \"\" { policy = \"deny\" }";
-            c.ACL.Update(ae.Response);
+            var cloneRequest = client.ACL.Clone(ConsulRoot);
+            var aclID = cloneRequest.Response;
 
-            var ae2 = c.ACL.Info(res.Response);
-            Assert.AreEqual("key \"\" { policy = \"deny\" }", ae2.Response.Rules);
+            var aclEntry = client.ACL.Info(aclID);
+            aclEntry.Response.Rules = "key \"\" { policy = \"deny\" }";
+            client.ACL.Update(aclEntry.Response);
 
-            var id = res.Response;
+            var aclEntry2 = client.ACL.Info(aclID);
+            Assert.AreEqual("key \"\" { policy = \"deny\" }", aclEntry2.Response.Rules);
 
-            Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
-            Assert.IsFalse(string.IsNullOrEmpty(res.Response));
+            var id = cloneRequest.Response;
 
-            var des = c.ACL.Destroy(id);
-            Assert.IsTrue(des.Response);
+            Assert.AreNotEqual(0, cloneRequest.RequestTime.TotalMilliseconds);
+            Assert.IsFalse(string.IsNullOrEmpty(aclID));
+
+            Assert.IsTrue(client.ACL.Destroy(id).Response);
         }
 
         [TestMethod]
@@ -92,14 +91,15 @@ namespace Consul.Test
             {
                 Assert.Inconclusive();
             }
-            var c = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.Info(ConsulRoot);
+            var client = new Client(new Config() {Token = ConsulRoot});
 
-            Assert.IsNotNull(res.Response);
-            Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
-            Assert.AreEqual(res.Response.ID, ConsulRoot);
-            Assert.AreEqual(res.Response.Type, ACLType.Management);
+            var aclEntry = client.ACL.Info(ConsulRoot);
+
+            Assert.IsNotNull(aclEntry.Response);
+            Assert.AreNotEqual(aclEntry.RequestTime.TotalMilliseconds, 0);
+            Assert.AreEqual(aclEntry.Response.ID, ConsulRoot);
+            Assert.AreEqual(aclEntry.Response.Type, ACLType.Management);
         }
 
         [TestMethod]
@@ -109,13 +109,13 @@ namespace Consul.Test
             {
                 Assert.Inconclusive();
             }
-            var c = new Client(new Config() {Token = ConsulRoot});
+            var client = new Client(new Config() {Token = ConsulRoot});
 
-            var res = c.ACL.List();
+            var aclList = client.ACL.List();
 
-            Assert.IsNotNull(res.Response);
-            Assert.AreNotEqual(res.RequestTime.TotalMilliseconds, 0);
-            Assert.IsTrue(res.Response.Length >= 2);
+            Assert.IsNotNull(aclList.Response);
+            Assert.AreNotEqual(aclList.RequestTime.TotalMilliseconds, 0);
+            Assert.IsTrue(aclList.Response.Length >= 2);
         }
     }
 }
