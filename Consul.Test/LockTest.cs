@@ -120,7 +120,7 @@ namespace Consul.Test
             const string keyName = "test/lock/contend";
             const int contenderPool = 3;
 
-            var acquired = new bool[contenderPool];
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
 
             var acquireTasks = new Task[contenderPool];
 
@@ -161,11 +161,13 @@ namespace Consul.Test
 
             const string keyName = "test/lock/contendlockdelay";
 
-            var acquired = new bool[3];
+            const int contenderPool = 3;
+
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
 
             var acquireTasks = new Task[3];
 
-            for (var i = 0; i < 3; i++)
+            for (var i = 0; i < contenderPool; i++)
             {
                 var v = i;
                 acquireTasks[i] = Task.Run(() =>
@@ -180,11 +182,18 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(4 * Lock.DefaultLockWaitTime.TotalMilliseconds));
+            Task.WaitAll(acquireTasks, (int)(contenderPool+1 * Lock.DefaultLockWaitTime.TotalMilliseconds));
 
-            foreach (var item in acquired)
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
             }
         }
         [TestMethod]

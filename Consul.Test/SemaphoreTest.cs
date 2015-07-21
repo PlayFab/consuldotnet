@@ -155,12 +155,13 @@ namespace Consul.Test
             var client = new Client();
 
             const string keyName = "test/semaphore/contend";
+            const int contenderPool = 4;
 
-            var acquired = new bool[4];
+            var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
 
-            var acquireTasks = new Task[4];
+            var acquireTasks = new Task[contenderPool];
 
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < contenderPool; i++)
             {
                 var v = i;
                 acquireTasks[i] = Task.Run(() =>
@@ -172,11 +173,17 @@ namespace Consul.Test
                 });
             }
 
-            Task.WaitAll(acquireTasks, (int)(3 * Semaphore.DefaultSemaphoreRetryTime.TotalMilliseconds));
-
-            foreach (var item in acquired)
+            Task.WaitAll(acquireTasks, (int)(contenderPool * Semaphore.DefaultSemaphoreRetryTime.TotalMilliseconds));
+            for (var i = 0; i < contenderPool; i++)
             {
-                Assert.IsTrue(item);
+                if (acquired[i])
+                {
+                    Assert.IsTrue(acquired[i]);
+                }
+                else
+                {
+                    Assert.Fail("Contender " + i.ToString() + " did not acquire the lock");
+                }
             }
         }
 
