@@ -477,13 +477,12 @@ namespace Consul.Test
                     {
                         Task.Delay(10).Wait();
                     }
+                    Assert.IsFalse(lockKey.IsHeld);
                 });
 
                 Task.Run(() => { client.Session.Destroy(lockKey.LockSession); });
 
                 Task.WaitAny(new[] { checker }, 1000);
-
-                Assert.IsFalse(lockKey.IsHeld);
             }
             finally
             {
