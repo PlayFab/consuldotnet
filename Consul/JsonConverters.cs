@@ -25,18 +25,18 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, ((TimeSpan) value).TotalMilliseconds*1000, typeof (long));
+            serializer.Serialize(writer, (long)((TimeSpan)value).TotalMilliseconds * 1000000, typeof(long));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            return Duration.Parse((string) serializer.Deserialize(reader, typeof (string)));
+            return Duration.Parse((string)serializer.Deserialize(reader, typeof(string)));
         }
 
         public override bool CanConvert(Type objectType)
         {
-            if (objectType == typeof (TimeSpan))
+            if (objectType == typeof(TimeSpan))
             {
                 return true;
             }
@@ -48,18 +48,18 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, Duration.ToDuration((TimeSpan) value));
+            serializer.Serialize(writer, Duration.ToDuration((TimeSpan)value));
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            return Duration.Parse((string) serializer.Deserialize(reader, typeof (string)));
+            return Duration.Parse((string)serializer.Deserialize(reader, typeof(string)));
         }
 
         public override bool CanConvert(Type objectType)
         {
-            if (objectType == typeof (TimeSpan))
+            if (objectType == typeof(TimeSpan))
             {
                 return true;
             }

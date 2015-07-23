@@ -262,7 +262,7 @@ namespace Consul
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
         public WriteResult<bool> Acquire(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.CreateWriteRequest<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
