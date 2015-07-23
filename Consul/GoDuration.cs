@@ -28,12 +28,12 @@ namespace Consul
     /// </summary>
     public class Duration
     {
-        public const ulong Nanosecond = Microsecond/1000;
-        public const ulong Microsecond = Millisecond/1000;
-        public const ulong Millisecond = 1;
-        public const ulong Second = 1000*Millisecond;
-        public const ulong Minute = 60*Second;
-        public const ulong Hour = 60*Minute;
+        public const double Nanosecond = Microsecond / 1000;
+        public const double Microsecond = Millisecond / 1000;
+        public const double Millisecond = 1;
+        public const double Second = 1000 * Millisecond;
+        public const double Minute = 60 * Second;
+        public const double Hour = 60 * Minute;
 
         public static Dictionary<string, double> UnitMap = new Dictionary<string, double>()
         {
@@ -49,6 +49,10 @@ namespace Consul
 
         public static string ToDuration(TimeSpan ts)
         {
+            if (ts == TimeSpan.Zero)
+            {
+                return "0";
+            }
             var outDuration = new StringBuilder();
             if (ts.TotalSeconds < 1)
             {
@@ -56,15 +60,15 @@ namespace Consul
             }
             else
             {
-                if ((int) ts.TotalHours > 0)
+                if ((int)ts.TotalHours > 0)
                 {
                     outDuration.Append(ts.TotalHours.ToString("#h"));
                 }
-                if ((int) ts.TotalMinutes > 0)
+                if ((int)ts.TotalMinutes > 0)
                 {
                     outDuration.Append(ts.Minutes.ToString("#m"));
                 }
-                if ((int) ts.TotalSeconds > 0)
+                if ((int)ts.TotalSeconds > 0)
                 {
                     outDuration.Append(ts.Seconds.ToString("#"));
                 }
@@ -94,7 +98,7 @@ namespace Consul
             ulong result;
             if (ulong.TryParse(value, out result))
             {
-                return TimeSpan.FromTicks((long) (result/100));
+                return TimeSpan.FromTicks((long)(result / 100));
             }
 
             var matches = Regex.Matches(value, pattern);
@@ -111,7 +115,7 @@ namespace Consul
                 {
                     if (UnitMap.ContainsKey(match.Groups[2].Value))
                     {
-                        time += res*UnitMap[match.Groups[2].Value];
+                        time += res * UnitMap[match.Groups[2].Value];
                     }
                     else
                     {
