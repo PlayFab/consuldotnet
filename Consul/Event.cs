@@ -66,12 +66,8 @@ namespace Consul
         /// <returns></returns>
         public WriteResult<string> Fire(UserEvent ue, WriteOptions q)
         {
-            if (ue.Payload == null)
-            {
-                ue.Payload = new byte[0];
-            }
             var req =
-                _client.CreateWriteRequest<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name),
+                _client.CreateWrite<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name),
                     ue.Payload, q);
             if (!string.IsNullOrEmpty(ue.NodeFilter))
             {
@@ -100,7 +96,7 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List()
         {
-            return List(string.Empty, QueryOptions.Empty);
+            return List(string.Empty, QueryOptions.Default);
         }
 
         /// <summary>
@@ -110,7 +106,7 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List(string name)
         {
-            return List(name, QueryOptions.Empty, CancellationToken.None);
+            return List(name, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -133,7 +129,7 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List(string name, QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQueryRequest<UserEvent[]>("/v1/event/list", q);
+            var req = _client.CreateQuery<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;

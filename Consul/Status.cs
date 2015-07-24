@@ -35,7 +35,7 @@ namespace Consul
         /// <returns>A write result containing the leader node name</returns>
         public string Leader()
         {
-            var res = _client.CreateQueryRequest<string>("/v1/status/leader").Execute();
+            var res = _client.CreateQuery<string>("/v1/status/leader").Execute();
             return res.Response;
         }
 
@@ -45,7 +45,7 @@ namespace Consul
         /// <returns>A write result containing the list of Raft peers</returns>
         public string[] Peers()
         {
-            var res = _client.CreateQueryRequest<string[]>("/v1/status/peers").Execute();
+            var res = _client.CreateQuery<string[]>("/v1/status/peers").Execute();
             return res.Response;
         }
     }

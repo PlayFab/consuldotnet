@@ -26,10 +26,22 @@ using System.Net.Http;
 using System.Threading;
 using System.Web;
 using Newtonsoft.Json;
+using System.Threading.Tasks;
 
 namespace Consul
 {
-    public class Config
+    [Serializable]
+    public class ConsulRequestException : Exception
+    {
+        public ConsulRequestException() { }
+        public ConsulRequestException(string message) : base(message) { }
+        public ConsulRequestException(string message, Exception inner) : base(message, inner) { }
+        protected ConsulRequestException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context)
+            : base(info, context) { }
+    }
+    public class ConsulClientConfiguration
     {
         /// <summary>
         /// Address is the address of the Consul server
@@ -64,7 +76,7 @@ namespace Consul
         /// <summary>
         /// Constructs a default configuration for the client
         /// </summary>
-        public Config()
+        public ConsulClientConfiguration()
         {
             Address = "127.0.0.1:8500";
             Scheme = "http";
@@ -157,7 +169,7 @@ namespace Consul
     /// </summary>
     public class QueryOptions
     {
-        public static readonly QueryOptions Empty = new QueryOptions()
+        public static readonly QueryOptions Default = new QueryOptions()
         {
             Consistency = ConsistencyMode.Default,
             Datacenter = string.Empty,
@@ -213,12 +225,17 @@ namespace Consul
         /// </summary>
         public string Token { get; set; }
     }
-
+    public abstract class ConsulResult
+    {
+        /// <summary>
+        /// How long did the request take
+        /// </summary>
+        public TimeSpan RequestTime { get; set; }
+    }
     /// <summary>
     /// The result of a Consul API query
     /// </summary>
-    /// <typeparam name="T">Must be able to be deserialized from JSON</typeparam>
-    public class QueryResult<T>
+    public class QueryResult : ConsulResult
     {
         /// <summary>
         /// The index number when the query was serviced. This can be used as a WaitIndex to perform a blocking query
@@ -234,12 +251,14 @@ namespace Consul
         /// Is there a known leader
         /// </summary>
         public bool KnownLeader { get; set; }
+    }
 
-        /// <summary>
-        /// How long the request took
-        /// </summary>
-        public TimeSpan RequestTime { get; set; }
-
+    /// <summary>
+    /// The result of a Consul API query
+    /// </summary>
+    /// <typeparam name="T">Must be able to be deserialized from JSON</typeparam>
+    public class QueryResult<T> : QueryResult
+    {
         /// <summary>
         /// The result of the query
         /// </summary>
@@ -249,14 +268,15 @@ namespace Consul
     /// <summary>
     /// The result of a Consul API write
     /// </summary>
-    /// <typeparam name="T">Must be able to be deserialized from JSON. Some writes return nothing, in which case this should be an empty Object</typeparam>
-    public class WriteResult<T>
+    public class WriteResult : ConsulResult
     {
-        /// <summary>
-        /// How long did the request take
-        /// </summary>
-        public TimeSpan RequestTime { get; set; }
-
+    }
+    /// <summary>
+    /// The result of a Consul API write
+    /// </summary>
+    /// <typeparam name="T">Must be able to be deserialized from JSON. Some writes return nothing, in which case this should be an empty Object</typeparam>
+    public class WriteResult<T> : WriteResult
+    {
         /// <summary>
         /// The result of the write
         /// </summary>
@@ -267,14 +287,15 @@ namespace Consul
     /// A query to the Consul service
     /// </summary>
     /// <typeparam name="T">Must be JSON deserializable. Some writes return nothing, in which case this should be an empty Object</typeparam>
-    public class Query<T> : Request
+    public class Query : Request
     {
+        private QueryResult result;
         /// <summary>
         /// Annotate the request with additional query options
         /// </summary>
         public QueryOptions Options { get; set; }
 
-        public Query(Config config, HttpMethod method, string path, QueryOptions q)
+        public Query(ConsulClientConfiguration config, HttpMethod method, string path, QueryOptions q)
             : base(config, method, path)
         {
             if (q == null)
@@ -284,11 +305,11 @@ namespace Consul
             Options = q;
         }
 
-        private static void ParseQueryHeaders(WebResponse resp, ref QueryResult<T> meta)
+        protected static void ParseQueryHeaders(WebResponse res, QueryResult meta)
         {
-            var headers = resp.Headers;
+            var headers = res.Headers;
 
-            if (headers["X-Consul-Index"] != null)
+            if (!string.IsNullOrEmpty(headers["X-Consul-Index"]))
             {
                 try
                 {
@@ -296,11 +317,11 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ArgumentException("Failed to parse X-Consul-Index", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-Index", ex);
                 }
             }
 
-            if (headers["X-Consul-LastContact"] != null)
+            if (!string.IsNullOrEmpty(headers["X-Consul-LastContact"]))
             {
                 try
                 {
@@ -308,11 +329,11 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ArgumentException("Failed to parse X-Consul-LastContact", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-LastContact", ex);
                 }
             }
 
-            if (headers["X-Consul-KnownLeader"] != null)
+            if (!string.IsNullOrEmpty(headers["X-Consul-KnownLeader"]))
             {
                 try
                 {
@@ -320,14 +341,14 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ArgumentException("Failed to parse X-Consul-KnownLeader", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-KnownLeader", ex);
                 }
             }
         }
 
         protected override void ApplyOptions()
         {
-            if (Options == QueryOptions.Empty)
+            if (Options == QueryOptions.Default)
             {
                 return;
             }
@@ -353,7 +374,7 @@ namespace Consul
             }
             if (Options.WaitTime != TimeSpan.Zero)
             {
-                Params["wait"] = Duration.ToDuration(Options.WaitTime);
+                Params["wait"] = Options.WaitTime.ToGoDuration();
             }
             if (!string.IsNullOrEmpty(Options.Token))
             {
@@ -361,70 +382,106 @@ namespace Consul
             }
         }
 
-        public QueryResult<T> Execute()
+        protected HttpWebResponse ExecuteInternal<TResult>(TResult result, CancellationToken ct) where TResult : QueryResult
+        {
+            var req = BuildWebRequest();
+
+            timer.Start();
+
+            try
+            {
+                using (ct.Register(() => req.Abort()))
+                {
+                    var res = (HttpWebResponse)(req.GetResponse());
+                    ReadResponse(res.GetResponseStream(), ref result);
+                    ParseQueryHeaders(res, result);
+                    return res;
+                }
+            }
+            catch (WebException ex)
+            {
+                ct.ThrowIfCancellationRequested();
+                var res = (HttpWebResponse)ex.Response;
+                if (res.StatusCode == HttpStatusCode.NotFound)
+                {
+                    ParseQueryHeaders(res, result);
+                    // Let consumers handle not found since it usually means there was just an empty result from Consul.
+                    throw;
+                }
+                var stream = res.GetResponseStream();
+                if (stream == null)
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response code {0}",
+                        res.StatusCode));
+                }
+                using (var sr = new StreamReader(stream))
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response code {0}: {1}",
+                        res.StatusCode, sr.ReadToEnd()));
+                }
+            }
+            finally
+            {
+                result.RequestTime = timer.Elapsed;
+                timer.Stop();
+            }
+        }
+
+        public QueryResult Execute()
         {
             return Execute(CancellationToken.None);
         }
 
-        public QueryResult<T> Execute(CancellationToken cancel)
+        public QueryResult Execute(CancellationToken ct)
         {
-            var stopwatch = Stopwatch.StartNew();
-
-            var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
-            req.Timeout = _requestTimeout;
-            req.ReadWriteTimeout = _requestTimeout;
-            req.Method = Method.Method;
-            req.Accept = "application/json";
-            req.KeepAlive = true;
-            req.Credentials = Config.HttpAuth;
-
-            using (cancel.Register(req.Abort))
+            result = new QueryResult();
+            try
             {
-
-                try
+                var response = ExecuteInternal(result, ct);
+                return result;
+            }
+            catch (WebException ex)
+            {
+                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
                 {
-                    var res = (HttpWebResponse)(req.GetResponse());
-
-                    var result = new QueryResult<T>()
-                    {
-                        Response = DecodeBody<T>(res.GetResponseStream())
-                    };
-
-                    ParseQueryHeaders(res, ref result);
-                    stopwatch.Stop();
-                    result.RequestTime = stopwatch.Elapsed;
                     return result;
                 }
-                catch (WebException ex)
-                {
-                    if(cancel.IsCancellationRequested)
-                        throw new OperationCanceledException();
+                throw;
+            }
+        }
 
-                    var res = (HttpWebResponse)ex.Response;
-                    if (res == null)
-                    {
-                        throw new ApplicationException("Unexpected HTTP exception calling Consul", ex);
-                    }
-                    if (res.StatusCode == HttpStatusCode.NotFound)
-                    {
-                        var result = new QueryResult<T>();
-                        ParseQueryHeaders(res, ref result);
-                        stopwatch.Stop();
-                        result.RequestTime = stopwatch.Elapsed;
-                        return result;
-                    }
-                    var stream = res.GetResponseStream();
-                    if (stream == null)
-                    {
-                        throw new ArgumentException(string.Format("Unexpected response code {0}",
-                            res.StatusCode));
-                    }
-                    using (var sr = new StreamReader(stream))
-                    {
-                        throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
-                            res.StatusCode, sr.ReadToEnd()));
-                    }
+    }    /// <summary>
+    /// A query to the Consul service
+    /// </summary>
+    /// <typeparam name="T">Must be JSON deserializable. Some writes return nothing, in which case this should be an empty Object</typeparam>
+    public class Query<T> : Query
+    {
+        public Query(ConsulClientConfiguration config, HttpMethod method, string path, QueryOptions q)
+            : base(config, method, path, q) { }
+        public new QueryResult<T> Execute()
+        {
+            return Execute(CancellationToken.None);
+        }
+        protected override void ReadResponse<TResult>(Stream responseStream, ref TResult result)
+        {
+            (result as QueryResult<T>).Response = DecodeFromStream<T>(responseStream);
+        }
+
+        public new QueryResult<T> Execute(CancellationToken ct)
+        {
+            var result = new QueryResult<T>();
+            try
+            {
+                var response = ExecuteInternal(result, ct);
+                return result;
+            }
+            catch (WebException ex)
+            {
+                if (((HttpWebResponse)ex.Response).StatusCode == HttpStatusCode.NotFound)
+                {
+                    return result;
                 }
+                throw;
             }
         }
     }
@@ -432,20 +489,8 @@ namespace Consul
     /// <summary>
     /// A write to the Consul service
     /// </summary>
-    /// <typeparam name="T1">The type encoded and send to Consul. Must be JSON serializable, or a byte[]. If the type is byte[], then it is not encoded before transmission</typeparam>
-    /// <typeparam name="T2">The type returned by the write. Must be JSON deserializable. Some writes return nothing, in which case this should be an empty Object</typeparam>
-    public class Write<T1, T2> : Request
+    public class Write : Request
     {
-        /// <summary>
-        /// The data to write to Consul. Must be serializable to JSON.
-        /// </summary>
-        public T1 RequestBody { get; set; }
-
-        internal bool UseRawRequestBody
-        {
-            get { return GetType().GenericTypeArguments[0] == typeof (byte[]); }
-        }
-
         /// <summary>
         /// Annotate the request with additional write options
         /// </summary>
@@ -467,8 +512,7 @@ namespace Consul
                 Params["token"] = Options.Token;
             }
         }
-
-        public Write(Config config, HttpMethod method, string path, WriteOptions q)
+        public Write(ConsulClientConfiguration config, HttpMethod method, string path, WriteOptions q)
             : base(config, method, path)
         {
             if (q == null)
@@ -477,135 +521,151 @@ namespace Consul
             }
             Options = q;
         }
-
-        public Write(Config config, HttpMethod method, string path, T1 body, WriteOptions q)
-            : base(config, method, path)
+        protected WriteResult ExecuteInternal(WriteResult result)
         {
-            if (q == null)
-            {
-                throw new ArgumentNullException("q");
-            }
-            Options = q;
-            RequestBody = body;
-        }
-
-        public WriteResult<T2> Execute()
-        {
-            var stopwatch = Stopwatch.StartNew();
-            var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
-            req.Timeout = _requestTimeout;
-            req.ReadWriteTimeout = _requestTimeout;
-            req.Method = Method.Method;
-            req.Accept = "application/json";
-            req.KeepAlive = true;
-            req.Credentials = Config.HttpAuth;
-            if (ResponseStream == null && RequestBody != null)
-            {
-                try
-                {
-                    var reqStream = req.GetRequestStream();
-
-                    if (UseRawRequestBody)
-                    {
-                        WriteRawRequestBody(RequestBody, reqStream);
-                    }
-                    else
-                    {
-                        EncodeBody(RequestBody, reqStream);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    throw new ArgumentException("Unable to encode body for Consul request", ex);
-                }
-            }
-            else
-            {
-                if (ResponseStream != null)
-                {
-                    throw new ApplicationException("Server has responded already, cannot reuse request objects");
-                }
-            }
-
+            var req = BuildWebRequest();
+            HttpWebResponse res;
+            timer.Start();
+            WriteData(req.GetRequestStream());
             try
             {
-                var res = req.GetResponse();
-
-                if (((HttpWebResponse) res).StatusCode == HttpStatusCode.OK)
-                {
-                    var result = new WriteResult<T2>()
-                    {
-                        Response = DecodeBody<T2>(res.GetResponseStream())
-                    };
-
-                    stopwatch.Stop();
-                    result.RequestTime = stopwatch.Elapsed;
-
-                    return result;
-                }
-                else
+                res = (HttpWebResponse)req.GetResponse();
+                if (res.StatusCode == HttpStatusCode.OK)
                 {
                     var stream = res.GetResponseStream();
-                    if (stream == null)
-                    {
-                        throw new ArgumentException(string.Format("Unexpected response code {0}",
-                            ((HttpWebResponse) res).StatusCode));
-                    }
-                    else
-                    {
-                        using (var sr = new StreamReader(stream))
-                        {
-                            throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
-                                ((HttpWebResponse) res).StatusCode, sr.ReadToEnd()));
-                        }
-                    }
+                    if (stream != null)
+                        ReadResponse(stream, ref result);
                 }
             }
             catch (WebException ex)
             {
-                var res = (HttpWebResponse) ex.Response;
-                if (res == null)
+                res = (HttpWebResponse)ex.Response;
+                if (res.StatusCode == HttpStatusCode.NotFound)
                 {
-                    throw new ApplicationException("Unexpected HTTP exception calling Consul", ex);
+                    // Let consumers handle not found since it usually means there was just an empty result from Consul.
+                    throw;
                 }
-                else if (res.StatusCode == HttpStatusCode.NotFound)
+                var stream = res.GetResponseStream();
+                if (stream == null)
                 {
-                    var result = new WriteResult<T2>();
-                    stopwatch.Stop();
-                    result.RequestTime = stopwatch.Elapsed;
-                    return result;
+                    throw new ConsulRequestException(string.Format("Unexpected response code {0}",
+                        res.StatusCode));
                 }
-                else
+                using (var sr = new StreamReader(stream))
                 {
-                    var stream = res.GetResponseStream();
-                    if (stream == null)
-                    {
-                        throw new ArgumentException(string.Format("Unexpected response code {0}",
-                            res.StatusCode));
-                    }
-                    else
-                    {
-                        using (var sr = new StreamReader(stream))
-                        {
-                            throw new ArgumentException(string.Format("Unexpected response code {0}: {1}",
-                                res.StatusCode, sr.ReadToEnd()));
-                        }
-                    }
+                    throw new ConsulRequestException(string.Format("Unexpected response code {0}: {1}",
+                        res.StatusCode, sr.ReadToEnd()));
                 }
             }
+            finally
+            {
+                result.RequestTime = timer.Elapsed;
+                timer.Stop();
+            }
+            return result;
+        }
+        public virtual WriteResult Execute()
+        {
+            var result = new WriteResult();
+            ExecuteInternal(result);
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// A write to the Consul service
+    /// </summary>
+    /// <typeparam name="TIn">The type encoded and sent to Consul. Must be JSON serializable, or a byte[]. If the type is byte[], then it is not JSON encoded before transmission</typeparam>
+    public class Write<TIn> : Write
+    {
+        /// <summary>
+        /// The data to write to Consul. Must be serializable to JSON.
+        /// </summary>
+        public TIn RequestBody { get; set; }
+
+        internal bool UseRawRequestBody
+        {
+            get { return GetType().GenericTypeArguments[0] == typeof(byte[]); }
         }
 
+        public Write(ConsulClientConfiguration config, HttpMethod method, string path, TIn body, WriteOptions q)
+            : base(config, method, path, q)
+        {
+            RequestBody = body;
+        }
+        public Write(ConsulClientConfiguration config, HttpMethod method, string path, WriteOptions q)
+            : base(config, method, path, q)
+        {
+        }
+        protected override void WriteData(Stream requestStream)
+        {
+            if (UseRawRequestBody)
+            {
+                WriteRawRequestBody(RequestBody, requestStream);
+            }
+            else
+            {
+                EncodeToStream(RequestBody, requestStream);
+            }
+        }
         /// Must be object because T1 cannot be converted to byte[]
-        private static void WriteRawRequestBody(object body, Stream stream)
+        protected static void WriteRawRequestBody(object body, Stream stream)
         {
             if (body == null)
             {
                 return;
             }
+            var buf = (byte[])body;
             using (stream)
             {
-                stream.Write(((byte[]) body), 0, ((byte[]) body).Length);
+                stream.Write(buf, 0, buf.Length);
             }
+        }
+    }
+    /// <summary>
+    /// A write to the Consul service
+    /// </summary>
+    /// <typeparam name="TIn">The type encoded and sent to Consul. Must be JSON serializable, or a byte[]. If the type is byte[], then it is not JSON encoded before transmission</typeparam>
+    public class Modify<TOut> : Write
+    {
+        public Modify(ConsulClientConfiguration config, HttpMethod method, string path, WriteOptions q)
+            : base(config, method, path, q) { }
+
+        protected override void ReadResponse<TResult>(Stream responseStream, ref TResult result)
+        {
+            (result as WriteResult<TOut>).Response = DecodeFromStream<TOut>(responseStream);
+        }
+
+        public new WriteResult<TOut> Execute()
+        {
+            var result = new WriteResult<TOut>();
+            ExecuteInternal(result);
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// A write to the Consul service
+    /// </summary>
+    /// <typeparam name="TIn">The type encoded and sent to Consul. Must be JSON serializable, or a byte[]. If the type is byte[], then it is not JSON encoded before transmission</typeparam>
+    /// <typeparam name="TOut">The type returned by the write. Must be JSON deserializable. Some writes return nothing, in which case this should be an empty Object</typeparam>
+    public class Write<TIn, TOut> : Write<TIn>
+    {
+        public Write(ConsulClientConfiguration config, HttpMethod method, string path, TIn body, WriteOptions q)
+            : base(config, method, path, body, q) { }
+        public Write(ConsulClientConfiguration config, HttpMethod method, string path, WriteOptions q)
+            : base(config, method, path, q) { }
+
+        protected override void ReadResponse<TResult>(Stream responseStream, ref TResult result)
+        {
+            (result as WriteResult<TOut>).Response = DecodeFromStream<TOut>(responseStream);
+        }
+
+        public new WriteResult<TOut> Execute()
+        {
+            var result = new WriteResult<TOut>();
+            ExecuteInternal(result);
+            return result;
         }
     }
 
@@ -617,7 +677,8 @@ namespace Consul
         // 15 minute HTTP timeout
         protected const int _requestTimeout = 900000;
 
-        public Config Config { get; set; }
+        protected Stopwatch timer = new Stopwatch();
+        public ConsulClientConfiguration Config { get; set; }
         public HttpMethod Method { get; set; }
         public Uri Url { get; set; }
         public Dictionary<string, string> Params { get; set; }
@@ -628,13 +689,13 @@ namespace Consul
             Params = new Dictionary<string, string>();
         }
 
-        internal Request(Config config, HttpMethod method, string path)
+        internal Request(ConsulClientConfiguration config, HttpMethod method, string path)
             : this()
         {
             Config = config;
             Method = method;
 
-            var builder = new UriBuilder {Scheme = config.Scheme};
+            var builder = new UriBuilder { Scheme = config.Scheme };
             if (config.Address.Contains(":"))
             {
                 var split = config.Address.Split(':');
@@ -672,12 +733,24 @@ namespace Consul
 
             Url = builder.Uri;
         }
-
+        protected virtual void WriteData(Stream requestStream) { }
+        protected virtual void ReadResponse<TResult>(Stream responseStream, ref TResult result) where TResult : ConsulResult { }
+        protected WebRequest BuildWebRequest()
+        {
+            var req = WebRequest.CreateHttp(BuildConsulUri(Url, Params));
+            req.Timeout = _requestTimeout;
+            req.ReadWriteTimeout = _requestTimeout;
+            req.Method = Method.Method;
+            req.Accept = "application/json";
+            req.KeepAlive = true;
+            req.Credentials = Config.HttpAuth;
+            return req;
+        }
         protected Uri BuildConsulUri(Uri url, Dictionary<string, string> p)
         {
             var builder = new UriBuilder(Url);
             ApplyOptions();
-            var queryParams = new List<string>(Params.Count/2);
+            var queryParams = new List<string>(Params.Count / 2);
             foreach (var queryParam in Params)
             {
                 if (!string.IsNullOrEmpty(queryParam.Value))
@@ -696,21 +769,29 @@ namespace Consul
 
         protected abstract void ApplyOptions();
 
-        internal static TX DecodeBody<TX>(Stream stream)
+        internal TOut DecodeFromStream<TOut>(Stream stream)
         {
-            var reader = new StreamReader(stream);
-            var jsonReader = new JsonTextReader(reader);
-            var ser = new JsonSerializer();
-            return ser.Deserialize<TX>(jsonReader);
+            using (var reader = new StreamReader(stream))
+            {
+                using (var jsonReader = new JsonTextReader(reader))
+                {
+                    var ser = new JsonSerializer();
+                    return ser.Deserialize<TOut>(jsonReader);
+                }
+            }
         }
 
-        internal static void EncodeBody(object value, Stream stream)
+        internal void EncodeToStream(object value, Stream stream)
         {
-            var writer = new StreamWriter(stream);
-            var jsonWriter = new JsonTextWriter(writer);
-            var ser = new JsonSerializer();
-            ser.Serialize(jsonWriter, value);
-            jsonWriter.Flush();
+            using (var writer = new StreamWriter(stream))
+            {
+                using (var jsonWriter = new JsonTextWriter(writer))
+                {
+                    var ser = new JsonSerializer();
+                    ser.Serialize(jsonWriter, value);
+                    jsonWriter.Flush();
+                }
+            }
         }
     }
 
@@ -720,61 +801,101 @@ namespace Consul
     public partial class Client
     {
         private static readonly object _lock = new object();
-        private readonly Config _config;
+        private readonly ConsulClientConfiguration _config;
 
         public Client()
         {
-            _config = new Config();
+            _config = new ConsulClientConfiguration();
         }
 
-        public Client(Config c)
+        public Client(ConsulClientConfiguration c)
         {
             _config = c;
         }
-
-        internal Query<T> CreateQueryRequest<T>(string path)
+        internal Query CreateQuery(string path)
         {
-            return CreateQueryRequest<T>(HttpMethod.Get, path, QueryOptions.Empty);
+            return CreateQuery(HttpMethod.Get, path, QueryOptions.Default);
         }
 
-        internal Query<T> CreateQueryRequest<T>(string path, QueryOptions q)
+        internal Query CreateQuery(string path, QueryOptions q)
         {
-            return CreateQueryRequest<T>(HttpMethod.Get, path, q);
+            return CreateQuery(HttpMethod.Get, path, q);
         }
 
-        internal Query<T> CreateQueryRequest<T>(HttpMethod method, string path, QueryOptions q)
+        internal Query CreateQuery(HttpMethod method, string path, QueryOptions q)
+        {
+            return new Query(_config, method, path, q);
+        }
+        internal Query<T> CreateQuery<T>(string path)
+        {
+            return CreateQuery<T>(HttpMethod.Get, path, QueryOptions.Default);
+        }
+
+        internal Query<T> CreateQuery<T>(string path, QueryOptions q)
+        {
+            return CreateQuery<T>(HttpMethod.Get, path, q);
+        }
+
+        internal Query<T> CreateQuery<T>(HttpMethod method, string path, QueryOptions q)
         {
             return new Query<T>(_config, method, path, q);
         }
-
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(string path)
+        internal Modify<TOut> CreateOutWrite<TOut>(string path)
         {
-            return CreateWriteRequest<T1, T2>(HttpMethod.Put, path, WriteOptions.Empty);
+            return CreateOutWrite<TOut>(HttpMethod.Put, path, WriteOptions.Empty);
         }
 
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(string path, WriteOptions q)
+        internal Modify<TOut> CreateOutWrite<TOut>(string path, WriteOptions q)
         {
-            return CreateWriteRequest<T1, T2>(HttpMethod.Put, path, q);
+            return CreateOutWrite<TOut>(HttpMethod.Put, path, q);
         }
 
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(HttpMethod method, string path, WriteOptions q)
+        internal Modify<TOut> CreateOutWrite<TOut>(HttpMethod method, string path, WriteOptions q)
         {
-            return new Write<T1, T2>(_config, method, path, q);
+            return new Modify<TOut>(_config, method, path, q);
+        }
+        internal Write<TIn> CreateInWrite<TIn>(string path, TIn body)
+        {
+            return CreateInWrite<TIn>(HttpMethod.Put, path, body, WriteOptions.Empty);
         }
 
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(string path, T1 body)
+        internal Write<TIn> CreateInWrite<TIn>(string path, TIn body, WriteOptions q)
         {
-            return CreateWriteRequest<T1, T2>(HttpMethod.Put, path, body, WriteOptions.Empty);
+            return CreateInWrite<TIn>(HttpMethod.Put, path, body, q);
         }
 
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(string path, T1 body, WriteOptions q)
+        internal Write<TIn> CreateInWrite<TIn>(HttpMethod method, string path, TIn body, WriteOptions q)
         {
-            return CreateWriteRequest<T1, T2>(HttpMethod.Put, path, body, q);
+            return new Write<TIn>(_config, method, path, body, q);
+        }
+        internal Write CreateWrite(string path)
+        {
+            return CreateWrite(HttpMethod.Put, path, WriteOptions.Empty);
         }
 
-        internal Write<T1, T2> CreateWriteRequest<T1, T2>(HttpMethod method, string path, T1 body, WriteOptions q)
+        internal Write CreateWrite(string path, WriteOptions q)
         {
-            return new Write<T1, T2>(_config, method, path, body, q);
+            return CreateWrite(HttpMethod.Put, path, q);
+        }
+
+        internal Write CreateWrite(HttpMethod method, string path, WriteOptions q)
+        {
+            return new Write(_config, method, path, q);
+        }
+
+        internal Write<TIn, TOut> CreateWrite<TIn, TOut>(string path, TIn body)
+        {
+            return CreateWrite<TIn, TOut>(HttpMethod.Put, path, body, WriteOptions.Empty);
+        }
+
+        internal Write<TIn, TOut> CreateWrite<TIn, TOut>(string path, TIn body, WriteOptions q)
+        {
+            return CreateWrite<TIn, TOut>(HttpMethod.Put, path, body, q);
+        }
+
+        internal Write<TIn, TOut> CreateWrite<TIn, TOut>(HttpMethod method, string path, TIn body, WriteOptions q)
+        {
+            return new Write<TIn, TOut>(_config, method, path, body, q);
         }
     }
 }

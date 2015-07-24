@@ -17,7 +17,6 @@
 // -----------------------------------------------------------------------
 
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -52,7 +51,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint</returns>
         public  QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct)
         {
-            return Client.CreateQueryRequest<dynamic>(endpoint, q).Execute(ct);
+            return Client.CreateQuery<dynamic>(endpoint, q).Execute(ct);
         }
 
         /// <summary>
@@ -64,7 +63,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
         public WriteResult<dynamic> Write(string endpoint, object obj, WriteOptions q)
         {
-            return Client.CreateWriteRequest<object, dynamic>(endpoint, obj, q).Execute();
+            return Client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute();
         }
     }
 

@@ -63,7 +63,7 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Node(string node)
         {
-            return Node(node, QueryOptions.Empty, CancellationToken.None);
+            return Node(node, QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Node is used to query for checks belonging to a given node
@@ -84,7 +84,7 @@ namespace Consul
         public QueryResult<HealthCheck[]> Node(string node, QueryOptions q, CancellationToken ct)
         {
             return
-                _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
+                _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
         }
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Checks(string service)
         {
-            return Checks(service, QueryOptions.Empty, CancellationToken.None);
+            return Checks(service, QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Checks is used to return the checks associated with a service
@@ -114,7 +114,7 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
+            return _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
                         .Execute(ct);
         }
 
@@ -125,7 +125,7 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service)
         {
-            return Service(service, string.Empty, false, QueryOptions.Empty, CancellationToken.None);
+            return Service(service, string.Empty, false, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -136,7 +136,7 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID and tag, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service, string tag)
         {
-            return Service(service, tag, false, QueryOptions.Empty, CancellationToken.None);
+            return Service(service, tag, false, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -148,7 +148,7 @@ namespace Consul
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
         public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly)
         {
-            return Service(service, tag, passingOnly, QueryOptions.Empty, CancellationToken.None);
+            return Service(service, tag, passingOnly, QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Service is used to query health information along with service info for a given service. It can optionally do server-side filtering on a tag or nodes with passing health checks only.
@@ -174,7 +174,7 @@ namespace Consul
         public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly,
             QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQueryRequest<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
+            var req = _client.CreateQuery<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
@@ -193,7 +193,7 @@ namespace Consul
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
         public QueryResult<HealthCheck[]> State(CheckStatus status)
         {
-            return State(status, QueryOptions.Empty, CancellationToken.None);
+            return State(status, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -215,7 +215,7 @@ namespace Consul
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
         public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
+            return _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
                         .Execute(ct);
         }
     }

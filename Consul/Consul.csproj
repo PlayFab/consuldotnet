@@ -60,7 +60,6 @@
     <Compile Include="Event.cs" />
     <Compile Include="Health.cs" />
     <Compile Include="Client.cs" />
-    <Compile Include="GoDuration.cs" />
     <Compile Include="JsonConverters.cs" />
     <Compile Include="KV.cs" />
     <Compile Include="Lock.cs" />
@@ -69,6 +68,7 @@
     <Compile Include="Semaphore.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="Status.cs" />
+    <Compile Include="Extensions.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Consul.nuspec" />

@@ -33,7 +33,7 @@ namespace Consul.Test
                 Assert.Inconclusive();
             }
 
-            var client = new Client(new Config() {Token = ConsulRoot});
+            var client = new Client(new ConsulClientConfiguration() {Token = ConsulRoot});
             var aclEntry = new ACLEntry()
             {
                 Name = "API Test",
@@ -64,7 +64,7 @@ namespace Consul.Test
                 Assert.Inconclusive();
             }
 
-            var client = new Client(new Config() {Token = ConsulRoot});
+            var client = new Client(new ConsulClientConfiguration() {Token = ConsulRoot});
 
             var cloneRequest = client.ACL.Clone(ConsulRoot);
             var aclID = cloneRequest.Response;
@@ -92,7 +92,7 @@ namespace Consul.Test
                 Assert.Inconclusive();
             }
 
-            var client = new Client(new Config() {Token = ConsulRoot});
+            var client = new Client(new ConsulClientConfiguration() {Token = ConsulRoot});
 
             var aclEntry = client.ACL.Info(ConsulRoot);
 
@@ -109,7 +109,7 @@ namespace Consul.Test
             {
                 Assert.Inconclusive();
             }
-            var client = new Client(new Config() {Token = ConsulRoot});
+            var client = new Client(new ConsulClientConfiguration() {Token = ConsulRoot});
 
             var aclList = client.ACL.List();
 
