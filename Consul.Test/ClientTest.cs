@@ -38,7 +38,7 @@ namespace Consul.Test
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL", "1");
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL_VERIFY", "0");
 
-            var config = new Config();
+            var config = new ConsulClientConfiguration();
 
             Assert.AreEqual(addr, config.Address);
             Assert.AreEqual(token, config.Token);
@@ -73,7 +73,7 @@ namespace Consul.Test
                 WaitTime = new TimeSpan(0, 0, 100),
                 Token = "12345"
             };
-            var request = client.CreateQueryRequest<object>("/v1/kv/foo", opts);
+            var request = client.CreateQuery("/v1/kv/foo", opts);
             try
             {
                 request.Execute();
@@ -100,7 +100,7 @@ namespace Consul.Test
                 Token = "12345"
             };
 
-            var request = client.CreateWriteRequest<object, object>("/v1/kv/foo", opts);
+            var request = client.CreateWrite("/v1/kv/foo", opts);
             try
             {
                 request.Execute();

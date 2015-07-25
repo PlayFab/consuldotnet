@@ -70,7 +70,7 @@ namespace Consul
     /// <summary>
     /// Catalog can be used to query the Catalog endpoints
     /// </summary>
-    public class Catalog
+    public class Catalog : ICatalogEndpoint
     {
         private readonly Client _client;
 
@@ -84,7 +84,7 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog registration</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Register(CatalogRegistration reg)
+        public WriteResult Register(CatalogRegistration reg)
         {
             return Register(reg, WriteOptions.Empty);
         }
@@ -95,10 +95,10 @@ namespace Consul
         /// <param name="reg">A catalog registration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Register(CatalogRegistration reg, WriteOptions q)
+        public WriteResult Register(CatalogRegistration reg, WriteOptions q)
         {
             return
-                _client.CreateWriteRequest<CatalogRegistration, object>("/v1/catalog/register", reg, q).Execute();
+                _client.CreateInWrite<CatalogRegistration>("/v1/catalog/register", reg, q).Execute();
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog deregistration</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Deregister(CatalogDeregistration reg)
+        public WriteResult Deregister(CatalogDeregistration reg)
         {
             return Deregister(reg, WriteOptions.Empty);
         }
@@ -117,9 +117,9 @@ namespace Consul
         /// <param name="reg">A catalog deregistration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Deregister(CatalogDeregistration reg, WriteOptions q)
+        public WriteResult Deregister(CatalogDeregistration reg, WriteOptions q)
         {
-            return _client.CreateWriteRequest<CatalogDeregistration, object>("/v1/catalog/deregister", reg, q)
+            return _client.CreateInWrite<CatalogDeregistration>("/v1/catalog/deregister", reg, q)
                         .Execute();
         }
 
@@ -129,7 +129,7 @@ namespace Consul
         /// <returns>A list of datacenter names</returns>
         public QueryResult<string[]> Datacenters()
         {
-            return _client.CreateQueryRequest<string[]>("/v1/catalog/datacenters").Execute();
+            return _client.CreateQuery<string[]>("/v1/catalog/datacenters").Execute();
         }
 
         /// <summary>
@@ -138,7 +138,7 @@ namespace Consul
         /// <returns>A list of all nodes</returns>
         public QueryResult<Node[]> Nodes()
         {
-            return Nodes(QueryOptions.Empty, CancellationToken.None);
+            return Nodes(QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Nodes is used to query all the known nodes
@@ -156,7 +156,7 @@ namespace Consul
         /// <returns>A list of all nodes</returns>
         public QueryResult<Node[]> Nodes(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<Node[]>("/v1/catalog/nodes", q).Execute(ct);
+            return _client.CreateQuery<Node[]>("/v1/catalog/nodes", q).Execute(ct);
         }
 
         /// <summary>
@@ -165,7 +165,7 @@ namespace Consul
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services()
         {
-            return Services(QueryOptions.Empty, CancellationToken.None);
+            return Services(QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Services is used to query for all known services
@@ -184,7 +184,7 @@ namespace Consul
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
+            return _client.CreateQuery<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
         }
 
         /// <summary>
@@ -194,7 +194,7 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public QueryResult<CatalogService[]> Service(string service)
         {
-            return Service(service, string.Empty, QueryOptions.Empty);
+            return Service(service, string.Empty, QueryOptions.Default);
         }
 
         /// <summary>
@@ -205,7 +205,7 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public QueryResult<CatalogService[]> Service(string service, string tag)
         {
-            return Service(service, tag, QueryOptions.Empty);
+            return Service(service, tag, QueryOptions.Default);
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public QueryResult<CatalogService[]> Service(string service, string tag, QueryOptions q)
         {
-            var req = _client.CreateQueryRequest<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
+            var req = _client.CreateQuery<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
@@ -232,7 +232,7 @@ namespace Consul
         /// <returns>The node information including a list of services</returns>
         public QueryResult<CatalogNode> Node(string node)
         {
-            return Node(node, QueryOptions.Empty);
+            return Node(node, QueryOptions.Default);
         }
 
         /// <summary>
@@ -244,18 +244,18 @@ namespace Consul
         public QueryResult<CatalogNode> Node(string node, QueryOptions q)
         {
             return
-                _client.CreateQueryRequest<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
+                _client.CreateQuery<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Catalog _catalog;
 
         /// <summary>
         /// Catalog returns a handle to the catalog endpoints
         /// </summary>
-        public Catalog Catalog
+        public ICatalogEndpoint Catalog
         {
             get
             {

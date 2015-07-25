@@ -31,7 +31,7 @@ namespace Consul
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            return Duration.Parse((string)serializer.Deserialize(reader, typeof(string)));
+            return Extensions.FromGoDuration((string)serializer.Deserialize(reader, typeof(string)));
         }
 
         public override bool CanConvert(Type objectType)
@@ -48,13 +48,13 @@ namespace Consul
     {
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
-            serializer.Serialize(writer, Duration.ToDuration((TimeSpan)value));
+            serializer.Serialize(writer, ((TimeSpan)value).ToGoDuration());
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
             JsonSerializer serializer)
         {
-            return Duration.Parse((string)serializer.Deserialize(reader, typeof(string)));
+            return Extensions.FromGoDuration((string)serializer.Deserialize(reader, typeof(string)));
         }
 
         public override bool CanConvert(Type objectType)
