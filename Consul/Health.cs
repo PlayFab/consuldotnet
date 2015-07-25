@@ -220,7 +220,7 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Health _health;
 

@@ -317,7 +317,7 @@ namespace Consul
     /// <summary>
     /// Agent can be used to query the Agent endpoints
     /// </summary>
-    public class Agent
+    public class Agent : IAgentEndpoint
     {
         private readonly Client _client;
 
@@ -553,14 +553,14 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Agent _agent;
 
         /// <summary>
         /// Agent returns a handle to the agent endpoints
         /// </summary>
-        public Agent Agent
+        public IAgentEndpoint Agent
         {
             get
             {

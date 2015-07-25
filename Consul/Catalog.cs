@@ -70,7 +70,7 @@ namespace Consul
     /// <summary>
     /// Catalog can be used to query the Catalog endpoints
     /// </summary>
-    public class Catalog
+    public class Catalog : ICatalogEndpoint
     {
         private readonly Client _client;
 
@@ -248,14 +248,14 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Catalog _catalog;
 
         /// <summary>
         /// Catalog returns a handle to the catalog endpoints
         /// </summary>
-        public Catalog Catalog
+        public ICatalogEndpoint Catalog
         {
             get
             {

@@ -553,7 +553,7 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         /// <summary>
         /// CreateLock returns an unlocked lock which can be used to acquire and release the mutex. The key used must have write permissions.

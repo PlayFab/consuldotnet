@@ -762,7 +762,7 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         /// <summary>
         /// Used to created a Semaphore which will operate at the given KV prefix and uses the given limit for the semaphore.

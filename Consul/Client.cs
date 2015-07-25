@@ -798,7 +798,7 @@ namespace Consul
     /// <summary>
     /// Client provides a client to the Consul API. Operations should be done by constructing a client, then using the various APIs from that Client object.
     /// </summary>
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private static readonly object _lock = new object();
         private readonly ConsulClientConfiguration _config;

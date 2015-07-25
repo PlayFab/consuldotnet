@@ -432,7 +432,7 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Session _session;
 

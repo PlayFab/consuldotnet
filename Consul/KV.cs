@@ -370,7 +370,7 @@ namespace Consul
     /// <summary>
     /// KV is used to return a handle to the K/V apis
     /// </summary>
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private KV _kv;
 

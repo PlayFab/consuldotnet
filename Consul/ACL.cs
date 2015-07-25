@@ -151,7 +151,7 @@ namespace Consul
     /// <summary>
     /// ACL can be used to query the ACL endpoints
     /// </summary>
-    public class ACL
+    public class ACL : IACLEndpoint
     {
         private readonly Client _client;
 
@@ -333,14 +333,14 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private ACL _acl;
 
         /// <summary>
         /// ACL returns a handle to the ACL endpoints
         /// </summary>
-        public ACL ACL
+        public IACLEndpoint ACL
         {
             get
             {
