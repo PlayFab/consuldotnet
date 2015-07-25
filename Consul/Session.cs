@@ -439,7 +439,7 @@ namespace Consul
         /// <summary>
         /// Session returns a handle to the session endpoints
         /// </summary>
-        public Session Session
+        public ISessionEndpoint Session
         {
             get
             {

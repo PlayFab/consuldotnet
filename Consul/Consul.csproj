@@ -60,7 +60,9 @@
     <Compile Include="Event.cs" />
     <Compile Include="Health.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="Interfaces\IDisposableLock.cs" />
     <Compile Include="Interfaces\IDistributedLock.cs" />
+    <Compile Include="Interfaces\IDisposableSemaphore.cs" />
     <Compile Include="Interfaces\IDistributedSemaphore.cs" />
     <Compile Include="Interfaces\IKVEndpoint.cs" />
     <Compile Include="Interfaces\IHealthEndpoint.cs" />

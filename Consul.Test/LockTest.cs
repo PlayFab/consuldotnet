@@ -83,6 +83,26 @@ namespace Consul.Test
             }
             Assert.IsNull(client.KV.Get(keyName).Response);
         }
+
+        [TestMethod]
+        public void Lock_Disposable()
+        {
+            var client = new Client();
+
+            const string keyName = "test/lock/disposable";
+            using (var l = client.AcquireLock(keyName))
+            {
+                Assert.IsTrue(l.IsHeld);
+            }
+        }
+        [TestMethod]
+        public void Lock_ExecuteAction()
+        {
+            var client = new Client();
+
+            const string keyName = "test/lock/action";
+            client.ExecuteLocked(keyName, () => Assert.IsTrue(true));
+        }
         [TestMethod]
         public void Lock_AcquireWaitRelease()
         {
@@ -204,7 +224,7 @@ namespace Consul.Test
 
                 Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
                 {
-                    var lockKey = client.CreateLock(keyName);
+                    var lockKey = (Lock)client.CreateLock(keyName);
                     lockKey.Acquire(CancellationToken.None);
                     if (lockKey.IsHeld)
                     {
@@ -464,7 +484,7 @@ namespace Consul.Test
 
             const string keyName = "test/lock/forceinvalidate";
 
-            var lockKey = client.CreateLock(keyName);
+            var lockKey = (Lock)client.CreateLock(keyName);
             try
             {
                 lockKey.Acquire(CancellationToken.None);
@@ -505,7 +525,7 @@ namespace Consul.Test
 
             const string keyName = "test/lock/deletekey";
 
-            var lockKey = client.CreateLock(keyName);
+            var lockKey = (Lock)client.CreateLock(keyName);
             try
             {
                 lockKey.Acquire(CancellationToken.None);

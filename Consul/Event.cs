@@ -159,7 +159,7 @@ namespace Consul
         /// <summary>
         /// Event returns a handle to the event endpoints
         /// </summary>
-        public Event Event
+        public IEventEndpoint Event
         {
             get
             {

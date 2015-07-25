@@ -502,7 +502,7 @@ namespace Consul
     /// <summary>
     /// A version of the lock that is acquired upon initialization and implements IDisposable to release, so it can be used with a "using" statement
     /// </summary>
-    public class DisposableLock : Lock, IDisposable
+    public class DisposableLock : Lock, IDisposable, IDisposableLock
     {
         public CancellationToken CancellationToken { get; private set; }
         internal DisposableLock(Client client, LockOptions opts, CancellationToken ct)
@@ -560,7 +560,7 @@ namespace Consul
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public Lock CreateLock(string key)
+        public IDistributedLock CreateLock(string key)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -574,7 +574,7 @@ namespace Consul
         /// </summary>
         /// <param name="opts"></param>
         /// <returns></returns>
-        public Lock CreateLock(LockOptions opts)
+        public IDistributedLock CreateLock(LockOptions opts)
         {
             if (opts == null)
             {
@@ -588,7 +588,7 @@ namespace Consul
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public DisposableLock AcquireLock(string key)
+        public IDisposableLock AcquireLock(string key)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -603,7 +603,7 @@ namespace Consul
         /// <param name="key"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DisposableLock AcquireLock(string key, CancellationToken ct)
+        public IDisposableLock AcquireLock(string key, CancellationToken ct)
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -619,7 +619,7 @@ namespace Consul
         /// <param name="opts"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DisposableLock AcquireLock(LockOptions opts)
+        public IDisposableLock AcquireLock(LockOptions opts)
         {
             if (opts == null)
             {
@@ -634,7 +634,7 @@ namespace Consul
         /// <param name="opts"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public DisposableLock AcquireLock(LockOptions opts, CancellationToken ct)
+        public IDisposableLock AcquireLock(LockOptions opts, CancellationToken ct)
         {
             if (opts == null)
             {
