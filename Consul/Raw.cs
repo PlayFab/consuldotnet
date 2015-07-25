@@ -23,14 +23,15 @@ namespace Consul
     /// <summary>
     /// Raw can be used to do raw queries against custom endpoints
     /// </summary>
-    public class Raw
+    public class Raw : IRawEndpoint
     {
-        public Client Client { get; set; }
+        private readonly Client _client;
 
-        public Raw(Client client)
+        internal Raw(Client c)
         {
-            Client = client;
+            _client = c;
         }
+
         /// <summary>
         /// Query is used to do a GET request against an endpoint and deserialize the response into an interface using standard Consul conventions.
         /// </summary>
@@ -51,7 +52,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint</returns>
         public  QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct)
         {
-            return Client.CreateQuery<dynamic>(endpoint, q).Execute(ct);
+            return _client.CreateQuery<dynamic>(endpoint, q).Execute(ct);
         }
 
         /// <summary>
@@ -63,7 +64,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
         public WriteResult<dynamic> Write(string endpoint, object obj, WriteOptions q)
         {
-            return Client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute();
+            return _client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute();
         }
     }
 

@@ -144,7 +144,7 @@ namespace Consul
     /// <summary>
     /// Session can be used to query the Session endpoints
     /// </summary>
-    public class Session
+    public class Session : ISessionEndpoint
     {
         private class SessionCreationResult
         {

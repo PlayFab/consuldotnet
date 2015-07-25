@@ -38,7 +38,7 @@ namespace Consul
         public ulong LTime { get; set; }
     }
 
-    public class Event
+    public class Event : IEventEndpoint
     {
         private class EventCreationResult
         {

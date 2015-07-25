@@ -51,7 +51,7 @@ namespace Consul
     /// <summary>
     /// KV is used to manipulate the key/value pair API
     /// </summary>
-    public class KV
+    public class KV : IKVEndpoint
     {
         private readonly Client _client;
 

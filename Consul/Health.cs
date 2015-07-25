@@ -47,7 +47,7 @@ namespace Consul
     /// <summary>
     /// Health can be used to query the Health endpoints
     /// </summary>
-    public class Health
+    public class Health : IHealthEndpoint
     {
         private readonly Client _client;
 

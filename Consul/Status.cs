@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Consul
 {
-    public class Status
+    public class Status : IStatusEndpoint
     {
         private readonly Client _client;
 

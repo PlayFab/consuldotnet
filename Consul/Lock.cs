@@ -126,7 +126,7 @@ namespace Consul
     /// <summary>
     /// Lock is used to implement client-side leader election. It is follows the algorithm as described here: https://consul.io/docs/guides/leader-election.html.
     /// </summary>
-    public class Lock
+    public class Lock : IDistributedLock
     {
         /// <summary>
         /// DefaultLockWaitTime is how long we block for at a time to check if lock acquisition is possible. This affects the minimum time it takes to cancel a Lock acquisition.
