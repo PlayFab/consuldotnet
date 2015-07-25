@@ -75,7 +75,7 @@ namespace Consul
         /// <summary>
         /// Raw returns a handle to query endpoints
         /// </summary>
-        public Raw Raw
+        public IRawEndpoint Raw
         {
             get
             {

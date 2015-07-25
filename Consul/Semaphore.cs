@@ -678,7 +678,7 @@ namespace Consul
         }
     }
 
-    public class AutoSemaphore : Semaphore, IDisposable
+    public class AutoSemaphore : Semaphore, IDisposable, IDisposableSemaphore
     {
         public CancellationToken CancellationToken { get; private set; }
         internal AutoSemaphore(Client c, SemaphoreOptions opts)
@@ -771,7 +771,7 @@ namespace Consul
         /// <param name="prefix">The keyspace prefix (e.g. "locks/semaphore")</param>
         /// <param name="limit">The number of available semaphore slots</param>
         /// <returns>An unlocked semaphore</returns>
-        public Semaphore Semaphore(string prefix, int limit)
+        public IDistributedSemaphore Semaphore(string prefix, int limit)
         {
             if (prefix == null)
             {
@@ -787,7 +787,7 @@ namespace Consul
         /// </summary>
         /// <param name="opts">The semaphore options</param>
         /// <returns>An unlocked semaphore</returns>
-        public Semaphore Semaphore(SemaphoreOptions opts)
+        public IDistributedSemaphore Semaphore(SemaphoreOptions opts)
         {
             if (opts == null)
             {
@@ -795,7 +795,7 @@ namespace Consul
             }
             return new Semaphore(this) { Opts = opts };
         }
-        public AutoSemaphore AcquireSemaphore(string prefix, int limit)
+        public IDisposableSemaphore AcquireSemaphore(string prefix, int limit)
         {
             if (string.IsNullOrEmpty(prefix))
             {
@@ -803,7 +803,7 @@ namespace Consul
             }
             return AcquireSemaphore(new SemaphoreOptions(prefix, limit));
         }
-        public AutoSemaphore AcquireSemaphore(SemaphoreOptions opts)
+        public IDisposableSemaphore AcquireSemaphore(SemaphoreOptions opts)
         {
             if (opts == null)
             {

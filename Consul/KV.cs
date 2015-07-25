@@ -374,7 +374,7 @@ namespace Consul
     {
         private KV _kv;
 
-        public KV KV
+        public IKVEndpoint KV
         {
             get
             {

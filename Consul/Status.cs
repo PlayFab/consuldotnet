@@ -57,7 +57,7 @@ namespace Consul
         /// <summary>
         /// Status returns a handle to the status endpoints
         /// </summary>
-        public Status Status
+        public IStatusEndpoint Status
         {
             get
             {

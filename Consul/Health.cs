@@ -227,7 +227,7 @@ namespace Consul
         /// <summary>
         /// Health returns a handle to the health endpoints
         /// </summary>
-        public Health Health
+        public IHealthEndpoint Health
         {
             get
             {

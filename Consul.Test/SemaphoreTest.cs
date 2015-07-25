@@ -117,7 +117,25 @@ namespace Consul.Test
 
             Assert.IsFalse(semaphore.IsHeld);
         }
+        [TestMethod]
+        public void Semaphore_Disposable()
+        {
+            var client = new Client();
 
+            const string keyName = "test/semaphore/disposable";
+            using (var semaphore = client.AcquireSemaphore(keyName, 2))
+            {
+                Assert.IsTrue(semaphore.IsHeld);
+            }
+        }
+        [TestMethod]
+        public void Semaphore_ExecuteAction()
+        {
+            var client = new Client();
+
+            const string keyName = "test/semaphore/action";
+            client.ExecuteInSemaphore(keyName, 2, () => Assert.IsTrue(true));
+        }
         [TestMethod]
         public void Semaphore_AcquireWaitRelease()
         {
@@ -291,7 +309,7 @@ namespace Consul.Test
 
             const string keyName = "test/semaphore/forceinvalidate";
 
-            var semaphore = client.Semaphore(keyName, 2);
+            var semaphore = (Semaphore)client.Semaphore(keyName, 2);
 
             try
             {
@@ -334,7 +352,7 @@ namespace Consul.Test
 
             const string keyName = "test/semaphore/deletekey";
 
-            var semaphore = client.Semaphore(keyName, 2);
+            var semaphore = (Semaphore)client.Semaphore(keyName, 2);
 
             try
             {
