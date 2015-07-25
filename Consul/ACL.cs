@@ -16,8 +16,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using System;
 using Newtonsoft.Json;
+using System;
 using System.Threading;
 
 namespace Consul
@@ -151,7 +151,7 @@ namespace Consul
     /// <summary>
     /// ACL can be used to query the ACL endpoints
     /// </summary>
-    public class ACL
+    public class ACL : IACLEndpoint
     {
         private readonly Client _client;
 
@@ -184,7 +184,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public WriteResult<string> Create(ACLEntry acl, WriteOptions q)
         {
-            var res = _client.CreateWriteRequest<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute();
+            var res = _client.CreateWrite<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute();
             return new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,
@@ -197,7 +197,7 @@ namespace Consul
         /// </summary>
         /// <param name="acl">The ACL entry to update</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Update(ACLEntry acl)
+        public WriteResult Update(ACLEntry acl)
         {
             return Update(acl, WriteOptions.Empty);
         }
@@ -208,9 +208,9 @@ namespace Consul
         /// <param name="acl">The ACL entry to update</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Update(ACLEntry acl, WriteOptions q)
+        public WriteResult Update(ACLEntry acl, WriteOptions q)
         {
-            return _client.CreateWriteRequest<ACLEntry, object>("/v1/acl/update", acl, q).Execute();
+            return _client.CreateInWrite<ACLEntry>("/v1/acl/update", acl, q).Execute();
         }
 
         /// <summary>
@@ -231,7 +231,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult<bool> Destroy(string id, WriteOptions q)
         {
-            return _client.CreateWriteRequest<object, bool>(string.Format("/v1/acl/destroy/{0}", id)).Execute();
+            return _client.CreateOutWrite<bool>(string.Format("/v1/acl/destroy/{0}", id)).Execute();
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public WriteResult<string> Clone(string id, WriteOptions q)
         {
-            var res = _client.CreateWriteRequest<ACLEntry, ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute();
+            var res = _client.CreateOutWrite<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute();
             var ret = new WriteResult<string>
             {
                 RequestTime = res.RequestTime,
@@ -268,7 +268,7 @@ namespace Consul
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
         public QueryResult<ACLEntry> Info(string id)
         {
-            return Info(id, QueryOptions.Empty, CancellationToken.None);
+            return Info(id, QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Info is used to query for information about an ACL token
@@ -289,7 +289,7 @@ namespace Consul
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
         public QueryResult<ACLEntry> Info(string id, QueryOptions q, CancellationToken ct)
         {
-            var res = _client.CreateQueryRequest<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
+            var res = _client.CreateQuery<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
             var ret = new QueryResult<ACLEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -310,7 +310,7 @@ namespace Consul
         /// <returns>A write result containing the list of all ACLs</returns>
         public QueryResult<ACLEntry[]> List()
         {
-            return List(QueryOptions.Empty, CancellationToken.None);
+            return List(QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// List is used to get all the ACL tokens
@@ -329,18 +329,18 @@ namespace Consul
         /// <returns>A write result containing the list of all ACLs</returns>
         public QueryResult<ACLEntry[]> List(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQueryRequest<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
+            return _client.CreateQuery<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private ACL _acl;
 
         /// <summary>
         /// ACL returns a handle to the ACL endpoints
         /// </summary>
-        public ACL ACL
+        public IACLEndpoint ACL
         {
             get
             {

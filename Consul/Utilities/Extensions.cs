@@ -1,41 +1,20 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="GoDuration.cs" company="PlayFab Inc">
-//    Copyright 2015 PlayFab Inc.
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-//  </copyright>
-// -----------------------------------------------------------------------
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Consul
 {
-    /// <summary>
-    /// Utility class to convert to/from GoLang duration strings
-    /// </summary>
-    public class Duration
+    internal static class Extensions
     {
-        public const double Nanosecond = Microsecond / 1000;
-        public const double Microsecond = Millisecond / 1000;
-        public const double Millisecond = 1;
-        public const double Second = 1000 * Millisecond;
-        public const double Minute = 60 * Second;
-        public const double Hour = 60 * Minute;
+        internal const double Nanosecond = Microsecond / 1000;
+        internal const double Microsecond = Millisecond / 1000;
+        internal const double Millisecond = 1;
+        internal const double Second = 1000 * Millisecond;
+        internal const double Minute = 60 * Second;
+        internal const double Hour = 60 * Minute;
 
-        public static Dictionary<string, double> UnitMap = new Dictionary<string, double>()
+        internal static readonly Dictionary<string, double> UnitMap = new Dictionary<string, double>()
         {
             {"ns", Nanosecond},
             {"us", Microsecond},
@@ -46,8 +25,7 @@ namespace Consul
             {"m", Minute},
             {"h", Hour}
         };
-
-        public static string ToDuration(TimeSpan ts)
+        internal static string ToGoDuration(this TimeSpan ts)
         {
             if (ts == TimeSpan.Zero)
             {
@@ -85,8 +63,7 @@ namespace Consul
             }
             return outDuration.ToString();
         }
-
-        public static TimeSpan Parse(string value)
+        internal static TimeSpan FromGoDuration(string value)
         {
             const string pattern = @"([0-9]*(?:\.[0-9]*)?)([a-z]+)";
 

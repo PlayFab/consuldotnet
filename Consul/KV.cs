@@ -51,7 +51,7 @@ namespace Consul
     /// <summary>
     /// KV is used to manipulate the key/value pair API
     /// </summary>
-    public class KV
+    public class KV : IKVEndpoint
     {
         private readonly Client _client;
 
@@ -67,7 +67,7 @@ namespace Consul
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
         public QueryResult<KVPair> Get(string key)
         {
-            return Get(key, QueryOptions.Empty, CancellationToken.None);
+            return Get(key, QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Get is used to lookup a single key
@@ -88,7 +88,7 @@ namespace Consul
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
         public QueryResult<KVPair> Get(string key, QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQueryRequest<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
+            var req = _client.CreateQuery<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
             var res = req.Execute(ct);
             var ret = new QueryResult<KVPair>()
             {
@@ -111,7 +111,7 @@ namespace Consul
         /// <returns>A query result containing the keys matching the prefix</returns>
         public QueryResult<KVPair[]> List(string prefix)
         {
-            return List(prefix, QueryOptions.Empty, CancellationToken.None);
+            return List(prefix, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -134,7 +134,7 @@ namespace Consul
         /// <returns></returns>
         public QueryResult<KVPair[]> List(string prefix, QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQueryRequest<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.CreateQuery<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["recurse"] = string.Empty;
             return req.Execute(ct);
         }
@@ -146,7 +146,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix)
         {
-            return Keys(prefix, string.Empty, QueryOptions.Empty, CancellationToken.None);
+            return Keys(prefix, string.Empty, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -157,7 +157,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix, string separator)
         {
-            return Keys(prefix, separator, QueryOptions.Empty, CancellationToken.None);
+            return Keys(prefix, separator, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -182,7 +182,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public QueryResult<string[]> Keys(string prefix, string separator, QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQueryRequest<string[]>(string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.CreateQuery<string[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["keys"] = string.Empty;
             if (!string.IsNullOrEmpty(separator))
             {
@@ -209,7 +209,7 @@ namespace Consul
         /// <returns>A write result indicating if the write attempt succeeded</returns>
         public WriteResult<bool> Put(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -235,7 +235,7 @@ namespace Consul
         /// <returns>A write result indicating if the write attempt succeeded</returns>
         public WriteResult<bool> CAS(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -262,7 +262,7 @@ namespace Consul
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
         public WriteResult<bool> Acquire(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -289,7 +289,7 @@ namespace Consul
         /// <returns>A write result indicating if the release attempt succeeded</returns>
         public WriteResult<bool> Release(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.CreateWrite<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -316,7 +316,7 @@ namespace Consul
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
         public WriteResult<bool> Delete(string key, WriteOptions q)
         {
-            return _client.CreateWriteRequest<object, bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", key), q)
+            return _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", key), q)
                         .Execute();
         }
 
@@ -338,7 +338,7 @@ namespace Consul
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
         public WriteResult<bool> DeleteCAS(KVPair p, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<object, bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", p.Key), q);
             req.Params.Add("cas", p.ModifyIndex.ToString());
             return req.Execute();
         }
@@ -361,7 +361,7 @@ namespace Consul
         /// <returns>A write result indicating if the recursiv edelete attempt succeeded</returns>
         public WriteResult<bool> DeleteTree(string prefix, WriteOptions q)
         {
-            var req = _client.CreateWriteRequest<object, bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", prefix), q);
             req.Params.Add("recurse", string.Empty);
             return req.Execute();
         }
@@ -370,7 +370,7 @@ namespace Consul
     /// <summary>
     /// KV is used to return a handle to the K/V apis
     /// </summary>
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private KV _kv;
 

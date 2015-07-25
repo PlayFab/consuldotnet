@@ -162,7 +162,7 @@ namespace Consul
     /// <summary>
     /// Semaphore is used to implement a distributed semaphore using the Consul KV primitives.
     /// </summary>
-    public class Semaphore
+    public class Semaphore : IDistributedSemaphore
     {
         /// <summary>
         /// SemaphoreLock is written under the DefaultSemaphoreKey and is used to coordinate between all the contenders.
@@ -762,7 +762,7 @@ namespace Consul
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         /// <summary>
         /// Used to created a Semaphore which will operate at the given KV prefix and uses the given limit for the semaphore.

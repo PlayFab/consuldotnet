@@ -16,10 +16,10 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Web;
-using Newtonsoft.Json;
 
 namespace Consul
 {
@@ -317,7 +317,7 @@ namespace Consul
     /// <summary>
     /// Agent can be used to query the Agent endpoints
     /// </summary>
-    public class Agent
+    public class Agent : IAgentEndpoint
     {
         private readonly Client _client;
 
@@ -335,7 +335,7 @@ namespace Consul
         /// <returns>A somewhat dynamic object representing the various data elements in Self</returns>
         public QueryResult<Dictionary<string, Dictionary<string, dynamic>>> Self()
         {
-            return _client.CreateQueryRequest<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self")
+            return _client.CreateQuery<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self")
                         .Execute();
         }
 
@@ -361,7 +361,7 @@ namespace Consul
         /// <returns>A map of the registered check names and check data</returns>
         public QueryResult<Dictionary<string, AgentCheck>> Checks()
         {
-            return _client.CreateQueryRequest<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute();
+            return _client.CreateQuery<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute();
         }
 
         /// <summary>
@@ -370,7 +370,7 @@ namespace Consul
         /// <returns>A map of the registered services and service data</returns>
         public QueryResult<Dictionary<string, AgentService>> Services()
         {
-            var req = _client.CreateQueryRequest<Dictionary<string, AgentService>>("/v1/agent/services").Execute();
+            var req = _client.CreateQuery<Dictionary<string, AgentService>>("/v1/agent/services").Execute();
             return req;
         }
 
@@ -380,7 +380,7 @@ namespace Consul
         /// <returns>An array of gossip peers</returns>
         public QueryResult<AgentMember[]> Members(bool wan)
         {
-            var req = _client.CreateQueryRequest<AgentMember[]>("/v1/agent/members");
+            var req = _client.CreateQuery<AgentMember[]>("/v1/agent/members");
             if (wan)
             {
                 req.Params["wan"] = "1";
@@ -393,12 +393,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">A service registration object</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> ServiceRegister(AgentServiceRegistration service)
+        public WriteResult ServiceRegister(AgentServiceRegistration service)
         {
-            return
-
-                    _client.CreateWriteRequest<AgentServiceRegistration, object>("/v1/agent/service/register", service)
-                        .Execute();
+            return _client.CreateInWrite<AgentServiceRegistration>("/v1/agent/service/register", service).Execute();
         }
 
         /// <summary>
@@ -406,10 +403,9 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> ServiceDeregister(string serviceID)
+        public WriteResult ServiceDeregister(string serviceID)
         {
-            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/deregister/{0}",
-                        serviceID)).Execute();
+            return _client.CreateWrite(string.Format("/v1/agent/service/deregister/{0}", serviceID)).Execute();
         }
 
         /// <summary>
@@ -449,12 +445,12 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         /// <param name="status">The state to set the check to</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> UpdateTTL(string checkID, string note, TTLStatus status)
+        public WriteResult UpdateTTL(string checkID, string note, TTLStatus status)
         {
-            var request = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
-            if(!string.IsNullOrEmpty(note))
+            var request = _client.CreateWrite(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
+            if (!string.IsNullOrEmpty(note))
                 request.Params.Add("note", HttpUtility.UrlEncode(note));
-            return request.Execute(); 
+            return request.Execute();
         }
 
         /// <summary>
@@ -462,9 +458,9 @@ namespace Consul
         /// </summary>
         /// <param name="check">A check registration object</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> CheckRegister(AgentCheckRegistration check)
+        public WriteResult CheckRegister(AgentCheckRegistration check)
         {
-            return _client.CreateWriteRequest<AgentCheckRegistration, object>("/v1/agent/check/register", check)
+            return _client.CreateInWrite<AgentCheckRegistration>("/v1/agent/check/register", check)
                         .Execute();
         }
 
@@ -473,9 +469,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID to deregister</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> CheckDeregister(string checkID)
+        public WriteResult CheckDeregister(string checkID)
         {
-            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/check/deregister/{0}", checkID))
+            return _client.CreateWrite(string.Format("/v1/agent/check/deregister/{0}", checkID))
                         .Execute();
         }
 
@@ -485,9 +481,9 @@ namespace Consul
         /// <param name="addr">The address to join to</param>
         /// <param name="wan">Join the WAN pool</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> Join(string addr, bool wan)
+        public WriteResult Join(string addr, bool wan)
         {
-            var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/join/{0}", addr));
+            var req = _client.CreateWrite(string.Format("/v1/agent/join/{0}", addr));
             if (wan)
             {
                 req.Params["wan"] = "1";
@@ -500,9 +496,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name to remove. An attempt to eject a node that doesn't exist will still be successful</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> ForceLeave(string node)
+        public WriteResult ForceLeave(string node)
         {
-            return _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/force-leave/{0}", node))
+            return _client.CreateWrite(string.Format("/v1/agent/force-leave/{0}", node))
                         .Execute();
         }
 
@@ -512,9 +508,9 @@ namespace Consul
         /// <param name="serviceID">The service ID</param>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> EnableServiceMaintenance(string serviceID, string reason)
+        public WriteResult EnableServiceMaintenance(string serviceID, string reason)
         {
-            var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.CreateWrite(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
             return req.Execute();
@@ -525,9 +521,9 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> DisableServiceMaintenance(string serviceID)
+        public WriteResult DisableServiceMaintenance(string serviceID)
         {
-            var req = _client.CreateWriteRequest<object, object>(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.CreateWrite(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "false";
             return req.Execute();
         }
@@ -537,9 +533,9 @@ namespace Consul
         /// </summary>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> EnableNodeMaintenance(string reason)
+        public WriteResult EnableNodeMaintenance(string reason)
         {
-            var req = _client.CreateWriteRequest<object, object>("/v1/agent/maintenance");
+            var req = _client.CreateWrite("/v1/agent/maintenance");
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
             return req.Execute();
@@ -549,22 +545,22 @@ namespace Consul
         /// DisableNodeMaintenance toggles node maintenance mode off for the agent we are connected to
         /// </summary>
         /// <returns>An empty write result</returns>
-        public WriteResult<object> DisableNodeMaintenance()
+        public WriteResult DisableNodeMaintenance()
         {
-            var req = _client.CreateWriteRequest<object, object>("/v1/agent/maintenance");
+            var req = _client.CreateWrite("/v1/agent/maintenance");
             req.Params["enable"] = "false";
             return req.Execute();
         }
     }
 
-    public partial class Client
+    public partial class Client : IConsulClient
     {
         private Agent _agent;
 
         /// <summary>
         /// Agent returns a handle to the agent endpoints
         /// </summary>
-        public Agent Agent
+        public IAgentEndpoint Agent
         {
             get
             {
