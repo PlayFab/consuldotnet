@@ -1,5 +1,14 @@
 # Changelog
 
+## 2015-08-27
+
+* Convert all uses of
+  [System.Web.HttpUtility.UrlEncode](https://msdn.microsoft.com/en-us/library/system.web.httputility.urlencode)
+  and corresponding UrlDecode calls to
+  [UrlPathEncode](https://msdn.microsoft.com/en-us/library/system.web.httputility.urlpathencode)/Decode.
+  This is was because UrlEncode encodes spaces as a `+` symbol rather
+  than the hex `%20` as expected.
+
 ## 2015-08-26
 
 * Fix a NullReferenceException when the Consul connection is down and
