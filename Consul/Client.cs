@@ -401,6 +401,10 @@ namespace Consul
             catch (WebException ex)
             {
                 ct.ThrowIfCancellationRequested();
+                if (ex.Response == null)
+                {
+                    throw new ConsulRequestException("No response from server");
+                }
                 var res = (HttpWebResponse)ex.Response;
                 if (res.StatusCode == HttpStatusCode.NotFound)
                 {
