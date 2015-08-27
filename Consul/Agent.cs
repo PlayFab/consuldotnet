@@ -449,7 +449,7 @@ namespace Consul
         {
             var request = _client.CreateWrite(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
             if (!string.IsNullOrEmpty(note))
-                request.Params.Add("note", HttpUtility.UrlEncode(note));
+                request.Params.Add("note", HttpUtility.UrlPathEncode(note));
             return request.Execute();
         }
 

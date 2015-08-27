@@ -759,12 +759,12 @@ namespace Consul
             {
                 if (!string.IsNullOrEmpty(queryParam.Value))
                 {
-                    queryParams.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(queryParam.Key),
-                        HttpUtility.UrlEncode(queryParam.Value)));
+                    queryParams.Add(string.Format("{0}={1}", HttpUtility.UrlPathEncode(queryParam.Key),
+                        HttpUtility.UrlPathEncode(queryParam.Value)));
                 }
                 else
                 {
-                    queryParams.Add(string.Format("{0}", HttpUtility.UrlEncode(queryParam.Key)));
+                    queryParams.Add(string.Format("{0}", HttpUtility.UrlPathEncode(queryParam.Key)));
                 }
             }
             builder.Query = string.Join("&", queryParams);
