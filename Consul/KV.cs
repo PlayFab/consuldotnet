@@ -274,7 +274,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Acquire is used for a lock acquisiiton operation. The Key, Flags, Value and Session are respected.
+        /// Acquire is used for a lock acquisition operation. The Key, Flags, Value and Session are respected.
         /// </summary>p.Validate();
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
@@ -284,7 +284,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// Acquire is used for a lock acquisiiton operation. The Key, Flags, Value and Session are respected.
+        /// Acquire is used for a lock acquisition operation. The Key, Flags, Value and Session are respected.
         /// </summary>
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <param name="q">Customized write options</param>
