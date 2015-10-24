@@ -62,6 +62,22 @@ namespace Consul.Test
             var putRequest = kv.Put(pair);
             Assert.IsTrue(putRequest.Response);
 
+            try
+            {
+                // Put a key that begins with a '/'
+                var invalidKey = new KVPair("/test")
+                {
+                    Flags = 42,
+                    Value = value
+                };
+                kv.Put(invalidKey);
+                Assert.Fail("Invalid key not detected");
+            }
+            catch (InvalidConsulKeyException ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(InvalidConsulKeyException));
+            }
+
             getRequest = kv.Get(key);
             var res = getRequest.Response;
 

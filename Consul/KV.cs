@@ -46,6 +46,33 @@ namespace Consul
         {
             Key = key;
         }
+        internal void Validate()
+        {
+            ValidatePath(Key);
+        }
+        static internal void ValidatePath(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+            {
+                throw new InvalidConsulKeyException("Invalid key. Key path is empty.");
+            }
+            else if (path[0] == '/')
+            {
+                throw new InvalidConsulKeyException(string.Format("Invalid key. Key must not begin with a '/': {0}", path));
+            }
+        }
+    }
+
+    [System.Serializable]
+    public class InvalidConsulKeyException : System.Exception
+    {
+        public InvalidConsulKeyException() { }
+        public InvalidConsulKeyException(string message) : base(message) { }
+        public InvalidConsulKeyException(string message, System.Exception inner) : base(message, inner) { }
+        protected InvalidConsulKeyException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context)
+        { }
     }
 
     /// <summary>
@@ -209,6 +236,7 @@ namespace Consul
         /// <returns>A write result indicating if the write attempt succeeded</returns>
         public WriteResult<bool> Put(KVPair p, WriteOptions q)
         {
+            p.Validate();
             var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
@@ -235,6 +263,7 @@ namespace Consul
         /// <returns>A write result indicating if the write attempt succeeded</returns>
         public WriteResult<bool> CAS(KVPair p, WriteOptions q)
         {
+            p.Validate();
             var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
@@ -246,7 +275,7 @@ namespace Consul
 
         /// <summary>
         /// Acquire is used for a lock acquisiiton operation. The Key, Flags, Value and Session are respected.
-        /// </summary>
+        /// </summary>p.Validate();
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
         public WriteResult<bool> Acquire(KVPair p)
@@ -262,6 +291,7 @@ namespace Consul
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
         public WriteResult<bool> Acquire(KVPair p, WriteOptions q)
         {
+            p.Validate();
             var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
@@ -289,6 +319,7 @@ namespace Consul
         /// <returns>A write result indicating if the release attempt succeeded</returns>
         public WriteResult<bool> Release(KVPair p, WriteOptions q)
         {
+            p.Validate();
             var req = _client.CreateWrite<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
             if (p.Flags > 0)
             {
@@ -316,6 +347,7 @@ namespace Consul
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
         public WriteResult<bool> Delete(string key, WriteOptions q)
         {
+            KVPair.ValidatePath(key);
             return _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", key), q)
                         .Execute();
         }
@@ -338,6 +370,7 @@ namespace Consul
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
         public WriteResult<bool> DeleteCAS(KVPair p, WriteOptions q)
         {
+            p.Validate();
             var req = _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", p.Key), q);
             req.Params.Add("cas", p.ModifyIndex.ToString());
             return req.Execute();
@@ -361,6 +394,7 @@ namespace Consul
         /// <returns>A write result indicating if the recursiv edelete attempt succeeded</returns>
         public WriteResult<bool> DeleteTree(string prefix, WriteOptions q)
         {
+            KVPair.ValidatePath(prefix);
             var req = _client.CreateOutWrite<bool>(HttpMethod.Delete, string.Format("/v1/kv/{0}", prefix), q);
             req.Params.Add("recurse", string.Empty);
             return req.Execute();

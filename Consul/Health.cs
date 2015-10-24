@@ -187,7 +187,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
@@ -197,7 +197,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
@@ -207,7 +207,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <param name="q">Customized query options</param>
