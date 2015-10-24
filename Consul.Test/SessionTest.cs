@@ -74,6 +74,36 @@ namespace Consul.Test
         }
 
         [TestMethod]
+        public void Session_CreateRenewDestroyRenew()
+        {
+            var client = new Client();
+            var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
+
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+
+            var renewRequest = client.Session.Renew(id);
+            Assert.IsTrue(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsNotNull(renewRequest.Response.ID);
+            Assert.AreEqual(sessionRequest.Response, renewRequest.Response.ID);
+            Assert.AreEqual(renewRequest.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+
+            var destroyRequest = client.Session.Destroy(id);
+            Assert.IsTrue(destroyRequest.Response);
+
+            try
+            {
+                renewRequest = client.Session.Renew(id);
+                Assert.Fail("Session still exists");
+            }
+            catch (SessionExpiredException ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(SessionExpiredException));
+            }
+        }
+
+        [TestMethod]
         public void Session_Create_RenewPeriodic_Destroy()
         {
             var client = new Client();
@@ -86,7 +116,7 @@ namespace Consul.Test
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
 
-            client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
+            var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
 
             tokenSource.CancelAfter(3000);
 
@@ -99,6 +129,38 @@ namespace Consul.Test
             Assert.AreEqual(id, infoRequest.Response.ID);
 
             Assert.IsTrue(client.Session.Destroy(id).Response);
+
+            renewTask.Wait();
+        }
+
+        [TestMethod]
+        public void Session_Create_RenewPeriodic_TTLExpire()
+        {
+            var client = new Client();
+            var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(500) });
+
+            var id = sessionRequest.Response;
+            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+
+            var tokenSource = new CancellationTokenSource();
+            var ct = tokenSource.Token;
+
+            try
+            {
+                var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
+                Assert.IsTrue(client.Session.Destroy(id).Response);
+                renewTask.Wait(1000);
+            }
+            catch (AggregateException ae)
+            {
+                foreach (var e in ae.InnerExceptions)
+                {
+                    Assert.IsInstanceOfType(e, typeof(SessionExpiredException));
+                }
+                return;
+            }
+            Assert.Fail("timed out: missing session did not terminate renewal loop");
         }
 
         [TestMethod]

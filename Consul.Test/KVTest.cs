@@ -73,9 +73,9 @@ namespace Consul.Test
                 kv.Put(invalidKey);
                 Assert.Fail("Invalid key not detected");
             }
-            catch (InvalidConsulKeyException ex)
+            catch (InvalidKeyPairException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof(InvalidConsulKeyException));
+                Assert.IsInstanceOfType(ex, typeof(InvalidKeyPairException));
             }
 
             getRequest = kv.Get(key);

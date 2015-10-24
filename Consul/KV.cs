@@ -54,22 +54,22 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new InvalidConsulKeyException("Invalid key. Key path is empty.");
+                throw new InvalidKeyPairException("Invalid key. Key path is empty.");
             }
             else if (path[0] == '/')
             {
-                throw new InvalidConsulKeyException(string.Format("Invalid key. Key must not begin with a '/': {0}", path));
+                throw new InvalidKeyPairException(string.Format("Invalid key. Key must not begin with a '/': {0}", path));
             }
         }
     }
 
     [System.Serializable]
-    public class InvalidConsulKeyException : System.Exception
+    public class InvalidKeyPairException : System.Exception
     {
-        public InvalidConsulKeyException() { }
-        public InvalidConsulKeyException(string message) : base(message) { }
-        public InvalidConsulKeyException(string message, System.Exception inner) : base(message, inner) { }
-        protected InvalidConsulKeyException(
+        public InvalidKeyPairException() { }
+        public InvalidKeyPairException(string message) : base(message) { }
+        public InvalidKeyPairException(string message, System.Exception inner) : base(message, inner) { }
+        protected InvalidKeyPairException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
         { }

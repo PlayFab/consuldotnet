@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Net;
 
 namespace Consul
 {
@@ -84,6 +85,18 @@ namespace Consul
         }
     }
 
+
+    [Serializable]
+    public class SessionExpiredException : Exception
+    {
+        public SessionExpiredException() { }
+        public SessionExpiredException(string message) : base(message) { }
+        public SessionExpiredException(string message, Exception inner) : base(message, inner) { }
+        protected SessionExpiredException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context)
+        { }
+    }
 
     public class SessionEntry
     {
@@ -265,13 +278,27 @@ namespace Consul
         /// <returns>An updated session entry</returns>
         public WriteResult<SessionEntry> Renew(string id, WriteOptions q)
         {
-            var res = _client.CreateWrite<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute();
-            var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
-            if (res.Response != null && res.Response.Length > 0)
+            try
             {
-                ret.Response = res.Response[0];
+                var res = _client.CreateWrite<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute();
+                var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
+                if (res.Response != null && res.Response.Length > 0)
+                {
+                    ret.Response = res.Response[0];
+                }
+                return ret;
             }
-            return ret;
+            catch (WebException ex)
+            {
+                var res = (HttpWebResponse)ex.Response;
+                if (res.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new SessionExpiredException(string.Format("Session expired: {0}", id));
+                }
+
+                // All other versions of WebException that are not a 404 should be caught way back in Execute().
+                throw;
+            }
         }
 
         /// <summary>
@@ -304,7 +331,7 @@ namespace Consul
                 }
                 var waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                 var lastRenewTime = DateTime.Now;
-                Exception lastException = new TaskCanceledException("Session timed out");
+                Exception lastException = new SessionExpiredException(string.Format("Session expired: {0}", id));
                 try
                 {
                     while (!ct.IsCancellationRequested)
@@ -325,16 +352,13 @@ namespace Consul
                         try
                         {
                             var res = Renew(id, q);
-                            if (res.Response == null)
-                            {
-                                lastException = new TaskCanceledException("Session no longer exists");
-                            }
-                            else
-                            {
-                                initialTTL = res.Response.TTL;
-                                waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
-                                lastRenewTime = DateTime.Now;
-                            }
+                            initialTTL = res.Response.TTL;
+                            waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
+                            lastRenewTime = DateTime.Now;
+                        }
+                        catch (SessionExpiredException)
+                        {
+                            throw;
                         }
                         catch (OperationCanceledException)
                         {
