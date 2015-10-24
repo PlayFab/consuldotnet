@@ -160,6 +160,11 @@ namespace Consul.Test
                 }
                 return;
             }
+            catch (SessionExpiredException ex)
+            {
+                Assert.IsInstanceOfType(ex, typeof(SessionExpiredException));
+                return;
+            }
             Assert.Fail("timed out: missing session did not terminate renewal loop");
         }
 
