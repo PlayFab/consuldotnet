@@ -1,5 +1,18 @@
 # Changelog
 
+## 2015-10-24
+
+* Port in changes from hashicorp/consul master:
+  * Add TCP check type
+  * BEHAVIOR CHANGE: Changed Session.Renew() to now throw a
+    SessionExpiredException when the session does not exist on the
+    Consul server
+  * BEHAVIOR CHANGE: Changed all the KV write methods (Put, Delete,
+    DeleteTree, DeleteCAS, CAS, Release, Acquire) to throw an
+    InvalidKeyPairException if the key path or prefix begins with a `/`
+    character.
+ * Fixed documentation typos.
+
 ## 2015-08-27
 
 * Convert all uses of
