@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -23,6 +24,7 @@ namespace Consul
 {
     public class Node
     {
+        [JsonProperty(PropertyName = "Node")]
         public string Name { get; set; }
         public string Address { get; set; }
     }
