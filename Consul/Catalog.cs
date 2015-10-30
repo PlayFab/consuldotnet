@@ -24,7 +24,8 @@ namespace Consul
 {
     public class Node
     {
-        public string Node { get; set; }
+        [JsonProperty(PropertyName = "Node")]
+        public string Name { get; set; }
         public string Address { get; set; }
     }
 

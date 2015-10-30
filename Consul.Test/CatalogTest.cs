@@ -40,10 +40,10 @@ namespace Consul.Test
 
 
             Assert.AreNotEqual(0, nodeList.LastIndex);
-            Assert.AreNotEqual(0, nodeList.Response.Length);
+            Assert.AreNotEqual(0, nodeList.Response.Length);            
             // make sure deserialization is working right
             Assert.IsNotNull(nodeList.Response[0].Address);
-            Assert.IsNotNull(nodeList.Response[0].Node);
+            Assert.IsNotNull(nodeList.Response[0].Name);
         }
 
         [TestMethod]
