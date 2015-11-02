@@ -101,7 +101,7 @@ namespace Consul
         public List<string> Checks { get; set; }
 
         [JsonConverter(typeof(NanoSecTimespanConverter))]
-        public TimeSpan LockDelay { get; set; }
+        public TimeSpan? LockDelay { get; set; }
 
         [JsonConverter(typeof(SessionBehaviorConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
@@ -127,7 +127,7 @@ namespace Consul
 
         public bool ShouldSerializeLockDelay()
         {
-            return LockDelay != TimeSpan.Zero;
+            return LockDelay.HasValue;
         }
 
         public bool ShouldSerializeTTL()
