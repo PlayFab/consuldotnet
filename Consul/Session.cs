@@ -101,14 +101,16 @@ namespace Consul
         public List<string> Checks { get; set; }
 
         [JsonConverter(typeof(NanoSecTimespanConverter))]
-        public TimeSpan LockDelay { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? LockDelay { get; set; }
 
         [JsonConverter(typeof(SessionBehaviorConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public SessionBehavior Behavior { get; set; }
 
         [JsonConverter(typeof(DurationTimespanConverter))]
-        public TimeSpan TTL { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? TTL { get; set; }
 
         public SessionEntry()
         {
@@ -123,16 +125,6 @@ namespace Consul
         public bool ShouldSerializeCreateIndex()
         {
             return false;
-        }
-
-        public bool ShouldSerializeLockDelay()
-        {
-            return LockDelay != TimeSpan.Zero;
-        }
-
-        public bool ShouldSerializeTTL()
-        {
-            return TTL != TimeSpan.Zero;
         }
 
         public bool ShouldSerializeChecks()
@@ -331,7 +323,7 @@ namespace Consul
                             }
                             else
                             {
-                                initialTTL = res.Response.TTL;
+                                initialTTL = res.Response.TTL ?? TimeSpan.Zero;
                                 waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                                 lastRenewTime = DateTime.Now;
                             }

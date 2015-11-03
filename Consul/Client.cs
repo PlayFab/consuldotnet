@@ -66,7 +66,7 @@ namespace Consul
         /// <summary>
         /// WaitTime limits how long a Watch will block. If not provided, the agent default values will be used.
         /// </summary>
-        public TimeSpan WaitTime { get; set; }
+        public TimeSpan? WaitTime { get; set; }
 
         /// <summary>
         /// Token is used to provide a per-request ACL token which overrides the agent's default token.
@@ -725,9 +725,9 @@ namespace Consul
                 Params["dc"] = config.Datacenter;
             }
 
-            if (config.WaitTime != TimeSpan.Zero)
+            if (config.WaitTime.HasValue)
             {
-                Params["wait"] = config.WaitTime.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
+                Params["wait"] = config.WaitTime.Value.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
             }
 
             if (!string.IsNullOrEmpty(config.Token))

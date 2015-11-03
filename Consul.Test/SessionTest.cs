@@ -67,7 +67,8 @@ namespace Consul.Test
             Assert.IsTrue(renewRequest.RequestTime.TotalMilliseconds > 0);
             Assert.IsNotNull(renewRequest.Response.ID);
             Assert.AreEqual(sessionRequest.Response, renewRequest.Response.ID);
-            Assert.AreEqual(renewRequest.Response.TTL.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+            Assert.IsTrue(renewRequest.Response.TTL.HasValue);
+            Assert.AreEqual(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
 
             var destroyRequest = client.Session.Destroy(id);
             Assert.IsTrue(destroyRequest.Response);
