@@ -11,6 +11,13 @@ namespace Consul.Test
         {
             var client = new Client();
 
+            var info = client.Agent.Self();
+
+            if (!info.Response.ContainsKey("Coord"))
+            {
+                Assert.Inconclusive("This version of Consul does not support the coordinate API");
+            }
+
             var datacenters = client.Coordinate.Datacenters();
 
             Assert.IsNotNull(datacenters.Response);
@@ -21,6 +28,13 @@ namespace Consul.Test
         public void TestCoordinate_Nodes()
         {
             var client = new Client();
+
+            var info = client.Agent.Self();
+
+            if (!info.Response.ContainsKey("Coord"))
+            {
+                Assert.Inconclusive("This version of Consul does not support the coordinate API");
+            }
 
             var nodes = client.Coordinate.Nodes();
 
