@@ -1,5 +1,12 @@
 # Changelog
 
+## 2015-03-2015
+
+* Fixed a bug where the node name was not deserialized when using the
+  `Catalog.Nodes()` endpoint. Thanks @lockwobr!
+* Fixed a bug where a zero timespan could not be specified for Lock
+  Delays, TTLs or Check Intervals. Thanks @eugenyshchelkanov!
+
 ## 2015-10-24
 
 * Port in changes from hashicorp/consul master:

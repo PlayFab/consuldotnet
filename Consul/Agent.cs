@@ -283,13 +283,16 @@ namespace Consul
         public string Script { get; set; }
 
         [JsonConverter(typeof(DurationTimespanConverter))]
-        public TimeSpan Interval { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? Interval { get; set; }
 
         [JsonConverter(typeof(DurationTimespanConverter))]
-        public TimeSpan Timeout { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? Timeout { get; set; }
 
         [JsonConverter(typeof(DurationTimespanConverter))]
-        public TimeSpan TTL { get; set; }
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? TTL { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string HTTP { get; set; }
@@ -300,21 +303,6 @@ namespace Consul
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(CheckStatusConverter))]
         public CheckStatus Status { get; set; }
-
-        public bool ShouldSerializeTTL()
-        {
-            return TTL != TimeSpan.Zero;
-        }
-
-        public bool ShouldSerializeTimeout()
-        {
-            return Timeout != TimeSpan.Zero;
-        }
-
-        public bool ShouldSerializeInterval()
-        {
-            return Interval != TimeSpan.Zero;
-        }
     }
 
     /// <summary>
