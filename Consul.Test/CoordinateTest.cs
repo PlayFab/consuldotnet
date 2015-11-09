@@ -7,7 +7,7 @@ namespace Consul.Test
     public class CoordinateTest
     {
         [TestMethod]
-        public void TestCoordinate_Datacenters()
+        public void Coordinate_Datacenters()
         {
             var client = new Client();
 
@@ -25,7 +25,7 @@ namespace Consul.Test
         }
 
         [TestMethod]
-        public void TestCoordinate_Nodes()
+        public void Coordinate_Nodes()
         {
             var client = new Client();
 
@@ -38,8 +38,11 @@ namespace Consul.Test
 
             var nodes = client.Coordinate.Nodes();
 
-            Assert.IsNotNull(nodes.Response);
-            Assert.IsTrue(nodes.Response.Length > 0);
+            // There's not a good way to populate coordinates without
+            // waiting for them to calculate and update, so the best
+            // we can do is call the endpoint and make sure we don't
+            // get an error. - from offical API.
+            Assert.IsNotNull(nodes);
         }
     }
 }
