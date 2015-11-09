@@ -57,9 +57,11 @@
     <Compile Include="ACL.cs" />
     <Compile Include="Agent.cs" />
     <Compile Include="Catalog.cs" />
+    <Compile Include="Coordinate.cs" />
     <Compile Include="Event.cs" />
     <Compile Include="Health.cs" />
     <Compile Include="Client.cs" />
+    <Compile Include="Interfaces\ICoordinateEndpoint.cs" />
     <Compile Include="Interfaces\IDisposableLock.cs" />
     <Compile Include="Interfaces\IDistributedLock.cs" />
     <Compile Include="Interfaces\IDisposableSemaphore.cs" />

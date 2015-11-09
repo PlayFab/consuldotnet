@@ -18,7 +18,6 @@
 
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Consul.Test
@@ -119,10 +118,6 @@ namespace Consul.Test
 
             var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
 
-            tokenSource.CancelAfter(3000);
-
-            Task.Delay(3000, ct).Wait(ct);
-
             var infoRequest = client.Session.Info(id);
             Assert.IsTrue(infoRequest.LastIndex > 0);
             Assert.IsNotNull(infoRequest.KnownLeader);
@@ -131,7 +126,15 @@ namespace Consul.Test
 
             Assert.IsTrue(client.Session.Destroy(id).Response);
 
-            renewTask.Wait();
+            try
+            {
+                renewTask.Wait(1000);
+                Assert.Fail("timedout: missing session did not terminate renewal loop");
+            }
+            catch (AggregateException ae)
+            {
+                Assert.IsInstanceOfType(ae.InnerExceptions[0], typeof(SessionExpiredException));
+            }
         }
 
         [TestMethod]
