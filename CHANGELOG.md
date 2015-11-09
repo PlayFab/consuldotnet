@@ -1,6 +1,11 @@
 # Changelog
 
-## 2015-03-2015
+## 2015-11-09
+
+* Added coordinates API.
+* Fixed bug in tests for session renewal.
+
+## 2015-11-03
 
 * Fixed a bug where the node name was not deserialized when using the
   `Catalog.Nodes()` endpoint. Thanks @lockwobr!
@@ -18,7 +23,7 @@
     DeleteTree, DeleteCAS, CAS, Release, Acquire) to throw an
     InvalidKeyPairException if the key path or prefix begins with a `/`
     character.
- * Fixed documentation typos.
+* Fixed documentation typos.
 
 ## 2015-08-27
 

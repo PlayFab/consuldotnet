@@ -71,9 +71,9 @@ namespace Consul
         /// Nodes is used to return the coordinates of all the nodes in the LAN pool.
         /// </summary>
         /// <returns>A query result containing coordinates of all the nodes in the LAN pool</returns>
-        public QueryResult<CoordinateEntry[]> Node()
+        public QueryResult<CoordinateEntry[]> Nodes()
         {
-            return Node(QueryOptions.Default);
+            return Nodes(QueryOptions.Default);
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace Consul
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing coordinates of all the nodes in the LAN pool</returns>
-        public QueryResult<CoordinateEntry[]> Node(QueryOptions q)
+        public QueryResult<CoordinateEntry[]> Nodes(QueryOptions q)
         {
             return _client.CreateQuery<CoordinateEntry[]>(string.Format("/v1/coordinate/nodes"), q).Execute();
         }

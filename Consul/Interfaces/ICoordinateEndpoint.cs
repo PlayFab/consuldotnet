@@ -3,7 +3,7 @@
     public interface ICoordinateEndpoint
     {
         QueryResult<CoordinateDatacenterMap[]> Datacenters();
-        QueryResult<CoordinateEntry[]> Node();
-        QueryResult<CoordinateEntry[]> Node(QueryOptions q);
+        QueryResult<CoordinateEntry[]> Nodes();
+        QueryResult<CoordinateEntry[]> Nodes(QueryOptions q);
     }
 }
