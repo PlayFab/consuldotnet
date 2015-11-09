@@ -2,7 +2,9 @@
 
 ## 2015-11-09
 
-* Added coordinates API.
+* Added coordinates API. *WARNING*: No check is done to see if the API
+  is available. If used against a 0.5.2 agent, a `WebException` will be
+  thrown because the agent does not understand the coordinate URL.
 * Fixed bug in tests for session renewal.
 
 ## 2015-11-03

@@ -1,4 +1,4 @@
-version: 0.5.2.{build}-{branch}
+version: 0.6.0.{build}-{branch}
 configuration: Release
 platform: Any CPU
 clone_depth: 1
@@ -12,22 +12,22 @@ assembly_info:
   assembly_file_version: $(APPVEYOR_BUILD_VERSION)
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:
-  CONSUL_VERSION: 0.5.2
+  CONSUL_VERSION: 0.6.0-rc1
 install:
 - ps: >-
     choco install 7zip.commandline
 
-    $consul_zip = "$($env:CONSUL_VERSION)_windows_386.zip"
+    $consul_zip = "consul_$($env:consul_version)_windows_386.zip"
 
-    if (!(Test-Path "C:\consul_install")) {mkdir C:\consul_install}
+    if (!(test-path "c:\consul_install")) {mkdir c:\consul_install}
 
-    if (!(Test-Path "C:\consul_install\$consul_zip")) {(new-object net.webclient).DownloadFile("https://dl.bintray.com/mitchellh/consul/$consul_zip", "C:\consul_install\$consul_zip")}
+    if (!(test-path "c:\consul_install\$consul_zip")) {(new-object net.webclient).downloadfile("https://releases.hashicorp.com/consul/$($env:consul_version)/$consul_zip", "c:\consul_install\$consul_zip")}
 
-    7z x -y C:\consul_install\$consul_zip -oC:\consul\Consul.Test
+    7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
-- C:\consul_install
+- C:\consul_install -> appveyor.yml
 nuget:
   disable_publish_on_pr: true
 before_build:
