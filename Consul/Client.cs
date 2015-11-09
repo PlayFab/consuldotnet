@@ -41,6 +41,7 @@ namespace Consul
           System.Runtime.Serialization.StreamingContext context)
             : base(info, context) { }
     }
+
     public class ConsulClientConfiguration
     {
         /// <summary>
@@ -202,6 +203,14 @@ namespace Consul
         /// Token is used to provide a per-request ACL token which overrides the agent's default token.
         /// </summary>
         public string Token { get; set; }
+
+        /// <summary>
+        /// Near is used to provide a node name that will sort the results
+        /// in ascending order based on the estimated round trip time from
+        /// that node. Setting this to "_agent" will use the agent's node
+        /// for the sort.
+        /// </summary>
+        public string Near { get; set; }
     }
 
     /// <summary>
@@ -379,6 +388,10 @@ namespace Consul
             if (!string.IsNullOrEmpty(Options.Token))
             {
                 Params["token"] = Options.Token;
+            }
+            if (!string.IsNullOrEmpty(Options.Near))
+            {
+                Params["near"] = Options.Near;
             }
         }
 
