@@ -217,7 +217,7 @@ namespace Consul.Test
 
                 var nodeRequest = client.Session.Node(infoRequest.Response.Node);
 
-                Assert.Equal(nodeRequest.Response.Length, 1);
+                Assert.Equal(1, nodeRequest.Response.Length);
                 Assert.NotEqual((ulong)0, nodeRequest.LastIndex);
                 Assert.True(nodeRequest.KnownLeader);
             }
@@ -241,7 +241,7 @@ namespace Consul.Test
             {
                 var listRequest = client.Session.List();
 
-                Assert.Equal(listRequest.Response.Length, 1);
+                Assert.Equal(1, listRequest.Response.Length);
                 Assert.NotEqual((ulong)0, listRequest.LastIndex);
                 Assert.True(listRequest.KnownLeader);
             }
