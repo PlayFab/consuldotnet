@@ -18,100 +18,99 @@
 
 using System;
 using System.Threading;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class SessionTest
     {
-        [TestMethod]
+        [Fact]
         public void Session_CreateDestroy()
         {
             var client = new Client();
             var sessionRequest = client.Session.Create();
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var destroyRequest = client.Session.Destroy(id);
-            Assert.IsTrue(destroyRequest.Response);
+            Assert.True(destroyRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_CreateNoChecksDestroy()
         {
             var client = new Client();
             var sessionRequest = client.Session.CreateNoChecks();
 
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var destroyRequest = client.Session.Destroy(id);
-            Assert.IsTrue(destroyRequest.Response);
+            Assert.True(destroyRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_CreateRenewDestroy()
         {
             var client = new Client();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var renewRequest = client.Session.Renew(id);
-            Assert.IsTrue(renewRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsNotNull(renewRequest.Response.ID);
-            Assert.AreEqual(sessionRequest.Response, renewRequest.Response.ID);
-            Assert.IsTrue(renewRequest.Response.TTL.HasValue);
-            Assert.AreEqual(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+            Assert.True(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotNull(renewRequest.Response.ID);
+            Assert.Equal(sessionRequest.Response, renewRequest.Response.ID);
+            Assert.True(renewRequest.Response.TTL.HasValue);
+            Assert.Equal(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
 
             var destroyRequest = client.Session.Destroy(id);
-            Assert.IsTrue(destroyRequest.Response);
+            Assert.True(destroyRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_CreateRenewDestroyRenew()
         {
             var client = new Client();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var renewRequest = client.Session.Renew(id);
-            Assert.IsTrue(renewRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsNotNull(renewRequest.Response.ID);
-            Assert.AreEqual(sessionRequest.Response, renewRequest.Response.ID);
-            Assert.AreEqual(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
+            Assert.True(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotNull(renewRequest.Response.ID);
+            Assert.Equal(sessionRequest.Response, renewRequest.Response.ID);
+            Assert.Equal(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
 
             var destroyRequest = client.Session.Destroy(id);
-            Assert.IsTrue(destroyRequest.Response);
+            Assert.True(destroyRequest.Response);
 
             try
             {
                 renewRequest = client.Session.Renew(id);
-                Assert.Fail("Session still exists");
+                Assert.True(false, "Session still exists");
             }
             catch (SessionExpiredException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof(SessionExpiredException));
+                Assert.IsType<SessionExpiredException>(ex);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_Create_RenewPeriodic_Destroy()
         {
             var client = new Client();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
@@ -119,33 +118,33 @@ namespace Consul.Test
             var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
 
             var infoRequest = client.Session.Info(id);
-            Assert.IsTrue(infoRequest.LastIndex > 0);
-            Assert.IsNotNull(infoRequest.KnownLeader);
+            Assert.True(infoRequest.LastIndex > 0);
+            Assert.NotNull(infoRequest.KnownLeader);
 
-            Assert.AreEqual(id, infoRequest.Response.ID);
+            Assert.Equal(id, infoRequest.Response.ID);
 
-            Assert.IsTrue(client.Session.Destroy(id).Response);
+            Assert.True(client.Session.Destroy(id).Response);
 
             try
             {
                 renewTask.Wait(1000);
-                Assert.Fail("timedout: missing session did not terminate renewal loop");
+                Assert.True(false, "timedout: missing session did not terminate renewal loop");
             }
             catch (AggregateException ae)
             {
-                Assert.IsInstanceOfType(ae.InnerExceptions[0], typeof(SessionExpiredException));
+                Assert.IsType<SessionExpiredException>(ae.InnerExceptions[0]);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_Create_RenewPeriodic_TTLExpire()
         {
             var client = new Client();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(500) });
 
             var id = sessionRequest.Response;
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
@@ -153,26 +152,26 @@ namespace Consul.Test
             try
             {
                 var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
-                Assert.IsTrue(client.Session.Destroy(id).Response);
+                Assert.True(client.Session.Destroy(id).Response);
                 renewTask.Wait(1000);
             }
             catch (AggregateException ae)
             {
                 foreach (var e in ae.InnerExceptions)
                 {
-                    Assert.IsInstanceOfType(e, typeof(SessionExpiredException));
+                    Assert.IsType<SessionExpiredException>(e);
                 }
                 return;
             }
             catch (SessionExpiredException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof(SessionExpiredException));
+                Assert.IsType<SessionExpiredException>(ex);
                 return;
             }
-            Assert.Fail("timed out: missing session did not terminate renewal loop");
+            Assert.True(false, "timed out: missing session did not terminate renewal loop");
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_Info()
         {
             var client = new Client();
@@ -180,32 +179,32 @@ namespace Consul.Test
 
             var id = sessionRequest.Response;
 
-            Assert.IsTrue(sessionRequest.RequestTime.TotalMilliseconds > 0);
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var infoRequest = client.Session.Info(id);
-            Assert.IsTrue(infoRequest.LastIndex > 0);
-            Assert.IsNotNull(infoRequest.KnownLeader);
+            Assert.True(infoRequest.LastIndex > 0);
+            Assert.NotNull(infoRequest.KnownLeader);
 
-            Assert.AreEqual(id, infoRequest.Response.ID);
+            Assert.Equal(id, infoRequest.Response.ID);
 
-            Assert.IsTrue(string.IsNullOrEmpty(infoRequest.Response.Name));
-            Assert.IsFalse(string.IsNullOrEmpty(infoRequest.Response.Node));
-            Assert.IsTrue(infoRequest.Response.CreateIndex > 0);
-            Assert.AreEqual(infoRequest.Response.Behavior, SessionBehavior.Release);
+            Assert.True(string.IsNullOrEmpty(infoRequest.Response.Name));
+            Assert.False(string.IsNullOrEmpty(infoRequest.Response.Node));
+            Assert.True(infoRequest.Response.CreateIndex > 0);
+            Assert.Equal(infoRequest.Response.Behavior, SessionBehavior.Release);
 
-            Assert.IsTrue(string.IsNullOrEmpty(infoRequest.Response.Name));
-            Assert.IsNotNull(infoRequest.KnownLeader);
+            Assert.True(string.IsNullOrEmpty(infoRequest.Response.Name));
+            Assert.NotNull(infoRequest.KnownLeader);
 
-            Assert.IsTrue(infoRequest.LastIndex > 0);
-            Assert.IsNotNull(infoRequest.KnownLeader);
+            Assert.True(infoRequest.LastIndex > 0);
+            Assert.NotNull(infoRequest.KnownLeader);
 
             var destroyRequest = client.Session.Destroy(id);
 
-            Assert.IsTrue(destroyRequest.Response);
+            Assert.True(destroyRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_Node()
         {
             var client = new Client();
@@ -218,19 +217,19 @@ namespace Consul.Test
 
                 var nodeRequest = client.Session.Node(infoRequest.Response.Node);
 
-                Assert.AreEqual(nodeRequest.Response.Length, 1);
-                Assert.AreNotEqual(nodeRequest.LastIndex, 0);
-                Assert.IsTrue(nodeRequest.KnownLeader);
+                Assert.Equal(nodeRequest.Response.Length, 1);
+                Assert.NotEqual((ulong)0, nodeRequest.LastIndex);
+                Assert.True(nodeRequest.KnownLeader);
             }
             finally
             {
                 var destroyRequest = client.Session.Destroy(id);
 
-                Assert.IsTrue(destroyRequest.Response);
+                Assert.True(destroyRequest.Response);
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Session_List()
         {
             var client = new Client();
@@ -242,15 +241,15 @@ namespace Consul.Test
             {
                 var listRequest = client.Session.List();
 
-                Assert.AreEqual(listRequest.Response.Length, 1);
-                Assert.AreNotEqual(listRequest.LastIndex, 0);
-                Assert.IsTrue(listRequest.KnownLeader);
+                Assert.Equal(listRequest.Response.Length, 1);
+                Assert.NotEqual((ulong)0, listRequest.LastIndex);
+                Assert.True(listRequest.KnownLeader);
             }
             finally
             {
                 var destroyRequest = client.Session.Destroy(id);
 
-                Assert.IsTrue(destroyRequest.Response);
+                Assert.True(destroyRequest.Response);
             }
         }
     }

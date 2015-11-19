@@ -16,69 +16,68 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class CatalogTest
     {
-        [TestMethod]
+        [Fact]
         public void Catalog_Datacenters()
         {
             var client = new Client();
             var datacenterList = client.Catalog.Datacenters();
 
-            Assert.AreNotEqual(0, datacenterList.Response.Length);
+            Assert.NotEqual(0, datacenterList.Response.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void Catalog_Nodes()
         {
             var client = new Client();
             var nodeList = client.Catalog.Nodes();
 
 
-            Assert.AreNotEqual(0, nodeList.LastIndex);
-            Assert.AreNotEqual(0, nodeList.Response.Length);            
+            Assert.NotEqual((ulong)0, nodeList.LastIndex);
+            Assert.NotEqual(0, nodeList.Response.Length);
             // make sure deserialization is working right
-            Assert.IsNotNull(nodeList.Response[0].Address);
-            Assert.IsNotNull(nodeList.Response[0].Name);
+            Assert.NotNull(nodeList.Response[0].Address);
+            Assert.NotNull(nodeList.Response[0].Name);
         }
 
-        [TestMethod]
+        [Fact]
         public void Catalog_Services()
         {
             var client = new Client();
             var servicesList = client.Catalog.Services();
 
 
-            Assert.AreNotEqual(0, servicesList.LastIndex);
-            Assert.AreNotEqual(0, servicesList.Response.Count);
+            Assert.NotEqual((ulong)0, servicesList.LastIndex);
+            Assert.NotEqual(0, servicesList.Response.Count);
         }
 
-        [TestMethod]
+        [Fact]
         public void Catalog_Service()
         {
             var client = new Client();
             var serviceList = client.Catalog.Service("consul");
 
-            Assert.AreNotEqual(0, serviceList.LastIndex);
-            Assert.AreNotEqual(0, serviceList.Response.Length);
+            Assert.NotEqual((ulong)0, serviceList.LastIndex);
+            Assert.NotEqual(0, serviceList.Response.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void Catalog_Node()
         {
             var client = new Client();
 
             var node = client.Catalog.Node(client.Agent.NodeName);
 
-            Assert.AreNotEqual(0, node.LastIndex);
-            Assert.IsNotNull(node.Response.Services);
+            Assert.NotEqual((ulong)0, node.LastIndex);
+            Assert.NotNull(node.Response.Services);
         }
 
-        [TestMethod]
+        [Fact]
         public void Catalog_RegistrationDeregistration()
         {
             var client = new Client();
@@ -86,7 +85,7 @@ namespace Consul.Test
             {
                 ID = "redis1",
                 Service = "redis",
-                Tags = new[] {"master", "v1"},
+                Tags = new[] { "master", "v1" },
                 Port = 8000
             };
 
@@ -112,10 +111,10 @@ namespace Consul.Test
             client.Catalog.Register(registration);
 
             var node = client.Catalog.Node("foobar");
-            Assert.IsTrue(node.Response.Services.ContainsKey("redis1"));
+            Assert.True(node.Response.Services.ContainsKey("redis1"));
 
             var health = client.Health.Node("foobar");
-            Assert.AreEqual("service:redis1", health.Response[0].CheckID);
+            Assert.Equal("service:redis1", health.Response[0].CheckID);
 
             var dereg = new CatalogDeregistration()
             {
@@ -128,7 +127,7 @@ namespace Consul.Test
             client.Catalog.Deregister(dereg);
 
             health = client.Health.Node("foobar");
-            Assert.AreEqual(0, health.Response.Length);
+            Assert.Equal(0, health.Response.Length);
 
             dereg = new CatalogDeregistration()
             {
@@ -140,7 +139,7 @@ namespace Consul.Test
             client.Catalog.Deregister(dereg);
 
             node = client.Catalog.Node("foobar");
-            Assert.IsNull(node.Response);
+            Assert.Null(node.Response);
         }
     }
 }
