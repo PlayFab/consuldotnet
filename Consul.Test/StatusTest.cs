@@ -16,27 +16,26 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class Status
     {
-        [TestMethod]
+        [Fact]
         public void Status_Leader()
         {
             var client = new Client();
             var leader = client.Status.Leader();
-            Assert.IsFalse(string.IsNullOrEmpty(leader));
+            Assert.False(string.IsNullOrEmpty(leader));
         }
 
-        [TestMethod]
+        [Fact]
         public void Status_Peers()
         {
             var client = new Client();
             var peers = client.Status.Peers();
-            Assert.IsTrue(peers.Length > 0);
+            Assert.True(peers.Length > 0);
         }
     }
 }

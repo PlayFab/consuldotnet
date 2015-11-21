@@ -21,11 +21,10 @@ using System.Collections;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class KVTest
     {
         private static readonly Random Random = new Random((int)DateTime.Now.Ticks);
@@ -40,7 +39,7 @@ namespace Consul.Test
             return new string(keyChars);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_Put_Get_Delete()
         {
             var client = new Client();
@@ -51,7 +50,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var getRequest = kv.Get(key);
-            Assert.IsNull(getRequest.Response);
+            Assert.Null(getRequest.Response);
 
             var pair = new KVPair(key)
             {
@@ -60,7 +59,7 @@ namespace Consul.Test
             };
 
             var putRequest = kv.Put(pair);
-            Assert.IsTrue(putRequest.Response);
+            Assert.True(putRequest.Response);
 
             try
             {
@@ -71,29 +70,29 @@ namespace Consul.Test
                     Value = value
                 };
                 kv.Put(invalidKey);
-                Assert.Fail("Invalid key not detected");
+                Assert.True(false, "Invalid key not detected");
             }
             catch (InvalidKeyPairException ex)
             {
-                Assert.IsInstanceOfType(ex, typeof(InvalidKeyPairException));
+                Assert.IsType<InvalidKeyPairException>(ex);
             }
 
             getRequest = kv.Get(key);
             var res = getRequest.Response;
 
-            Assert.IsNotNull(res);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
-            Assert.AreEqual(pair.Flags, res.Flags);
-            Assert.IsTrue(getRequest.LastIndex > 0);
+            Assert.NotNull(res);
+            Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
+            Assert.Equal(pair.Flags, res.Flags);
+            Assert.True(getRequest.LastIndex > 0);
 
             var del = kv.Delete(key);
-            Assert.IsTrue(del.Response);
+            Assert.True(del.Response);
 
             getRequest = kv.Get(key);
-            Assert.IsNull(getRequest.Response);
+            Assert.Null(getRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_List_DeleteRecurse()
         {
             var client = new Client();
@@ -115,21 +114,21 @@ namespace Consul.Test
             Task.WaitAll(putTasks);
 
             var pairs = client.KV.List(prefix);
-            Assert.IsNotNull(pairs.Response);
-            Assert.AreEqual(pairs.Response.Length, putTasks.Length);
+            Assert.NotNull(pairs.Response);
+            Assert.Equal(pairs.Response.Length, putTasks.Length);
             foreach (var pair in pairs.Response)
             {
-                Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
+                Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
             }
-            Assert.IsFalse(pairs.LastIndex == 0);
+            Assert.False(pairs.LastIndex == 0);
 
             client.KV.DeleteTree(prefix);
 
             pairs = client.KV.List(prefix);
-            Assert.IsNull(pairs.Response);
+            Assert.Null(pairs.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_DeleteCAS()
         {
             var client = new Client();
@@ -144,27 +143,27 @@ namespace Consul.Test
             };
 
             var putRequest = client.KV.CAS(pair);
-            Assert.IsTrue(putRequest.Response);
+            Assert.True(putRequest.Response);
 
             var getRequest = client.KV.Get(key);
             pair = getRequest.Response;
 
-            Assert.IsNotNull(pair);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
-            Assert.IsTrue(getRequest.LastIndex > 0);
+            Assert.NotNull(pair);
+            Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
+            Assert.True(getRequest.LastIndex > 0);
 
             pair.ModifyIndex = 1;
             var deleteRequest = client.KV.DeleteCAS(pair);
 
-            Assert.IsFalse(deleteRequest.Response);
+            Assert.False(deleteRequest.Response);
 
             pair.ModifyIndex = getRequest.LastIndex;
             deleteRequest = client.KV.DeleteCAS(pair);
 
-            Assert.IsTrue(deleteRequest.Response);
+            Assert.True(deleteRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_CAS()
         {
             var client = new Client();
@@ -179,14 +178,14 @@ namespace Consul.Test
             };
 
             var putRequest = client.KV.CAS(pair);
-            Assert.IsTrue(putRequest.Response);
+            Assert.True(putRequest.Response);
 
             var getRequest = client.KV.Get(key);
             pair = getRequest.Response;
 
-            Assert.IsNotNull(pair);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
-            Assert.IsTrue(getRequest.LastIndex > 0);
+            Assert.NotNull(pair);
+            Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
+            Assert.True(getRequest.LastIndex > 0);
 
             value = Encoding.UTF8.GetBytes("foo");
             pair.Value = value;
@@ -194,17 +193,17 @@ namespace Consul.Test
             pair.ModifyIndex = 1;
             var casRequest = client.KV.CAS(pair);
 
-            Assert.IsFalse(casRequest.Response);
+            Assert.False(casRequest.Response);
 
             pair.ModifyIndex = getRequest.LastIndex;
             casRequest = client.KV.CAS(pair);
-            Assert.IsTrue(casRequest.Response);
+            Assert.True(casRequest.Response);
 
             var deleteRequest = client.KV.Delete(key);
-            Assert.IsTrue(deleteRequest.Response);
+            Assert.True(deleteRequest.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_WatchGet()
         {
             var client = new Client();
@@ -214,7 +213,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var getRequest = client.KV.Get(key);
-            Assert.IsNull(getRequest.Response);
+            Assert.Null(getRequest.Response);
 
             var pair = new KVPair(key)
             {
@@ -227,24 +226,24 @@ namespace Consul.Test
                 Task.Delay(1100).Wait();
                 var p = new KVPair(key) { Flags = 42, Value = value };
                 var putResponse = client.KV.Put(p);
-                Assert.IsTrue(putResponse.Response);
+                Assert.True(putResponse.Response);
             });
 
             var getRequest2 = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex });
             var res = getRequest2.Response;
 
-            Assert.IsNotNull(res);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
-            Assert.AreEqual(pair.Flags, res.Flags);
-            Assert.IsTrue(getRequest2.LastIndex > 0);
+            Assert.NotNull(res);
+            Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
+            Assert.Equal(pair.Flags, res.Flags);
+            Assert.True(getRequest2.LastIndex > 0);
 
             var deleteRequest = client.KV.Delete(key);
-            Assert.IsTrue(deleteRequest.Response);
+            Assert.True(deleteRequest.Response);
 
             getRequest = client.KV.Get(key);
-            Assert.IsNull(getRequest.Response);
+            Assert.Null(getRequest.Response);
         }
-        [TestMethod]
+        [Fact]
         public void KV_WatchGet_Cancel()
         {
             var client = new Client();
@@ -254,7 +253,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var getRequest = client.KV.Get(key);
-            Assert.IsNull(getRequest.Response);
+            Assert.Null(getRequest.Response);
 
             using (var cts = new CancellationTokenSource())
             {
@@ -263,16 +262,16 @@ namespace Consul.Test
                 try
                 {
                     getRequest = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
-                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
+                    Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (OperationCanceledException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof(OperationCanceledException));
+                    Assert.IsType<OperationCanceledException>(ex);
                 }
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_WatchList()
         {
             var client = new Client();
@@ -282,27 +281,27 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var pairs = client.KV.List(prefix);
-            Assert.IsNull(pairs.Response);
+            Assert.Null(pairs.Response);
 
             Task.Run(() =>
             {
                 Thread.Sleep(100);
                 var p = new KVPair(prefix) { Flags = 42, Value = value };
                 var putRes = client.KV.Put(p);
-                Assert.IsTrue(putRes.Response);
+                Assert.True(putRes.Response);
             });
 
             var pairs2 = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
-            Assert.IsNotNull(pairs2.Response);
-            Assert.AreEqual(pairs2.Response.Length, 1);
-            Assert.IsTrue(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
-            Assert.AreEqual(pairs2.Response[0].Flags, (ulong)42);
-            Assert.IsTrue(pairs2.LastIndex > pairs.LastIndex);
+            Assert.NotNull(pairs2.Response);
+            Assert.Equal(pairs2.Response.Length, 1);
+            Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
+            Assert.Equal(pairs2.Response[0].Flags, (ulong)42);
+            Assert.True(pairs2.LastIndex > pairs.LastIndex);
 
             var deleteTree = client.KV.DeleteTree(prefix);
-            Assert.IsTrue(deleteTree.Response);
+            Assert.True(deleteTree.Response);
         }
-        [TestMethod]
+        [Fact]
         public void KV_WatchList_Cancel()
         {
             var client = new Client();
@@ -312,7 +311,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var pairs = client.KV.List(prefix);
-            Assert.IsNull(pairs.Response);
+            Assert.Null(pairs.Response);
 
             using (var cts = new CancellationTokenSource())
             {
@@ -321,15 +320,15 @@ namespace Consul.Test
                 try
                 {
                     pairs = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
-                    Assert.Fail("A cancellation exception was not thrown when one was expected.");
+                    Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (OperationCanceledException ex)
                 {
-                    Assert.IsInstanceOfType(ex, typeof(OperationCanceledException));
+                    Assert.IsType<OperationCanceledException>(ex);
                 }
             }
         }
-        [TestMethod]
+        [Fact]
         public void KV_Keys_DeleteRecurse()
         {
             var client = new Client();
@@ -351,24 +350,24 @@ namespace Consul.Test
             Task.WaitAll(putTasks);
 
             var pairs = client.KV.Keys(prefix, "");
-            Assert.IsNotNull(pairs.Response);
-            Assert.AreEqual(pairs.Response.Length, putTasks.Length);
-            Assert.IsFalse(pairs.LastIndex == 0);
+            Assert.NotNull(pairs.Response);
+            Assert.Equal(pairs.Response.Length, putTasks.Length);
+            Assert.False(pairs.LastIndex == 0);
 
             var deleteTree = client.KV.DeleteTree(prefix);
 
             pairs = client.KV.Keys(prefix, "");
-            Assert.IsNull(pairs.Response);
+            Assert.Null(pairs.Response);
         }
 
-        [TestMethod]
+        [Fact]
         public void KV_AcquireRelease()
         {
             var client = new Client();
             var sessionRequest = client.Session.CreateNoChecks(new SessionEntry());
             var id = sessionRequest.Response;
 
-            Assert.IsFalse(string.IsNullOrEmpty(sessionRequest.Response));
+            Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var key = GenerateTestKeyName();
             var value = Encoding.UTF8.GetBytes("test");
@@ -380,30 +379,30 @@ namespace Consul.Test
             };
 
             var acquireRequest = client.KV.Acquire(pair);
-            Assert.IsTrue(acquireRequest.Response);
+            Assert.True(acquireRequest.Response);
 
             var getRequest = client.KV.Get(key);
 
-            Assert.IsNotNull(getRequest.Response);
-            Assert.AreEqual(id, getRequest.Response.Session);
-            Assert.AreEqual(getRequest.Response.LockIndex, (ulong)1);
-            Assert.IsTrue(getRequest.LastIndex > 0);
+            Assert.NotNull(getRequest.Response);
+            Assert.Equal(id, getRequest.Response.Session);
+            Assert.Equal(getRequest.Response.LockIndex, (ulong)1);
+            Assert.True(getRequest.LastIndex > 0);
 
             acquireRequest = client.KV.Release(pair);
-            Assert.IsTrue(acquireRequest.Response);
+            Assert.True(acquireRequest.Response);
 
             getRequest = client.KV.Get(key);
 
-            Assert.IsNotNull(getRequest.Response);
-            Assert.AreEqual(null, getRequest.Response.Session);
-            Assert.AreEqual(getRequest.Response.LockIndex, (ulong)1);
-            Assert.IsTrue(getRequest.LastIndex > 0);
+            Assert.NotNull(getRequest.Response);
+            Assert.Equal(null, getRequest.Response.Session);
+            Assert.Equal(getRequest.Response.LockIndex, (ulong)1);
+            Assert.True(getRequest.LastIndex > 0);
 
             var sessionDestroyRequest = client.Session.Destroy(id);
-            Assert.IsTrue(sessionDestroyRequest.Response);
+            Assert.True(sessionDestroyRequest.Response);
 
             var deleteRequest = client.KV.Delete(key);
-            Assert.IsTrue(deleteRequest.Response);
+            Assert.True(deleteRequest.Response);
         }
     }
 }

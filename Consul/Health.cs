@@ -83,12 +83,8 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Node(string node, QueryOptions q, CancellationToken ct)
         {
-            var res = _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
-            if (res.Response == null) { res.Response = new HealthCheck[0]; }
-            return res;
-            // TODO: Uncomment the below lines and delete the lines above when https://github.com/hashicorp/consul/issues/1395 is fixed.
-            //return
-            //    _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
+            return
+                _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
         }
 
         /// <summary>
