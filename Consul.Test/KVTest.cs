@@ -32,13 +32,12 @@ namespace Consul.Test
 
         internal static string GenerateTestKeyName()
         {
-            StackFrame frame = new StackFrame(1);
             var keyChars = new char[16];
             for (var i = 0; i < keyChars.Length; i++)
             {
                 keyChars[i] = Convert.ToChar(Random.Next(65, 91));
             }
-            return (new string(keyChars)) + "_" + frame.GetMethod().Name;
+            return new string(keyChars);
         }
 
         [Fact]
