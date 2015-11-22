@@ -24,12 +24,13 @@ using Xunit;
 
 namespace Consul.Test
 {
+    [Trait("speed","slow")]
     public class LockTest
     {
         [Fact]
         public void Lock_AcquireRelease()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             const string keyName = "test/lock/acquirerelease";
             var lockKey = client.CreateLock(keyName);
 
@@ -72,7 +73,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_EphemeralAcquireRelease()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             const string keyName = "test/lock/ephemerallock";
             var sessionId = client.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
             using (var l = client.AcquireLock(new LockOptions(keyName) { Session = sessionId.Response }, CancellationToken.None))
@@ -86,7 +87,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_Disposable()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/disposable";
             using (var l = client.AcquireLock(keyName))
@@ -97,7 +98,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_ExecuteAction()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/action";
             client.ExecuteLocked(keyName, () => Assert.True(true));
@@ -105,7 +106,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_AcquireWaitRelease()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/acquirewaitrelease";
 
@@ -134,7 +135,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_ContendWait()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/contend";
             const int contenderPool = 3;
@@ -172,7 +173,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_ContendFast()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/contend";
             const int contenderPool = 10;
@@ -210,7 +211,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_Contend_LockDelay()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/contendlockdelay";
 
@@ -248,7 +249,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_Destroy()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/contendlockdelay";
 
@@ -313,7 +314,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_RunAction()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/runaction";
 
@@ -337,7 +338,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_AbortAction()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/abort";
 
@@ -373,7 +374,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_ReclaimLock()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/reclaim";
 
@@ -442,7 +443,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_SemaphoreConflict()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/semaphoreconflict";
 
@@ -479,7 +480,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_ForceInvalidate()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/forceinvalidate";
 
@@ -520,7 +521,7 @@ namespace Consul.Test
         [Fact]
         public void Lock_DeleteKey()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/lock/deletekey";
 

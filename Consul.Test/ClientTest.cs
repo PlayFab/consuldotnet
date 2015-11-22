@@ -18,6 +18,7 @@
 
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
 using Xunit;
 
@@ -39,13 +40,13 @@ namespace Consul.Test
 
             var config = new ConsulClientConfiguration();
 
-            Assert.Equal(addr, config.Address);
+            Assert.Equal(addr, string.Format("{0}:{1}", config.Address.Host, config.Address.Port));
             Assert.Equal(token, config.Token);
             Assert.NotNull(config.HttpAuth);
             Assert.Equal("username", config.HttpAuth.UserName);
             Assert.Equal("password", config.HttpAuth.Password);
-            Assert.Equal("https", config.Scheme);
-            Assert.True(ServicePointManager.ServerCertificateValidationCallback(null, null, null,
+            Assert.Equal("https", config.Address.Scheme);
+            Assert.True((config.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
                 SslPolicyErrors.RemoteCertificateChainErrors));
 
             Environment.SetEnvironmentVariable("CONSUL_HTTP_ADDR", string.Empty);
@@ -55,7 +56,7 @@ namespace Consul.Test
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL_VERIFY", string.Empty);
             ServicePointManager.ServerCertificateValidationCallback = null;
 
-            var client = new Client(config);
+            var client = new ConsulClient(config);
 
             Assert.NotNull(client);
         }
@@ -63,7 +64,7 @@ namespace Consul.Test
         [Fact]
         public void Client_SetQueryOptions()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var opts = new QueryOptions()
             {
                 Datacenter = "foo",
@@ -72,7 +73,7 @@ namespace Consul.Test
                 WaitTime = new TimeSpan(0, 0, 100),
                 Token = "12345"
             };
-            var request = client.CreateQuery("/v1/kv/foo", opts);
+            var request = client.Get<KVPair>("/v1/kv/foo", opts);
             try
             {
                 request.Execute();
@@ -91,7 +92,7 @@ namespace Consul.Test
         [Fact]
         public void Client_SetWriteOptions()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var opts = new WriteOptions()
             {
@@ -99,7 +100,7 @@ namespace Consul.Test
                 Token = "12345"
             };
 
-            var request = client.CreateWrite("/v1/kv/foo", opts);
+            var request = client.Put<KVPair>("/v1/kv/foo", new KVPair("kv/foo"), opts);
             try
             {
                 request.Execute();

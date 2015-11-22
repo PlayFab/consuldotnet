@@ -27,7 +27,7 @@ namespace Consul.Test
         [Fact]
         public void Session_CreateDestroy()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create();
             var id = sessionRequest.Response;
             Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
@@ -40,7 +40,7 @@ namespace Consul.Test
         [Fact]
         public void Session_CreateNoChecksDestroy()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.CreateNoChecks();
 
             var id = sessionRequest.Response;
@@ -54,7 +54,7 @@ namespace Consul.Test
         [Fact]
         public void Session_CreateRenewDestroy()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
@@ -75,7 +75,7 @@ namespace Consul.Test
         [Fact]
         public void Session_CreateRenewDestroyRenew()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
@@ -105,7 +105,7 @@ namespace Consul.Test
         [Fact]
         public void Session_Create_RenewPeriodic_Destroy()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
@@ -115,7 +115,7 @@ namespace Consul.Test
             var tokenSource = new CancellationTokenSource();
             var ct = tokenSource.Token;
 
-            var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
+            var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Default, ct);
 
             var infoRequest = client.Session.Info(id);
             Assert.True(infoRequest.LastIndex > 0);
@@ -127,7 +127,7 @@ namespace Consul.Test
 
             try
             {
-                renewTask.Wait(1000);
+                renewTask.Wait(3000);
                 Assert.True(false, "timedout: missing session did not terminate renewal loop");
             }
             catch (AggregateException ae)
@@ -139,7 +139,7 @@ namespace Consul.Test
         [Fact]
         public void Session_Create_RenewPeriodic_TTLExpire()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(500) });
 
             var id = sessionRequest.Response;
@@ -151,7 +151,7 @@ namespace Consul.Test
 
             try
             {
-                var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Empty, ct);
+                var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Default, ct);
                 Assert.True(client.Session.Destroy(id).Response);
                 renewTask.Wait(1000);
             }
@@ -174,7 +174,7 @@ namespace Consul.Test
         [Fact]
         public void Session_Info()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create();
 
             var id = sessionRequest.Response;
@@ -207,7 +207,7 @@ namespace Consul.Test
         [Fact]
         public void Session_Node()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create();
 
             var id = sessionRequest.Response;
@@ -232,7 +232,7 @@ namespace Consul.Test
         [Fact]
         public void Session_List()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.Create();
 
             var id = sessionRequest.Response;

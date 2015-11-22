@@ -76,9 +76,9 @@ namespace Consul
     /// </summary>
     public class Catalog : ICatalogEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Catalog(Client c)
+        internal Catalog(ConsulClient c)
         {
             _client = c;
         }
@@ -90,7 +90,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult Register(CatalogRegistration reg)
         {
-            return Register(reg, WriteOptions.Empty);
+            return Register(reg, WriteOptions.Default);
         }
 
         /// <summary>
@@ -102,7 +102,7 @@ namespace Consul
         public WriteResult Register(CatalogRegistration reg, WriteOptions q)
         {
             return
-                _client.CreateInWrite<CatalogRegistration>("/v1/catalog/register", reg, q).Execute();
+                _client.Put<CatalogRegistration>("/v1/catalog/register", reg, q).Execute();
         }
 
         /// <summary>
@@ -112,7 +112,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult Deregister(CatalogDeregistration reg)
         {
-            return Deregister(reg, WriteOptions.Empty);
+            return Deregister(reg, WriteOptions.Default);
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult Deregister(CatalogDeregistration reg, WriteOptions q)
         {
-            return _client.CreateInWrite<CatalogDeregistration>("/v1/catalog/deregister", reg, q)
+            return _client.Put<CatalogDeregistration>("/v1/catalog/deregister", reg, q)
                         .Execute();
         }
 
@@ -133,7 +133,7 @@ namespace Consul
         /// <returns>A list of datacenter names</returns>
         public QueryResult<string[]> Datacenters()
         {
-            return _client.CreateQuery<string[]>("/v1/catalog/datacenters").Execute();
+            return _client.Get<string[]>("/v1/catalog/datacenters").Execute();
         }
 
         /// <summary>
@@ -160,7 +160,7 @@ namespace Consul
         /// <returns>A list of all nodes</returns>
         public QueryResult<Node[]> Nodes(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<Node[]>("/v1/catalog/nodes", q).Execute(ct);
+            return _client.Get<Node[]>("/v1/catalog/nodes", q).Execute(ct);
         }
 
         /// <summary>
@@ -188,7 +188,7 @@ namespace Consul
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
+            return _client.Get<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
         }
 
         /// <summary>
@@ -221,7 +221,7 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public QueryResult<CatalogService[]> Service(string service, string tag, QueryOptions q)
         {
-            var req = _client.CreateQuery<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
+            var req = _client.Get<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
@@ -248,11 +248,11 @@ namespace Consul
         public QueryResult<CatalogNode> Node(string node, QueryOptions q)
         {
             return
-                _client.CreateQuery<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
+                _client.Get<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Catalog _catalog;
 

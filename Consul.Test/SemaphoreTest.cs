@@ -24,12 +24,13 @@ using Xunit;
 
 namespace Consul.Test
 {
+    [Trait("speed", "slow")]
     public class SemaphoreTest
     {
         [Fact]
         public void Semaphore_BadLimit()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/badlimit";
 
@@ -72,7 +73,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_AcquireRelease()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/acquirerelease";
 
@@ -118,7 +119,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_Disposable()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/disposable";
             using (var semaphore = client.AcquireSemaphore(keyName, 2))
@@ -129,7 +130,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_ExecuteAction()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/action";
             client.ExecuteInSemaphore(keyName, 2, () => Assert.True(true));
@@ -138,7 +139,7 @@ namespace Consul.Test
         public void Semaphore_AcquireWaitRelease()
         {
 
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/acquirewaitrelease";
 
@@ -168,7 +169,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_ContendWait()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/contend";
             const int contenderPool = 4;
@@ -203,7 +204,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_ContendFast()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/contend";
             const int contenderPool = 15;
@@ -238,7 +239,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_Destroy()
         {
-            var c = new Client();
+            var c = new ConsulClient();
 
             const string keyName = "test/semaphore/destroy";
 
@@ -303,7 +304,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_ForceInvalidate()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/forceinvalidate";
 
@@ -346,7 +347,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_DeleteKey()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/deletekey";
 
@@ -389,7 +390,7 @@ namespace Consul.Test
         [Fact]
         public void Semaphore_Conflict()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             const string keyName = "test/semaphore/conflict";
 

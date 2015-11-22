@@ -12,7 +12,7 @@ namespace Consul.Test
         [Fact]
         public void Assembly_IsStrongNamed()
         {
-            Type type = typeof(Consul.Client);
+            Type type = typeof(Consul.ConsulClient);
             string name = type.Assembly.FullName.ToString();
             Trace.WriteLine(name);
             Assert.True(type.Assembly.FullName.Contains("PublicKeyToken"));

@@ -223,7 +223,7 @@ namespace Consul
 
         private CancellationTokenSource _cts;
 
-        private readonly Client _client;
+        private readonly ConsulClient _client;
         private Task _sessionRenewTask;
         private Task _monitorTask;
         internal SemaphoreOptions Opts { get; set; }
@@ -248,7 +248,7 @@ namespace Consul
 
         internal string LockSession { get; set; }
 
-        internal Semaphore(Client c)
+        internal Semaphore(ConsulClient c)
         {
             _client = c;
             _cts = new CancellationTokenSource();
@@ -299,7 +299,7 @@ namespace Consul
                         try
                         {
                             Opts.Session = CreateSession();
-                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Empty, _cts.Token);
+                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Default, _cts.Token);
                             LockSession = Opts.Session;
                         }
                         catch (Exception ex)
@@ -681,7 +681,7 @@ namespace Consul
     public class AutoSemaphore : Semaphore, IDisposable, IDisposableSemaphore
     {
         public CancellationToken CancellationToken { get; private set; }
-        internal AutoSemaphore(Client c, SemaphoreOptions opts)
+        internal AutoSemaphore(ConsulClient c, SemaphoreOptions opts)
             : base(c)
         {
             Opts = opts;
@@ -762,7 +762,7 @@ namespace Consul
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         /// <summary>
         /// Used to created a Semaphore which will operate at the given KV prefix and uses the given limit for the semaphore.
