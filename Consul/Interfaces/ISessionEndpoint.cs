@@ -25,4 +25,14 @@ namespace Consul
         Task RenewPeriodic(TimeSpan initialTTL, string id, CancellationToken ct);
         Task RenewPeriodic(TimeSpan initialTTL, string id, WriteOptions q, CancellationToken ct);
     }
+
+    public interface ISessionEndpointAsync
+    {
+        Task<QueryResult<SessionEntry>> InfoAsync(string id);
+        Task<QueryResult<SessionEntry>> InfoAsync(string id, QueryOptions q);
+        Task<QueryResult<SessionEntry[]>> ListAsync();
+        Task<QueryResult<SessionEntry[]>> ListAsync(QueryOptions q);
+        Task<QueryResult<SessionEntry[]>> NodeAsync(string node);
+        Task<QueryResult<SessionEntry[]>> NodeAsync(string node, QueryOptions q);
+    }
 }

@@ -382,7 +382,13 @@ namespace Consul
             }
         }
 
-        protected HttpWebResponse ExecuteInternal<TResult>(TResult result, CancellationToken ct) where TResult : QueryResult
+        protected HttpWebResponse ExecuteInternal<TResult>(TResult result, CancellationToken ct)
+            where TResult : QueryResult
+        {
+            return ExecuteInternalAsync(result, ct).GetAwaiter().GetResult();
+        }
+
+        protected async Task<HttpWebResponse> ExecuteInternalAsync<TResult>(TResult result, CancellationToken ct) where TResult : QueryResult
         {
             var req = BuildWebRequest();
 
@@ -392,7 +398,7 @@ namespace Consul
             {
                 using (ct.Register(() => req.Abort()))
                 {
-                    var res = (HttpWebResponse)(req.GetResponse());
+                    var res = (HttpWebResponse) await req.GetResponseAsync();
                     ReadResponse(res.GetResponseStream(), ref result);
                     ParseQueryHeaders(res, result);
                     return res;
@@ -433,15 +439,25 @@ namespace Consul
 
         public QueryResult Execute()
         {
-            return Execute(CancellationToken.None);
+            return ExecuteAsync().GetAwaiter().GetResult();
+        }
+
+        public Task<QueryResult> ExecuteAsync()
+        {
+            return ExecuteAsync(CancellationToken.None);
         }
 
         public QueryResult Execute(CancellationToken ct)
         {
+            return ExecuteAsync(ct).GetAwaiter().GetResult();
+        }
+
+        public async Task<QueryResult> ExecuteAsync(CancellationToken ct)
+        {
             result = new QueryResult();
             try
             {
-                var response = ExecuteInternal(result, ct);
+                await ExecuteInternalAsync(result, ct);
                 return result;
             }
             catch (WebException ex)
@@ -465,7 +481,11 @@ namespace Consul
         public new QueryResult<T> Execute()
         {
             return Execute(CancellationToken.None);
+        }public new Task<QueryResult<T>> ExecuteAsync()
+        {
+            return ExecuteAsync(CancellationToken.None);
         }
+
         protected override void ReadResponse<TResult>(Stream responseStream, ref TResult result)
         {
             (result as QueryResult<T>).Response = DecodeFromStream<T>(responseStream);
@@ -473,10 +493,14 @@ namespace Consul
 
         public new QueryResult<T> Execute(CancellationToken ct)
         {
+            return ExecuteAsync(ct).GetAwaiter().GetResult();
+        }
+        public async new Task<QueryResult<T>> ExecuteAsync(CancellationToken ct)
+        {
             var result = new QueryResult<T>();
             try
             {
-                var response = ExecuteInternal(result, ct);
+                await ExecuteInternalAsync(result, ct);
                 return result;
             }
             catch (WebException ex)
@@ -525,7 +549,13 @@ namespace Consul
             }
             Options = q;
         }
+
         protected WriteResult ExecuteInternal(WriteResult result)
+        {
+            return ExecuteInternalAsync(result).GetAwaiter().GetResult();
+        }
+
+        protected async Task<WriteResult> ExecuteInternalAsync(WriteResult result)
         {
             var req = BuildWebRequest();
             HttpWebResponse res;
@@ -533,7 +563,7 @@ namespace Consul
             WriteData(req.GetRequestStream());
             try
             {
-                res = (HttpWebResponse)req.GetResponse();
+                res = (HttpWebResponse) await req.GetResponseAsync();
                 if (res.StatusCode == HttpStatusCode.OK)
                 {
                     var stream = res.GetResponseStream();

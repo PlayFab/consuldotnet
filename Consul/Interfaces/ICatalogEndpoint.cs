@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
+
 namespace Consul
 {
     public interface ICatalogEndpoint
@@ -20,5 +22,18 @@ namespace Consul
         QueryResult<System.Collections.Generic.Dictionary<string, string[]>> Services();
         QueryResult<System.Collections.Generic.Dictionary<string, string[]>> Services(QueryOptions q);
         QueryResult<System.Collections.Generic.Dictionary<string, string[]>> Services(QueryOptions q, CancellationToken ct);
+    }
+
+    public interface ICatalogEndpointAsync
+    {
+        Task<QueryResult<string[]>> DatacentersAsync();
+        Task<QueryResult<CatalogNode>> NodeAsync(string node);
+        Task<QueryResult<CatalogNode>> NodeAsync(string node, QueryOptions q);
+        Task<QueryResult<CatalogService[]>> ServiceAsync(string service);
+        Task<QueryResult<CatalogService[]>> ServiceAsync(string service, string tag);
+        Task<QueryResult<CatalogService[]>> ServiceAsync(string service, string tag, QueryOptions q);
+        Task<QueryResult<System.Collections.Generic.Dictionary<string, string[]>>> ServicesAsync();
+        Task<QueryResult<System.Collections.Generic.Dictionary<string, string[]>>> ServicesAsync(QueryOptions q);
+        Task<QueryResult<System.Collections.Generic.Dictionary<string, string[]>>> ServicesAsync(QueryOptions q, CancellationToken ct);
     }
 }

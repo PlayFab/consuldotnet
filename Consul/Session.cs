@@ -136,7 +136,7 @@ namespace Consul
     /// <summary>
     /// Session can be used to query the Session endpoints
     /// </summary>
-    public class Session : ISessionEndpoint
+    public class Session : ISessionEndpoint, ISessionEndpointAsync
     {
         private class SessionCreationResult
         {
@@ -363,12 +363,33 @@ namespace Consul
         /// Info looks up a single session
         /// </summary>
         /// <param name="id">The session ID to look up</param>
+        /// <returns>A query result containing the session information, or an empty query result if the session entry does not exist</returns>
+        public Task<QueryResult<SessionEntry>> InfoAsync(string id)
+        {
+            return InfoAsync(id, QueryOptions.Default);
+        }
+
+        /// <summary>
+        /// Info looks up a single session
+        /// </summary>
+        /// <param name="id">The session ID to look up</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the session information, or an empty query result if the session entry does not exist</returns>
         public QueryResult<SessionEntry> Info(string id, QueryOptions q)
         {
-            var res =
-                _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute();
+            return InfoAsync(id, q).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Info looks up a single session
+        /// </summary>
+        /// <param name="id">The session ID to look up</param>
+        /// <param name="q">Customized query options</param>
+        /// <returns>A query result containing the session information, or an empty query result if the session entry does not exist</returns>
+        public async Task<QueryResult<SessionEntry>> InfoAsync(string id, QueryOptions q)
+        {
+            var res = await
+                _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).ExecuteAsync();
             var ret = new QueryResult<SessionEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -395,11 +416,30 @@ namespace Consul
         /// <summary>
         /// List gets all active sessions
         /// </summary>
+        /// <returns>A query result containing list of all sessions, or an empty query result if no sessions exist</returns>
+        public Task<QueryResult<SessionEntry[]>> ListAsync()
+        {
+            return ListAsync(QueryOptions.Default);
+        }
+
+        /// <summary>
+        /// List gets all active sessions
+        /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
         public QueryResult<SessionEntry[]> List(QueryOptions q)
         {
-            return _client.CreateQuery<SessionEntry[]>("/v1/session/list", q).Execute();
+            return ListAsync(q).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// List gets all active sessions
+        /// </summary>
+        /// <param name="q">Customized query options</param>
+        /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
+        public Task<QueryResult<SessionEntry[]>> ListAsync(QueryOptions q)
+        {
+            return _client.CreateQuery<SessionEntry[]>("/v1/session/list", q).ExecuteAsync();
         }
 
         /// <summary>
@@ -416,11 +456,32 @@ namespace Consul
         /// Node gets all sessions for a node
         /// </summary>
         /// <param name="node">The node ID</param>
+        /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
+        public Task<QueryResult<SessionEntry[]>> NodeAsync(string node)
+        {
+            return NodeAsync(node, QueryOptions.Default);
+        }
+
+        /// <summary>
+        /// Node gets all sessions for a node
+        /// </summary>
+        /// <param name="node">The node ID</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
         public QueryResult<SessionEntry[]> Node(string node, QueryOptions q)
         {
-            return _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).Execute();
+            return NodeAsync(node, q).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Node gets all sessions for a node
+        /// </summary>
+        /// <param name="node">The node ID</param>
+        /// <param name="q">Customized query options</param>
+        /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
+        public Task<QueryResult<SessionEntry[]>> NodeAsync(string node, QueryOptions q)
+        {
+            return _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).ExecuteAsync();
         }
     }
 

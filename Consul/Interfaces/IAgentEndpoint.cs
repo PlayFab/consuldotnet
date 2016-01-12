@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+
 namespace Consul
 {
     public interface IAgentEndpoint
@@ -23,5 +25,10 @@ namespace Consul
         QueryResult<System.Collections.Generic.Dictionary<string, AgentService>> Services();
         WriteResult UpdateTTL(string checkID, string note, TTLStatus status);
         void WarnTTL(string checkID, string note);
+    }
+
+    public interface IAgentEndpointAsync
+    {
+        Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> SelfAsync();
     }
 }

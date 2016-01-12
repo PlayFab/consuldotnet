@@ -19,6 +19,7 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Web;
 
 namespace Consul
@@ -308,7 +309,7 @@ namespace Consul
     /// <summary>
     /// Agent can be used to query the Agent endpoints
     /// </summary>
-    public class Agent : IAgentEndpoint
+    public class Agent : IAgentEndpoint, IAgentEndpointAsync
     {
         private readonly Client _client;
 
@@ -326,8 +327,16 @@ namespace Consul
         /// <returns>A somewhat dynamic object representing the various data elements in Self</returns>
         public QueryResult<Dictionary<string, Dictionary<string, dynamic>>> Self()
         {
+            return SelfAsync().GetAwaiter().GetResult();
+        }
+        /// <summary>
+        /// Self is used to query the agent we are speaking to for information about itself
+        /// </summary>
+        /// <returns>A somewhat dynamic object representing the various data elements in Self</returns>
+        public Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> SelfAsync()
+        {
             return _client.CreateQuery<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self")
-                        .Execute();
+                        .ExecuteAsync();
         }
 
         /// <summary>
@@ -567,6 +576,14 @@ namespace Consul
                 }
                 return _agent;
             }
+        }
+
+        /// <summary>
+        /// Agent returns a handle to the agent endpoints
+        /// </summary>
+        public IAgentEndpointAsync AgentAsync
+        {
+            get { return(IAgentEndpointAsync) Agent; }
         }
     }
 }

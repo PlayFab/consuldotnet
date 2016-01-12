@@ -19,6 +19,7 @@
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -72,7 +73,7 @@ namespace Consul
     /// <summary>
     /// Catalog can be used to query the Catalog endpoints
     /// </summary>
-    public class Catalog : ICatalogEndpoint
+    public class Catalog : ICatalogEndpoint, ICatalogEndpointAsync
     {
         private readonly Client _client;
 
@@ -131,7 +132,15 @@ namespace Consul
         /// <returns>A list of datacenter names</returns>
         public QueryResult<string[]> Datacenters()
         {
-            return _client.CreateQuery<string[]>("/v1/catalog/datacenters").Execute();
+            return DatacentersAsync().GetAwaiter().GetResult();
+        }
+        /// <summary>
+        /// Datacenters is used to query for all the known datacenters
+        /// </summary>
+        /// <returns>A list of datacenter names</returns>
+        public Task<QueryResult<string[]>> DatacentersAsync()
+        {
+            return _client.CreateQuery<string[]>("/v1/catalog/datacenters").ExecuteAsync();
         }
 
         /// <summary>
@@ -172,6 +181,14 @@ namespace Consul
         /// <summary>
         /// Services is used to query for all known services
         /// </summary>
+        /// <returns>A list of all services</returns>
+        public Task<QueryResult<Dictionary<string, string[]>>> ServicesAsync()
+        {
+            return ServicesAsync(QueryOptions.Default, CancellationToken.None);
+        }
+        /// <summary>
+        /// Services is used to query for all known services
+        /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q)
@@ -182,11 +199,30 @@ namespace Consul
         /// Services is used to query for all known services
         /// </summary>
         /// <param name="q">Customized query options</param>
+        /// <returns>A list of all services</returns>
+        public Task<QueryResult<Dictionary<string, string[]>>> ServicesAsync(QueryOptions q)
+        {
+            return ServicesAsync(q, CancellationToken.None);
+        }
+        /// <summary>
+        /// Services is used to query for all known services
+        /// </summary>
+        /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A list of all services</returns>
         public QueryResult<Dictionary<string, string[]>> Services(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
+            return ServicesAsync(q, ct).GetAwaiter().GetResult();
+        }
+        /// <summary>
+        /// Services is used to query for all known services
+        /// </summary>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A list of all services</returns>
+        public Task<QueryResult<Dictionary<string, string[]>>> ServicesAsync(QueryOptions q, CancellationToken ct)
+        {
+            return _client.CreateQuery<Dictionary<string, string[]>>("/v1/catalog/services", q).ExecuteAsync(ct);
         }
 
         /// <summary>
@@ -198,7 +234,15 @@ namespace Consul
         {
             return Service(service, string.Empty, QueryOptions.Default);
         }
-
+        /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <returns>A list of service instances</returns>
+        public Task<QueryResult<CatalogService[]>> ServiceAsync(string service)
+        {
+            return ServiceAsync(service, string.Empty, QueryOptions.Default);
+        }
         /// <summary>
         /// Service is used to query catalog entries for a given service
         /// </summary>
@@ -209,7 +253,16 @@ namespace Consul
         {
             return Service(service, tag, QueryOptions.Default);
         }
-
+        /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="tag">A tag to filter on</param>
+        /// <returns>A list of service instances</returns>
+        public Task<QueryResult<CatalogService[]>> ServiceAsync(string service, string tag)
+        {
+            return ServiceAsync(service, tag, QueryOptions.Default);
+        }
         /// <summary>
         /// Service is used to query catalog entries for a given service
         /// </summary>
@@ -228,6 +281,23 @@ namespace Consul
         }
 
         /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="tag">A tag to filter on</param>
+        /// <param name="q">Customized query options</param>
+        /// <returns>A list of service instances</returns>
+        public async Task<QueryResult<CatalogService[]>> ServiceAsync(string service, string tag, QueryOptions q)
+        {
+            var req = _client.CreateQuery<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
+            if (!string.IsNullOrEmpty(tag))
+            {
+                req.Params["tag"] = tag;
+            }
+            return await req.ExecuteAsync();
+        }
+
+        /// <summary>
         /// Node is used to query for service information about a single node
         /// </summary>
         /// <param name="node">The node name</param>
@@ -236,7 +306,15 @@ namespace Consul
         {
             return Node(node, QueryOptions.Default);
         }
-
+        /// <summary>
+        /// Node is used to query for service information about a single node
+        /// </summary>
+        /// <param name="node">The node name</param>
+        /// <returns>The node information including a list of services</returns>
+        public Task<QueryResult<CatalogNode>> NodeAsync(string node)
+        {
+            return NodeAsync(node, QueryOptions.Default);
+        }
         /// <summary>
         /// Node is used to query for service information about a single node
         /// </summary>
@@ -245,8 +323,17 @@ namespace Consul
         /// <returns>The node information including a list of services</returns>
         public QueryResult<CatalogNode> Node(string node, QueryOptions q)
         {
-            return
-                _client.CreateQuery<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
+            return NodeAsync(node, q).GetAwaiter().GetResult();
+        }
+        /// <summary>
+        /// Node is used to query for service information about a single node
+        /// </summary>
+        /// <param name="node">The node name</param>
+        /// <param name="q">Customized query options</param>
+        /// <returns>The node information including a list of services</returns>
+        public Task<QueryResult<CatalogNode>> NodeAsync(string node, QueryOptions q)
+        {
+            return _client.CreateQuery<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).ExecuteAsync();
         }
     }
 
@@ -273,6 +360,11 @@ namespace Consul
                 }
                 return _catalog;
             }
+        }
+
+        public ICatalogEndpointAsync CatalogAsync
+        {
+            get { return (ICatalogEndpointAsync) Catalog; }
         }
     }
 }
