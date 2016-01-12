@@ -298,6 +298,9 @@ namespace Consul
         public string HTTP { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string TCP { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(CheckStatusConverter))]
         public CheckStatus Status { get; set; }
     }
