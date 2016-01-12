@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 
 namespace Consul
 {
-    public class Status : IStatusEndpoint
+    public class Status : IStatusEndpoint, IStatusEndpointAsync
     {
         private readonly Client _client;
 
@@ -35,7 +35,16 @@ namespace Consul
         /// <returns>A write result containing the leader node name</returns>
         public string Leader()
         {
-            var res = _client.CreateQuery<string>("/v1/status/leader").Execute();
+            return LeaderAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Leader is used to query for a known leader
+        /// </summary>
+        /// <returns>A write result containing the leader node name</returns>
+        public async Task<string> LeaderAsync()
+        {
+            var res = await _client.CreateQuery<string>("/v1/status/leader").ExecuteAsync();
             return res.Response;
         }
 
@@ -45,7 +54,16 @@ namespace Consul
         /// <returns>A write result containing the list of Raft peers</returns>
         public string[] Peers()
         {
-            var res = _client.CreateQuery<string[]>("/v1/status/peers").Execute();
+            return PeersAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Peers is used to query for a known raft peers
+        /// </summary>
+        /// <returns>A write result containing the list of Raft peers</returns>
+        public async Task<string[]> PeersAsync()
+        {
+            var res = await _client.CreateQuery<string[]>("/v1/status/peers").ExecuteAsync();
             return res.Response;
         }
     }
