@@ -1,9 +1,23 @@
 # Changelog
 
+## BREAKING CHANGES FOR 0.6.0.x
+* The `Client` class has been renamed `ConsulClient`. The interface
+  remains the same - `IConsulClient`.
+* The `ConsulClientConfiguration` class no longer accepts a string
+  `Address` property to the Consul server. It is now a `System.Uri`
+  named `Address`.
+
+## 2015-11-21
+* Reworked the entire Client class to use `System.Net.HttpClient` as its
+  underpinning rather than `WebRequest`/`WebResponse`.
+* Moved all tests to Xunit.
+* Converted all uses of `System.Web.HttpUtility.UrlPathEncode` to
+  `System.Uri.EscapeDataString`.
+
 ## 2015-11-09
 
 * Added coordinates API. *WARNING*: No check is done to see if the API
-  is available. If used against a 0.5.2 agent, a `WebException` will be
+  is available. If used against a 0.5.2 agent, an exception will be
   thrown because the agent does not understand the coordinate URL.
 * Fixed bug in tests for session renewal.
 

@@ -22,9 +22,9 @@ namespace Consul
 {
     public class Status : IStatusEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Status(Client c)
+        internal Status(ConsulClient c)
         {
             _client = c;
         }
@@ -35,7 +35,7 @@ namespace Consul
         /// <returns>A write result containing the leader node name</returns>
         public string Leader()
         {
-            var res = _client.CreateQuery<string>("/v1/status/leader").Execute();
+            var res = _client.Get<string>("/v1/status/leader").Execute();
             return res.Response;
         }
 
@@ -45,12 +45,12 @@ namespace Consul
         /// <returns>A write result containing the list of Raft peers</returns>
         public string[] Peers()
         {
-            var res = _client.CreateQuery<string[]>("/v1/status/peers").Execute();
+            var res = _client.Get<string[]>("/v1/status/peers").Execute();
             return res.Response;
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Status _status;
 

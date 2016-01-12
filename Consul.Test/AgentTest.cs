@@ -26,7 +26,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Self()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var info = client.Agent.Self();
 
@@ -38,7 +38,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Members()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var members = client.Agent.Members(false);
 
@@ -49,7 +49,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Services()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
@@ -77,7 +77,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Services_CheckPassing()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
@@ -105,7 +105,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Services_CheckTTLNote()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
@@ -146,7 +146,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_ServiceAddress()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration1 = new AgentServiceRegistration()
             {
                 Name = "foo1",
@@ -175,7 +175,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Services_MultipleChecks()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
@@ -208,7 +208,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_SetTTLStatus()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
@@ -232,7 +232,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Checks()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentCheckRegistration
             {
                 Name = "foo",
@@ -250,7 +250,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_CheckStartPassing()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var registration = new AgentCheckRegistration
             {
                 Name = "foo",
@@ -269,7 +269,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Checks_ServiceBound()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var serviceReg = new AgentServiceRegistration()
             {
@@ -296,7 +296,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_Join()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var info = client.Agent.Self();
             client.Agent.Join(info.Response["Config"]["AdvertiseAddr"], false);
             // Success is not throwing an exception
@@ -305,7 +305,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_ForceLeave()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             client.Agent.ForceLeave("foo");
             // Success is not throwing an exception
         }
@@ -313,7 +313,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_ServiceMaintenance()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var serviceReg = new AgentServiceRegistration()
             {
@@ -350,7 +350,7 @@ namespace Consul.Test
         [Fact]
         public void Agent_NodeMaintenance()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             client.Agent.EnableNodeMaintenance("broken");
             var checks = client.Agent.Checks();

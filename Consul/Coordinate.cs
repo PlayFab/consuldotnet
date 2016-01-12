@@ -51,9 +51,9 @@ namespace Consul
 
     public class Coordinate : ICoordinateEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Coordinate(Client c)
+        internal Coordinate(ConsulClient c)
         {
             _client = c;
         }
@@ -64,7 +64,7 @@ namespace Consul
         /// <returns>A query result containing a map of datacenters, each with a list of coordinates of all the servers in the WAN pool</returns>
         public QueryResult<CoordinateDatacenterMap[]> Datacenters()
         {
-            return _client.CreateQuery<CoordinateDatacenterMap[]>(string.Format("/v1/coordinate/datacenters")).Execute();
+            return _client.Get<CoordinateDatacenterMap[]>(string.Format("/v1/coordinate/datacenters")).Execute();
         }
 
         /// <summary>
@@ -83,11 +83,11 @@ namespace Consul
         /// <returns>A query result containing coordinates of all the nodes in the LAN pool</returns>
         public QueryResult<CoordinateEntry[]> Nodes(QueryOptions q)
         {
-            return _client.CreateQuery<CoordinateEntry[]>(string.Format("/v1/coordinate/nodes"), q).Execute();
+            return _client.Get<CoordinateEntry[]>(string.Format("/v1/coordinate/nodes"), q).Execute();
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Coordinate _coordinate;
 

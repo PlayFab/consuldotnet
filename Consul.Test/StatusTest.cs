@@ -25,7 +25,7 @@ namespace Consul.Test
         [Fact]
         public void Status_Leader()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var leader = client.Status.Leader();
             Assert.False(string.IsNullOrEmpty(leader));
         }
@@ -33,7 +33,7 @@ namespace Consul.Test
         [Fact]
         public void Status_Peers()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var peers = client.Status.Peers();
             Assert.True(peers.Length > 0);
         }

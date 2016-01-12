@@ -8,7 +8,7 @@ namespace Consul.Test
         [SkippableFact]
         public void Coordinate_Datacenters()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var info = client.Agent.Self();
 
@@ -23,7 +23,7 @@ namespace Consul.Test
         [SkippableFact]
         public void Coordinate_Nodes()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var info = client.Agent.Self();
 

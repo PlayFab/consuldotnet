@@ -153,9 +153,9 @@ namespace Consul
     /// </summary>
     public class ACL : IACLEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal ACL(Client c)
+        internal ACL(ConsulClient c)
         {
             _client = c;
         }
@@ -173,7 +173,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public WriteResult<string> Create(ACLEntry acl)
         {
-            return Create(acl, WriteOptions.Empty);
+            return Create(acl, WriteOptions.Default);
         }
 
         /// <summary>
@@ -199,7 +199,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult Update(ACLEntry acl)
         {
-            return Update(acl, WriteOptions.Empty);
+            return Update(acl, WriteOptions.Default);
         }
 
         /// <summary>
@@ -210,7 +210,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult Update(ACLEntry acl, WriteOptions q)
         {
-            return _client.CreateInWrite<ACLEntry>("/v1/acl/update", acl, q).Execute();
+            return _client.Put<ACLEntry>("/v1/acl/update", acl, q).Execute();
         }
 
         /// <summary>
@@ -220,7 +220,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult<bool> Destroy(string id)
         {
-            return Destroy(id, WriteOptions.Empty);
+            return Destroy(id, WriteOptions.Default);
         }
 
         /// <summary>
@@ -231,7 +231,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public WriteResult<bool> Destroy(string id, WriteOptions q)
         {
-            return _client.CreateOutWrite<bool>(string.Format("/v1/acl/destroy/{0}", id)).Execute();
+            return _client.EmptyPut<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute();
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public WriteResult<string> Clone(string id)
         {
-            return Clone(id, WriteOptions.Empty);
+            return Clone(id, WriteOptions.Default);
         }
 
         /// <summary>
@@ -252,7 +252,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public WriteResult<string> Clone(string id, WriteOptions q)
         {
-            var res = _client.CreateOutWrite<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute();
+            var res = _client.EmptyPut<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute();
             var ret = new WriteResult<string>
             {
                 RequestTime = res.RequestTime,
@@ -289,7 +289,7 @@ namespace Consul
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
         public QueryResult<ACLEntry> Info(string id, QueryOptions q, CancellationToken ct)
         {
-            var res = _client.CreateQuery<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
+            var res = _client.Get<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
             var ret = new QueryResult<ACLEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -329,11 +329,11 @@ namespace Consul
         /// <returns>A write result containing the list of all ACLs</returns>
         public QueryResult<ACLEntry[]> List(QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
+            return _client.Get<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private ACL _acl;
 

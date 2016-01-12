@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,7 +43,7 @@ namespace Consul.Test
         [Fact]
         public void KV_Put_Get_Delete()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var kv = client.KV;
 
             var key = GenerateTestKeyName();
@@ -95,11 +96,10 @@ namespace Consul.Test
         [Fact]
         public void KV_List_DeleteRecurse()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var prefix = GenerateTestKeyName();
 
-            var putTasks = new Task[100];
 
             var value = Encoding.UTF8.GetBytes("test");
             for (var i = 0; i < 100; i++)
@@ -108,14 +108,12 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                putTasks[i] = Task.Run(() => client.KV.Put(p));
+                Assert.True(client.KV.Put(p).Response);
             }
-
-            Task.WaitAll(putTasks);
 
             var pairs = client.KV.List(prefix);
             Assert.NotNull(pairs.Response);
-            Assert.Equal(pairs.Response.Length, putTasks.Length);
+            Assert.Equal(pairs.Response.Length, 100);
             foreach (var pair in pairs.Response)
             {
                 Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pair.Value));
@@ -131,7 +129,7 @@ namespace Consul.Test
         [Fact]
         public void KV_DeleteCAS()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var key = GenerateTestKeyName();
 
@@ -166,7 +164,7 @@ namespace Consul.Test
         [Fact]
         public void KV_CAS()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var key = GenerateTestKeyName();
 
@@ -206,7 +204,7 @@ namespace Consul.Test
         [Fact]
         public void KV_WatchGet()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var key = GenerateTestKeyName();
 
@@ -246,7 +244,7 @@ namespace Consul.Test
         [Fact]
         public void KV_WatchGet_Cancel()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var key = GenerateTestKeyName();
 
@@ -264,9 +262,9 @@ namespace Consul.Test
                     getRequest = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
-                catch (OperationCanceledException ex)
+                catch (TaskCanceledException ex)
                 {
-                    Assert.IsType<OperationCanceledException>(ex);
+                    Assert.IsType<TaskCanceledException>(ex);
                 }
             }
         }
@@ -274,7 +272,7 @@ namespace Consul.Test
         [Fact]
         public void KV_WatchList()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var prefix = GenerateTestKeyName();
 
@@ -304,7 +302,7 @@ namespace Consul.Test
         [Fact]
         public void KV_WatchList_Cancel()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var prefix = GenerateTestKeyName();
 
@@ -322,20 +320,20 @@ namespace Consul.Test
                     pairs = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
-                catch (OperationCanceledException ex)
+                catch (TaskCanceledException ex)
                 {
-                    Assert.IsType<OperationCanceledException>(ex);
+                    Assert.IsType<TaskCanceledException>(ex);
                 }
             }
         }
         [Fact]
         public void KV_Keys_DeleteRecurse()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var prefix = GenerateTestKeyName();
 
-            var putTasks = new Task[100];
+            var putTasks = new bool[100];
 
             var value = Encoding.UTF8.GetBytes("test");
             for (var i = 0; i < 100; i++)
@@ -344,10 +342,8 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                putTasks[i] = Task.Run(() => client.KV.Put(pair));
+                putTasks[i] = client.KV.Put(pair).Response;
             }
-
-            Task.WaitAll(putTasks);
 
             var pairs = client.KV.Keys(prefix, "");
             Assert.NotNull(pairs.Response);
@@ -363,7 +359,7 @@ namespace Consul.Test
         [Fact]
         public void KV_AcquireRelease()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var sessionRequest = client.Session.CreateNoChecks(new SessionEntry());
             var id = sessionRequest.Response;
 

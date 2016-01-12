@@ -191,6 +191,6 @@ ModelManifest.xml
 
 # Consul data files
 consul-data/
-consul.exe
+consul*.exe
 NuGet.exe
 *.nupkg

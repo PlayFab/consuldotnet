@@ -27,7 +27,7 @@ namespace Consul.Test
         [Fact]
         public void Event_FireList()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var userevent = new UserEvent()
             {

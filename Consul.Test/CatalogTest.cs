@@ -25,7 +25,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_Datacenters()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var datacenterList = client.Catalog.Datacenters();
 
             Assert.NotEqual(0, datacenterList.Response.Length);
@@ -34,7 +34,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_Nodes()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var nodeList = client.Catalog.Nodes();
 
 
@@ -48,7 +48,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_Services()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var servicesList = client.Catalog.Services();
 
 
@@ -59,7 +59,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_Service()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var serviceList = client.Catalog.Service("consul");
 
             Assert.NotEqual((ulong)0, serviceList.LastIndex);
@@ -69,7 +69,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_Node()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var node = client.Catalog.Node(client.Agent.NodeName);
 
@@ -80,7 +80,7 @@ namespace Consul.Test
         [Fact]
         public void Catalog_RegistrationDeregistration()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var service = new AgentService()
             {
                 ID = "redis1",

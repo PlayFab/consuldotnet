@@ -26,7 +26,7 @@ namespace Consul.Test
         [Fact]
         public void Health_Node()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var info = client.Agent.Self();
             var checks = client.Health.Node((string)info.Response["Config"]["NodeName"]);
@@ -38,7 +38,7 @@ namespace Consul.Test
         [Fact]
         public void Health_Checks()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var registration = new AgentServiceRegistration()
             {
@@ -66,7 +66,7 @@ namespace Consul.Test
         [Fact]
         public void Health_Service()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var checks = client.Health.Service("consul", "", true);
             Assert.NotEqual((ulong)0, checks.LastIndex);
@@ -76,7 +76,7 @@ namespace Consul.Test
         [Fact]
         public void Health_State()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var checks = client.Health.State(CheckStatus.Any);
             Assert.NotEqual((ulong)0, checks.LastIndex);
