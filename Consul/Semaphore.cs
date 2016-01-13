@@ -298,7 +298,7 @@ namespace Consul
                     {
                         try
                         {
-                            Opts.Session = CreateSession();
+                            Opts.Session = CreateSession().GetAwaiter().GetResult();
                             _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Default, _cts.Token);
                             LockSession = Opts.Session;
                         }
@@ -312,7 +312,7 @@ namespace Consul
                         LockSession = Opts.Session;
                     }
 
-                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).Response;
+                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).GetAwaiter().GetResult().Response;
                     if (!contender)
                     {
                         throw new ApplicationException("Failed to make contender entry");
@@ -328,7 +328,7 @@ namespace Consul
                         QueryResult<KVPair[]> pairs;
                         try
                         {
-                            pairs = _client.KV.List(Opts.Prefix, qOpts);
+                            pairs = _client.KV.List(Opts.Prefix, qOpts).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)
                         {
@@ -368,7 +368,7 @@ namespace Consul
                         }
 
                         // Handle the case of not getting the lock
-                        if (!_client.KV.CAS(newLock).Response)
+                        if (!_client.KV.CAS(newLock).GetAwaiter().GetResult().Response)
                         {
                             continue;
                         }
@@ -384,7 +384,7 @@ namespace Consul
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
                         _cts.Cancel();
-                        _client.KV.Delete(ContenderEntry(LockSession).Key);
+                        _client.KV.Delete(ContenderEntry(LockSession).Key).GetAwaiter().GetResult();
                         if (_sessionRenewTask != null)
                         {
                             try
@@ -427,7 +427,7 @@ namespace Consul
 
                     while (!didSet)
                     {
-                        var pair = _client.KV.Get(key);
+                        var pair = _client.KV.Get(key).GetAwaiter().GetResult();
 
                         if (pair.Response == null)
                         {
@@ -441,7 +441,7 @@ namespace Consul
                             semaphoreLock.Holders.Remove(lockSession);
                             var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
 
-                            didSet = _client.KV.CAS(newLock).Response;
+                            didSet = _client.KV.CAS(newLock).GetAwaiter().GetResult().Response;
                         }
                         else
                         {
@@ -451,7 +451,7 @@ namespace Consul
 
                     var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                    _client.KV.Delete(contenderKey);
+                    _client.KV.Delete(contenderKey).Wait();
                 }
                 finally
                 {
@@ -485,7 +485,7 @@ namespace Consul
                 QueryResult<KVPair[]> pairs;
                 try
                 {
-                    pairs = _client.KV.List(Opts.Prefix);
+                    pairs = _client.KV.List(Opts.Prefix).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
@@ -512,7 +512,7 @@ namespace Consul
                     throw new SemaphoreInUseException();
                 }
 
-                var didRemove = _client.KV.DeleteCAS(lockPair).Response;
+                var didRemove = _client.KV.DeleteCAS(lockPair).GetAwaiter().GetResult().Response;
 
                 if (!didRemove)
                 {
@@ -528,14 +528,14 @@ namespace Consul
         /// <param name="lockSession">The session ID to monitor</param>
         private Task MonitorLock(string lockSession)
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 try
                 {
                     var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        var pairs = _client.KV.List(Opts.Prefix, opts);
+                        var pairs = await _client.KV.List(Opts.Prefix, opts).ConfigureAwait(false);
                         if (pairs.Response != null)
                         {
                             var lockPair = FindLock(pairs.Response);
@@ -575,14 +575,14 @@ namespace Consul
         /// CreateSession is used to create a new managed session
         /// </summary>
         /// <returns>The session ID</returns>
-        private string CreateSession()
+        private async Task<string> CreateSession()
         {
             var se = new SessionEntry
             {
                 Name = Opts.SessionName,
                 TTL = Opts.SessionTTL
             };
-            return _client.Session.Create(se).Response;
+            return (await _client.Session.Create(se).ConfigureAwait(false)).Response;
         }
 
         /// <summary>

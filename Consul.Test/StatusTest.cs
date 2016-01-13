@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -23,18 +24,18 @@ namespace Consul.Test
     public class Status
     {
         [Fact]
-        public void Status_Leader()
+        public async Task Status_Leader()
         {
             var client = new ConsulClient();
-            var leader = client.Status.Leader();
+            var leader = await client.Status.Leader();
             Assert.False(string.IsNullOrEmpty(leader));
         }
 
         [Fact]
-        public void Status_Peers()
+        public async Task Status_Peers()
         {
             var client = new ConsulClient();
-            var peers = client.Status.Peers();
+            var peers = await client.Status.Peers();
             Assert.True(peers.Length > 0);
         }
     }

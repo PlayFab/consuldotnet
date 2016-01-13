@@ -16,11 +16,13 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading.Tasks;
+
 namespace Consul
 {
     public interface IStatusEndpoint
     {
-        string Leader();
-        string[] Peers();
+        Task<string> Leader();
+        Task<string[]> Peers();
     }
 }
