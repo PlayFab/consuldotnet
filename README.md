@@ -2,7 +2,7 @@
 
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/PlayFab/consuldotnet?branch=master&svg=true)](https://ci.appveyor.com/project/highlyunavailable/consuldotnet)
 
-* Consul API: [v0.6.0-rc1](https://github.com/hashicorp/consul/tree/v0.6.0-rc1/api)
+* Consul API: [v0.6.1](https://github.com/hashicorp/consul/tree/v0.6.1/api)
 * .NET version: >= 4.5
 
 Consul.NET is a .NET port of the Go Consul API, but reworked to use .NET
@@ -12,6 +12,13 @@ API](https://www.consul.io/docs/agent/http.html), but this API does have
 additional functionality that is provided in the Go API, like Locks and
 Semaphores.
 
+## ⚠️WARNING⚠️
+
+If you are upgrading from Consul.NET 0.5.x or below, the entire API has
+been re-written to be `async` as of 0.6.0. See the
+[Changelog](https://github.com/PlayFab/consuldotnet/blob/master/CHANGELOG.md)
+for more information.
+
 ## Example
 
 You'll need a running Consul Server on your local machine, or a Consul
@@ -20,7 +27,7 @@ Agent connected to a Consul Server cluster. To run a local server:
 1. [Download a copy](https://www.consul.io/downloads.html) of the latest Windows
 version and unzip it into the `Consul.Test` folder.
 2. Open a command prompt and `cd` to the `Consul.Test` folder.
-3. Run `consul.exe agent -config-file test_config.json`
+3. Run `consul.exe agent -bind 127.0.0.1 -config-file test_config.json`
 
 This creates a 1-server cluster that writes data to `.\consul-data` and
 listens on `localhost:8500`.
@@ -40,18 +47,20 @@ Write a function to talk to the KV store:
 ```csharp
 public static string HelloConsul()
 {
-    var client = new Client();
+    var client = new ConsulClient();
 
     var putPair = new KVPair("hello")
     {
         Value = Encoding.UTF8.GetBytes("Hello Consul")
     };
 
-    var putAttempt = client.KV.Put(putPair);
+    // The code below is executed synchronously.
+    // It should really be awaited in a proper async method.
+    var putAttempt = client.KV.Put(putPair).GetAwaiter().GetResult();
 
     if (putAttempt.Response)
     {
-        var getPair = client.KV.Get("hello");
+        var getPair = client.KV.Get("hello").GetAwaiter().GetResult();
         return Encoding.UTF8.GetString(getPair.Response.Value, 0, getPair.Response.Value.Length);
     }
     return "";
@@ -78,10 +87,11 @@ The API just went out to Consul, wrote "Hello Consul" under the key
 
 ## Usage
 
-All operations are done using a `Client` object. First, instantiate a
-`Consul.Client` object, which connects to `localhost:8500` - the default
-Consul HTTP API port. Once you've got a `Client` object, various
-functionality is exposed as properties under the `Client`.
+All operations are done using a `ConsulClient` object. First,
+instantiate a `ConsulClient` object, which connects to `localhost:8500`,
+the default Consul HTTP API port. Once you've got a `ConsulClient`
+object, various functionality is exposed as properties under the
+`ConsulClient`.
 
 All responses are wrapped in `QueryResponse` and `WriteResponse`
 classes, which provide metadata about the request, like how long it
@@ -125,6 +135,13 @@ endpoints provide the raw entries.
 
 The KV endpoint is used to access Consul's simple key/value store,
 useful for storing service configuration or other metadata.
+
+### Query
+
+The Prepared Query endpoints are used to create, update, destroy, and
+execute prepared queries. Prepared queries allow you to register a
+complex service query and then execute it later via its ID or name to
+get a set of healthy nodes that provide a given service.
 
 ### Session
 
