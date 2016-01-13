@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -25,7 +26,7 @@ namespace Consul.Test
         private const string ConsulRoot = "yep";
 
         [SkippableFact]
-        public void ACL_CreateDestroy()
+        public async Task ACL_CreateDestroy()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
@@ -36,37 +37,37 @@ namespace Consul.Test
                 Type = ACLType.Client,
                 Rules = "key \"\" { policy = \"deny\" }"
             };
-            var res = client.ACL.Create(aclEntry);
+            var res = await client.ACL.Create(aclEntry);
             var id = res.Response;
 
             Assert.NotEqual(0, res.RequestTime.TotalMilliseconds);
             Assert.False(string.IsNullOrEmpty(res.Response));
 
-            var aclEntry2 = client.ACL.Info(id);
+            var aclEntry2 = await client.ACL.Info(id);
 
             Assert.NotNull(aclEntry2.Response);
             Assert.Equal(aclEntry2.Response.Name, aclEntry.Name);
             Assert.Equal(aclEntry2.Response.Type, aclEntry.Type);
             Assert.Equal(aclEntry2.Response.Rules, aclEntry.Rules);
 
-            Assert.True(client.ACL.Destroy(id).Response);
+            Assert.True((await client.ACL.Destroy(id)).Response);
         }
 
         [Fact]
-        public void ACL_CloneUpdateDestroy()
+        public async Task ACL_CloneUpdateDestroy()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
             var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
 
-            var cloneRequest = client.ACL.Clone(ConsulRoot);
+            var cloneRequest = await client.ACL.Clone(ConsulRoot);
             var aclID = cloneRequest.Response;
 
-            var aclEntry = client.ACL.Info(aclID);
+            var aclEntry = await client.ACL.Info(aclID);
             aclEntry.Response.Rules = "key \"\" { policy = \"deny\" }";
-            client.ACL.Update(aclEntry.Response);
+            await client.ACL.Update(aclEntry.Response);
 
-            var aclEntry2 = client.ACL.Info(aclID);
+            var aclEntry2 = await client.ACL.Info(aclID);
             Assert.Equal("key \"\" { policy = \"deny\" }", aclEntry2.Response.Rules);
 
             var id = cloneRequest.Response;
@@ -74,17 +75,17 @@ namespace Consul.Test
             Assert.NotEqual(0, cloneRequest.RequestTime.TotalMilliseconds);
             Assert.False(string.IsNullOrEmpty(aclID));
 
-            Assert.True(client.ACL.Destroy(id).Response);
+            Assert.True((await client.ACL.Destroy(id)).Response);
         }
 
         [Fact]
-        public void ACL_Info()
+        public async Task ACL_Info()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
             var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
 
-            var aclEntry = client.ACL.Info(ConsulRoot);
+            var aclEntry = await client.ACL.Info(ConsulRoot);
 
             Assert.NotNull(aclEntry.Response);
             Assert.NotEqual(aclEntry.RequestTime.TotalMilliseconds, 0);
@@ -93,13 +94,13 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void ACL_List()
+        public async Task ACL_List()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
             var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
 
-            var aclList = client.ACL.List();
+            var aclList = await client.ACL.List();
 
             Assert.NotNull(aclList.Response);
             Assert.NotEqual(aclList.RequestTime.TotalMilliseconds, 0);

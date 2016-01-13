@@ -421,9 +421,14 @@ namespace Consul
             return new SilentPutRequest(this, path, opts ?? WriteOptions.Default);
         }
 
-        internal PutRequest<TIn, TOut> CreateWrite<TIn, TOut>(string path, TIn body, WriteOptions opts = null)
+        internal PutRequest<TIn, TOut> Put<TIn, TOut>(string path, TIn body, WriteOptions opts = null)
         {
             return new PutRequest<TIn, TOut>(this, path, body, opts ?? WriteOptions.Default);
+        }
+
+        internal PostRequest<TIn, TOut> Post<TIn, TOut>(string path, TIn body, WriteOptions opts = null)
+        {
+            return new PostRequest<TIn, TOut>(this, path, body, opts ?? WriteOptions.Default);
         }
     }
 
@@ -521,10 +526,8 @@ namespace Consul
             Options = options ?? QueryOptions.Default;
         }
 
-        public QueryResult<T> Execute() { return ExecuteAsync(CancellationToken.None).GetAwaiter().GetResult(); }
-        public QueryResult<T> Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<QueryResult<T>> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<QueryResult<T>> ExecuteAsync(CancellationToken ct)
+        public async Task<QueryResult<T>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<QueryResult<T>> Execute(CancellationToken ct)
         {
             var start = DateTime.UtcNow;
             var result = new QueryResult<T>();
@@ -655,10 +658,8 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public WriteResult<TOut> Execute() { return ExecuteAsync().GetAwaiter().GetResult(); }
-        public WriteResult<TOut> Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<WriteResult<TOut>> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<WriteResult<TOut>> ExecuteAsync(CancellationToken ct)
+        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
             var result = new WriteResult<TOut>();
@@ -725,10 +726,8 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public WriteResult<TOut> Execute() { return ExecuteAsync().GetAwaiter().GetResult(); }
-        public WriteResult<TOut> Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<WriteResult<TOut>> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<WriteResult<TOut>> ExecuteAsync(CancellationToken ct)
+        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
             var result = new WriteResult<TOut>();
@@ -795,10 +794,8 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public WriteResult Execute() { return ExecuteAsync().GetAwaiter().GetResult(); }
-        public WriteResult Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<WriteResult> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<WriteResult> ExecuteAsync(CancellationToken ct)
+        public async Task<WriteResult> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult> Execute(CancellationToken ct)
         {
             timer.Start();
             var result = new WriteResult();
@@ -864,10 +861,8 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public WriteResult Execute() { return ExecuteAsync().GetAwaiter().GetResult(); }
-        public WriteResult Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<WriteResult> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<WriteResult> ExecuteAsync(CancellationToken ct)
+        public async Task<WriteResult> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult> Execute(CancellationToken ct)
         {
             timer.Start();
             var result = new WriteResult();
@@ -944,10 +939,8 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public WriteResult<TOut> Execute() { return ExecuteAsync().GetAwaiter().GetResult(); }
-        public WriteResult<TOut> Execute(CancellationToken ct) { return ExecuteAsync(ct).GetAwaiter().GetResult(); }
-        public async Task<WriteResult<TOut>> ExecuteAsync() { return await ExecuteAsync(CancellationToken.None).ConfigureAwait(false); }
-        public async Task<WriteResult<TOut>> ExecuteAsync(CancellationToken ct)
+        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
             var result = new WriteResult<TOut>();
@@ -968,6 +961,94 @@ namespace Consul
             }
 
             var response = await Client.HttpClient.PutAsync(BuildConsulUri(Endpoint, Params), content, ct).ConfigureAwait(false);
+
+            result.StatusCode = response.StatusCode;
+
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                if (ResponseStream == null)
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                        response.StatusCode));
+                }
+                using (var sr = new StreamReader(ResponseStream))
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
+                        response.StatusCode, sr.ReadToEnd()));
+                }
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                result.Response = Deserialize<TOut>(ResponseStream);
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        protected override void ApplyOptions()
+        {
+            if (Options == WriteOptions.Default)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Options.Datacenter))
+            {
+                Params["dc"] = Options.Datacenter;
+            }
+            if (!string.IsNullOrEmpty(Options.Token))
+            {
+                Params["token"] = Options.Token;
+            }
+        }
+    }
+
+
+    public class PostRequest<TIn, TOut> : ConsulRequest
+    {
+        public WriteOptions Options { get; set; }
+        private TIn _body;
+
+        private readonly bool UseRawRequestBody = typeof(TIn) == typeof(byte[]);
+
+        public PostRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Post)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException(url);
+            }
+            _body = body;
+            Options = options ?? WriteOptions.Default;
+        }
+
+        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
+        {
+            timer.Start();
+            var result = new WriteResult<TOut>();
+
+            HttpContent content = null;
+
+            if (UseRawRequestBody)
+            {
+                if (_body != null)
+                {
+                    content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+                }
+                // If body is null and should be a byte array, then just don't send anything.
+            }
+            else
+            {
+                content = new PushStreamContent((stream, httpContent, transportContext) => { Serialize(_body, stream); });
+            }
+
+            var response = await Client.HttpClient.PostAsync(BuildConsulUri(Endpoint, Params), content, ct).ConfigureAwait(false);
 
             result.StatusCode = response.StatusCode;
 

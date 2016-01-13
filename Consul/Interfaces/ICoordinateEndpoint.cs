@@ -1,9 +1,11 @@
-﻿namespace Consul
+﻿using System.Threading.Tasks;
+
+namespace Consul
 {
     public interface ICoordinateEndpoint
     {
-        QueryResult<CoordinateDatacenterMap[]> Datacenters();
-        QueryResult<CoordinateEntry[]> Nodes();
-        QueryResult<CoordinateEntry[]> Nodes(QueryOptions q);
+        Task<QueryResult<CoordinateDatacenterMap[]>> Datacenters();
+        Task<QueryResult<CoordinateEntry[]>> Nodes();
+        Task<QueryResult<CoordinateEntry[]>> Nodes(QueryOptions q);
     }
 }

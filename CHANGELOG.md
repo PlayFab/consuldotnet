@@ -1,11 +1,19 @@
 # Changelog
 
-## BREAKING CHANGES FOR 0.6.0.x
+## BREAKING CHANGES FOR 0.6.x
+* ___THE ENTIRE CLIENT HAS BEEN REWRITTEN TO BE ASYNC___. This means
+  that any sync calls will need to be reworked to either call the Async
+  API with `GetAwaiter().GetResult()` or, better yet, the calling method
+  needs to be `async` as well and then simply `await` the call.
 * The `Client` class has been renamed `ConsulClient`. The interface
   remains the same - `IConsulClient`.
 * The `ConsulClientConfiguration` class no longer accepts a string
   `Address` property to the Consul server. It is now a `System.Uri`
   named `Address`.
+
+## 2016-01-12
+* Rewrote entire API to be `async`.
+* Added Prepared Queries from Consul 0.6.0.
 
 ## 2015-11-21
 * Reworked the entire Client class to use `System.Net.HttpClient` as its

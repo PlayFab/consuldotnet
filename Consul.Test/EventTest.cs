@@ -18,6 +18,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -25,7 +26,7 @@ namespace Consul.Test
     public class EventTest
     {
         [Fact]
-        public void Event_FireList()
+        public async Task Event_FireList()
         {
             var client = new ConsulClient();
 
@@ -34,13 +35,14 @@ namespace Consul.Test
                 Name = "foo"
             };
 
-            var res = client.Event.Fire(userevent);
+            var res = await client.Event.Fire(userevent);
 
-            Thread.Sleep(100);
+            await Task.Delay(100);
+
             Assert.NotEqual(TimeSpan.Zero, res.RequestTime);
             Assert.False(string.IsNullOrEmpty(res.Response));
 
-            var events = client.Event.List();
+            var events = await client.Event.List();
             Assert.NotEqual(0, events.Response.Length);
             Assert.Equal(res.Response, events.Response[events.Response.Length - 1].ID);
             Assert.Equal(client.Event.IDToIndex(res.Response), events.LastIndex);

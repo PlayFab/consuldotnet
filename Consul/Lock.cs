@@ -230,7 +230,7 @@ namespace Consul
                     {
                         try
                         {
-                            Opts.Session = CreateSession();
+                            Opts.Session = CreateSession().GetAwaiter().GetResult();
                             _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
                                 WriteOptions.Default, _cts.Token);
                             LockSession = Opts.Session;
@@ -255,7 +255,7 @@ namespace Consul
                         QueryResult<KVPair> pair;
                         try
                         {
-                            pair = _client.KV.Get(Opts.Key, qOpts);
+                            pair = _client.KV.Get(Opts.Key, qOpts).GetAwaiter().GetResult();
                         }
                         catch (Exception ex)
                         {
@@ -292,7 +292,7 @@ namespace Consul
 
                         // If the code executes this far, no other session has the lock, so try to lock it
                         var kvPair = LockEntry(Opts.Session);
-                        var locked = _client.KV.Acquire(kvPair).Response;
+                        var locked = _client.KV.Acquire(kvPair).GetAwaiter().GetResult().Response;
 
                         // KV acquisition succeeded, so the session now holds the lock
                         if (locked)
@@ -311,7 +311,7 @@ namespace Consul
 
                         // Failed to get the lock, determine why by querying for the key again
                         qOpts.WaitIndex = 0;
-                        pair = _client.KV.Get(Opts.Key, qOpts);
+                        pair = _client.KV.Get(Opts.Key, qOpts).GetAwaiter().GetResult();
 
                         // If the session is not null, this means that a wait can safely happen using a long poll
                         if (pair.Response != null && pair.Response.Session != null)
@@ -367,7 +367,7 @@ namespace Consul
                     var lockEnt = LockEntry(Opts.Session);
 
                     Opts.Session = null;
-                    _client.KV.Release(lockEnt);
+                    _client.KV.Release(lockEnt).Wait();
                 }
                 finally
                 {
@@ -401,7 +401,7 @@ namespace Consul
                     throw new LockHeldException();
                 }
 
-                var pair = _client.KV.Get(Opts.Key).Response;
+                var pair = _client.KV.Get(Opts.Key).GetAwaiter().GetResult().Response;
 
                 if (pair == null)
                 {
@@ -418,7 +418,7 @@ namespace Consul
                     throw new LockInUseException();
                 }
 
-                var didRemove = _client.KV.DeleteCAS(pair).Response;
+                var didRemove = _client.KV.DeleteCAS(pair).GetAwaiter().GetResult().Response;
 
                 if (!didRemove)
                 {
@@ -432,7 +432,7 @@ namespace Consul
         /// </summary>
         private Task MonitorLock()
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 try
                 {
@@ -440,7 +440,7 @@ namespace Consul
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
                         // Check to see if the current session holds the lock
-                        var pair = _client.KV.Get(Opts.Key, opts);
+                        var pair = await _client.KV.Get(Opts.Key, opts).ConfigureAwait(false);
                         if (pair.Response != null)
                         {
                             // Lock is no longer held! Shut down everything.
@@ -473,14 +473,14 @@ namespace Consul
         /// CreateSession is used to create a new managed session
         /// </summary>
         /// <returns>The session ID</returns>
-        private string CreateSession()
+        private async Task<string> CreateSession()
         {
             var se = new SessionEntry
             {
                 Name = Opts.SessionName,
                 TTL = Opts.SessionTTL
             };
-            return _client.Session.Create(se).Response;
+            return (await _client.Session.Create(se).ConfigureAwait(false)).Response;
         }
 
         /// <summary>

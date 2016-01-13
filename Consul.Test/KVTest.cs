@@ -41,7 +41,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void KV_Put_Get_Delete()
+        public async Task KV_Put_Get_Delete()
         {
             var client = new ConsulClient();
             var kv = client.KV;
@@ -50,7 +50,7 @@ namespace Consul.Test
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var getRequest = kv.Get(key);
+            var getRequest = await kv.Get(key);
             Assert.Null(getRequest.Response);
 
             var pair = new KVPair(key)
@@ -59,7 +59,7 @@ namespace Consul.Test
                 Value = value
             };
 
-            var putRequest = kv.Put(pair);
+            var putRequest = await kv.Put(pair);
             Assert.True(putRequest.Response);
 
             try
@@ -70,7 +70,7 @@ namespace Consul.Test
                     Flags = 42,
                     Value = value
                 };
-                kv.Put(invalidKey);
+                await kv.Put(invalidKey);
                 Assert.True(false, "Invalid key not detected");
             }
             catch (InvalidKeyPairException ex)
@@ -78,7 +78,7 @@ namespace Consul.Test
                 Assert.IsType<InvalidKeyPairException>(ex);
             }
 
-            getRequest = kv.Get(key);
+            getRequest = await kv.Get(key);
             var res = getRequest.Response;
 
             Assert.NotNull(res);
@@ -86,15 +86,15 @@ namespace Consul.Test
             Assert.Equal(pair.Flags, res.Flags);
             Assert.True(getRequest.LastIndex > 0);
 
-            var del = kv.Delete(key);
+            var del = await kv.Delete(key);
             Assert.True(del.Response);
 
-            getRequest = kv.Get(key);
+            getRequest = await kv.Get(key);
             Assert.Null(getRequest.Response);
         }
 
         [Fact]
-        public void KV_List_DeleteRecurse()
+        public async Task KV_List_DeleteRecurse()
         {
             var client = new ConsulClient();
 
@@ -108,10 +108,10 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                Assert.True(client.KV.Put(p).Response);
+                Assert.True((await client.KV.Put(p)).Response);
             }
 
-            var pairs = client.KV.List(prefix);
+            var pairs = await client.KV.List(prefix);
             Assert.NotNull(pairs.Response);
             Assert.Equal(pairs.Response.Length, 100);
             foreach (var pair in pairs.Response)
@@ -120,14 +120,14 @@ namespace Consul.Test
             }
             Assert.False(pairs.LastIndex == 0);
 
-            client.KV.DeleteTree(prefix);
+            await client.KV.DeleteTree(prefix);
 
-            pairs = client.KV.List(prefix);
+            pairs = await client.KV.List(prefix);
             Assert.Null(pairs.Response);
         }
 
         [Fact]
-        public void KV_DeleteCAS()
+        public async Task KV_DeleteCAS()
         {
             var client = new ConsulClient();
 
@@ -140,10 +140,10 @@ namespace Consul.Test
                 Value = value
             };
 
-            var putRequest = client.KV.CAS(pair);
+            var putRequest = await client.KV.CAS(pair);
             Assert.True(putRequest.Response);
 
-            var getRequest = client.KV.Get(key);
+            var getRequest = await client.KV.Get(key);
             pair = getRequest.Response;
 
             Assert.NotNull(pair);
@@ -151,18 +151,18 @@ namespace Consul.Test
             Assert.True(getRequest.LastIndex > 0);
 
             pair.ModifyIndex = 1;
-            var deleteRequest = client.KV.DeleteCAS(pair);
+            var deleteRequest = await client.KV.DeleteCAS(pair);
 
             Assert.False(deleteRequest.Response);
 
             pair.ModifyIndex = getRequest.LastIndex;
-            deleteRequest = client.KV.DeleteCAS(pair);
+            deleteRequest = await client.KV.DeleteCAS(pair);
 
             Assert.True(deleteRequest.Response);
         }
 
         [Fact]
-        public void KV_CAS()
+        public async Task KV_CAS()
         {
             var client = new ConsulClient();
 
@@ -175,10 +175,10 @@ namespace Consul.Test
                 Value = value
             };
 
-            var putRequest = client.KV.CAS(pair);
+            var putRequest = await client.KV.CAS(pair);
             Assert.True(putRequest.Response);
 
-            var getRequest = client.KV.Get(key);
+            var getRequest = await client.KV.Get(key);
             pair = getRequest.Response;
 
             Assert.NotNull(pair);
@@ -189,20 +189,20 @@ namespace Consul.Test
             pair.Value = value;
 
             pair.ModifyIndex = 1;
-            var casRequest = client.KV.CAS(pair);
+            var casRequest = await client.KV.CAS(pair);
 
             Assert.False(casRequest.Response);
 
             pair.ModifyIndex = getRequest.LastIndex;
-            casRequest = client.KV.CAS(pair);
+            casRequest = await client.KV.CAS(pair);
             Assert.True(casRequest.Response);
 
-            var deleteRequest = client.KV.Delete(key);
+            var deleteRequest = await client.KV.Delete(key);
             Assert.True(deleteRequest.Response);
         }
 
         [Fact]
-        public void KV_WatchGet()
+        public async Task KV_WatchGet()
         {
             var client = new ConsulClient();
 
@@ -210,7 +210,7 @@ namespace Consul.Test
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var getRequest = client.KV.Get(key);
+            var getRequest = await client.KV.Get(key);
             Assert.Null(getRequest.Response);
 
             var pair = new KVPair(key)
@@ -219,15 +219,17 @@ namespace Consul.Test
                 Value = value
             };
 
-            Task.Run(() =>
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            Task.Run(async () =>
             {
                 Task.Delay(1100).Wait();
                 var p = new KVPair(key) { Flags = 42, Value = value };
-                var putResponse = client.KV.Put(p);
+                var putResponse = await client.KV.Put(p);
                 Assert.True(putResponse.Response);
             });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-            var getRequest2 = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex });
+            var getRequest2 = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex });
             var res = getRequest2.Response;
 
             Assert.NotNull(res);
@@ -235,14 +237,14 @@ namespace Consul.Test
             Assert.Equal(pair.Flags, res.Flags);
             Assert.True(getRequest2.LastIndex > 0);
 
-            var deleteRequest = client.KV.Delete(key);
+            var deleteRequest = await client.KV.Delete(key);
             Assert.True(deleteRequest.Response);
 
-            getRequest = client.KV.Get(key);
+            getRequest = await client.KV.Get(key);
             Assert.Null(getRequest.Response);
         }
         [Fact]
-        public void KV_WatchGet_Cancel()
+        public async Task KV_WatchGet_Cancel()
         {
             var client = new ConsulClient();
 
@@ -250,7 +252,7 @@ namespace Consul.Test
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var getRequest = client.KV.Get(key);
+            var getRequest = await client.KV.Get(key);
             Assert.Null(getRequest.Response);
 
             using (var cts = new CancellationTokenSource())
@@ -259,7 +261,7 @@ namespace Consul.Test
 
                 try
                 {
-                    getRequest = client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
+                    getRequest = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (TaskCanceledException ex)
@@ -270,7 +272,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void KV_WatchList()
+        public async Task KV_WatchList()
         {
             var client = new ConsulClient();
 
@@ -278,29 +280,31 @@ namespace Consul.Test
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var pairs = client.KV.List(prefix);
+            var pairs = await client.KV.List(prefix);
             Assert.Null(pairs.Response);
 
-            Task.Run(() =>
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+            Task.Run(async () =>
             {
                 Thread.Sleep(100);
                 var p = new KVPair(prefix) { Flags = 42, Value = value };
-                var putRes = client.KV.Put(p);
+                var putRes = await client.KV.Put(p);
                 Assert.True(putRes.Response);
             });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
-            var pairs2 = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
+            var pairs2 = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
             Assert.NotNull(pairs2.Response);
             Assert.Equal(pairs2.Response.Length, 1);
             Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
             Assert.Equal(pairs2.Response[0].Flags, (ulong)42);
             Assert.True(pairs2.LastIndex > pairs.LastIndex);
 
-            var deleteTree = client.KV.DeleteTree(prefix);
+            var deleteTree = await client.KV.DeleteTree(prefix);
             Assert.True(deleteTree.Response);
         }
         [Fact]
-        public void KV_WatchList_Cancel()
+        public async Task KV_WatchList_Cancel()
         {
             var client = new ConsulClient();
 
@@ -308,7 +312,7 @@ namespace Consul.Test
 
             var value = Encoding.UTF8.GetBytes("test");
 
-            var pairs = client.KV.List(prefix);
+            var pairs = await client.KV.List(prefix);
             Assert.Null(pairs.Response);
 
             using (var cts = new CancellationTokenSource())
@@ -317,7 +321,7 @@ namespace Consul.Test
 
                 try
                 {
-                    pairs = client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
+                    pairs = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (TaskCanceledException ex)
@@ -327,7 +331,7 @@ namespace Consul.Test
             }
         }
         [Fact]
-        public void KV_Keys_DeleteRecurse()
+        public async Task KV_Keys_DeleteRecurse()
         {
             var client = new ConsulClient();
 
@@ -342,25 +346,25 @@ namespace Consul.Test
                 {
                     Value = value
                 };
-                putTasks[i] = client.KV.Put(pair).Response;
+                putTasks[i] = (await client.KV.Put(pair)).Response;
             }
 
-            var pairs = client.KV.Keys(prefix, "");
+            var pairs = await client.KV.Keys(prefix, "");
             Assert.NotNull(pairs.Response);
             Assert.Equal(pairs.Response.Length, putTasks.Length);
             Assert.False(pairs.LastIndex == 0);
 
-            var deleteTree = client.KV.DeleteTree(prefix);
+            var deleteTree = await client.KV.DeleteTree(prefix);
 
-            pairs = client.KV.Keys(prefix, "");
+            pairs = await client.KV.Keys(prefix, "");
             Assert.Null(pairs.Response);
         }
 
         [Fact]
-        public void KV_AcquireRelease()
+        public async Task KV_AcquireRelease()
         {
             var client = new ConsulClient();
-            var sessionRequest = client.Session.CreateNoChecks(new SessionEntry());
+            var sessionRequest = await client.Session.CreateNoChecks(new SessionEntry());
             var id = sessionRequest.Response;
 
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
@@ -374,30 +378,30 @@ namespace Consul.Test
                 Session = id
             };
 
-            var acquireRequest = client.KV.Acquire(pair);
+            var acquireRequest = await client.KV.Acquire(pair);
             Assert.True(acquireRequest.Response);
 
-            var getRequest = client.KV.Get(key);
+            var getRequest = await client.KV.Get(key);
 
             Assert.NotNull(getRequest.Response);
             Assert.Equal(id, getRequest.Response.Session);
             Assert.Equal(getRequest.Response.LockIndex, (ulong)1);
             Assert.True(getRequest.LastIndex > 0);
 
-            acquireRequest = client.KV.Release(pair);
+            acquireRequest = await client.KV.Release(pair);
             Assert.True(acquireRequest.Response);
 
-            getRequest = client.KV.Get(key);
+            getRequest = await client.KV.Get(key);
 
             Assert.NotNull(getRequest.Response);
             Assert.Equal(null, getRequest.Response.Session);
             Assert.Equal(getRequest.Response.LockIndex, (ulong)1);
             Assert.True(getRequest.LastIndex > 0);
 
-            var sessionDestroyRequest = client.Session.Destroy(id);
+            var sessionDestroyRequest = await client.Session.Destroy(id);
             Assert.True(sessionDestroyRequest.Response);
 
-            var deleteRequest = client.KV.Delete(key);
+            var deleteRequest = await client.KV.Delete(key);
             Assert.True(deleteRequest.Response);
         }
     }

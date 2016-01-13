@@ -1,22 +1,4 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="Session.cs" company="PlayFab Inc">
-//    Copyright 2015 PlayFab Inc.
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-//  </copyright>
-// -----------------------------------------------------------------------
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -165,127 +147,6 @@ namespace Consul
         }
 
         /// <summary>
-        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
-        /// </summary>
-        public WriteResult<string> CreateNoChecks()
-        {
-            return CreateNoChecks(new SessionEntry(), WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
-        /// </summary>
-        /// <param name="se">The SessionEntry options to use</param>
-        /// <returns>A write result containing the new session ID</returns>
-        public WriteResult<string> CreateNoChecks(SessionEntry se)
-        {
-            return CreateNoChecks(se, WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
-        /// </summary>
-        /// <param name="se">The SessionEntry options to use</param>
-        /// <param name="q">Customized write options</param>
-        /// <returns>A write result containing the new session ID</returns>
-        public WriteResult<string> CreateNoChecks(SessionEntry se, WriteOptions q)
-        {
-            if (se == null)
-            {
-                return Create(null, q);
-            }
-            var noChecksEntry = new SessionEntry()
-            {
-                Behavior = se.Behavior,
-                Checks = new List<string>(0),
-                LockDelay = se.LockDelay,
-                Name = se.Name,
-                Node = se.Node,
-                TTL = se.TTL
-            };
-            return Create(noChecksEntry, q);
-        }
-
-        /// <summary>
-        /// Create makes a new session with default options.
-        /// </summary>
-        /// <returns>A write result containing the new session ID</returns>
-        public WriteResult<string> Create()
-        {
-            return Create(null, WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
-        /// </summary>
-        /// <param name="se">The SessionEntry options to use</param>
-        /// <returns>A write result containing the new session ID</returns>
-        public WriteResult<string> Create(SessionEntry se)
-        {
-            return Create(se, WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
-        /// </summary>
-        /// <param name="se">The SessionEntry options to use</param>
-        /// <param name="q">Customized write options</param>
-        /// <returns>A write result containing the new session ID</returns>
-        public WriteResult<string> Create(SessionEntry se, WriteOptions q)
-        {
-            var res = _client.CreateWrite<SessionEntry, SessionCreationResult>("/v1/session/create", se, q).Execute();
-            return new WriteResult<string>()
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
-        }
-
-        public WriteResult<bool> Destroy(string id)
-        {
-            return Destroy(id, WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// Destroy invalidates a given session
-        /// </summary>
-        /// <param name="id">The session ID to destroy</param>
-        /// <param name="q">Customized write options</param>
-        /// <returns>A write result containing the result of the session destruction</returns>
-        public WriteResult<bool> Destroy(string id, WriteOptions q)
-        {
-            return _client.CreateWrite<object, bool>(string.Format("/v1/session/destroy/{0}", id), q).Execute();
-        }
-
-        public WriteResult<SessionEntry> Renew(string id)
-        {
-            return Renew(id, WriteOptions.Default);
-        }
-
-        /// <summary>
-        /// Renew renews the TTL on a given session
-        /// </summary>
-        /// <param name="id">The session ID to renew</param>
-        /// <param name="q">Customized write options</param>
-        /// <returns>An updated session entry</returns>
-        public WriteResult<SessionEntry> Renew(string id, WriteOptions q)
-        {
-            var res = _client.CreateWrite<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute();
-            var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
-            if (res.Response != null && res.Response.Length > 0)
-            {
-                ret.Response = res.Response[0];
-            }
-
-            if (res.StatusCode == HttpStatusCode.NotFound)
-            {
-                throw new SessionExpiredException(string.Format("Session expired: {0}", id));
-            }
-
-            return ret;
-        }
-
-        /// <summary>
         /// RenewPeriodic is used to periodically invoke Session.Renew on a session until a CancellationToken is cancelled.
         /// This is meant to be used in a long running call to ensure a session stays valid until completed.
         /// </summary>
@@ -307,7 +168,7 @@ namespace Consul
         /// <param name="ct">The CancellationToken used to stop the session from being renewed (e.g. when the long-running action completes)</param>
         public Task RenewPeriodic(TimeSpan initialTTL, string id, WriteOptions q, CancellationToken ct)
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 if (q == null)
                 {
@@ -335,7 +196,7 @@ namespace Consul
 
                         try
                         {
-                            var res = Renew(id, q);
+                            var res = await Renew(id, q).ConfigureAwait(false);
                             initialTTL = res.Response.TTL ?? TimeSpan.Zero;
                             waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                             lastRenewTime = DateTime.Now;
@@ -359,10 +220,108 @@ namespace Consul
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        _client.Session.Destroy(id);
+                        await _client.Session.Destroy(id).ConfigureAwait(false);
                     }
                 }
-            }, ct);
+            });
+        }
+        
+        /// <summary>
+        /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
+        /// </summary>
+        /// <param name="se">The SessionEntry options to use</param>
+        /// <returns>A write result containing the new session ID</returns>
+
+        public async Task<WriteResult<string>> Create()
+        {
+            return await Create(null, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Create makes a new session with default options.
+        /// </summary>
+        /// <returns>A write result containing the new session ID</returns>
+        public async Task<WriteResult<string>> Create(SessionEntry se)
+        {
+            return await Create(se, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
+        /// </summary>
+        /// <param name="se">The SessionEntry options to use</param>
+        /// <param name="q">Customized write options</param>
+        /// <returns>A write result containing the new session ID</returns>
+        public async Task<WriteResult<string>> Create(SessionEntry se, WriteOptions q)
+        {
+            var res = await _client.Put<SessionEntry, SessionCreationResult>("/v1/session/create", se, q).Execute().ConfigureAwait(false);
+            return new WriteResult<string>()
+            {
+                RequestTime = res.RequestTime,
+                Response = res.Response.ID
+            };
+        }
+        /// <summary>
+        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
+        /// </summary>
+        public async Task<WriteResult<string>> CreateNoChecks()
+        {
+            return await CreateNoChecks(null, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
+        /// </summary>
+        /// <param name="se">The SessionEntry options to use</param>
+        /// <returns>A write result containing the new session ID</returns>
+        public async Task<WriteResult<string>> CreateNoChecks(SessionEntry se)
+        {
+            return await CreateNoChecks(se, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
+        /// </summary>
+        /// <param name="se">The SessionEntry options to use</param>
+        /// <param name="q">Customized write options</param>
+        /// <returns>A write result containing the new session ID</returns>
+        public async Task<WriteResult<string>> CreateNoChecks(SessionEntry se, WriteOptions q)
+        {
+            if (se == null)
+            {
+                return await Create(null, q).ConfigureAwait(false);
+            }
+            var noChecksEntry = new SessionEntry()
+            {
+                Behavior = se.Behavior,
+                Checks = new List<string>(0),
+                LockDelay = se.LockDelay,
+                Name = se.Name,
+                Node = se.Node,
+                TTL = se.TTL
+            };
+            return await Create(noChecksEntry, q).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Destroy invalidates a given session
+        /// </summary>
+        /// <param name="id">The session ID to destroy</param>
+        /// <returns>A write result containing the result of the session destruction</returns>
+        public async Task<WriteResult<bool>> Destroy(string id)
+        {
+            return await Destroy(id, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Destroy invalidates a given session
+        /// </summary>
+        /// <param name="id">The session ID to destroy</param>
+        /// <param name="q">Customized write options</param>
+        /// <returns>A write result containing the result of the session destruction</returns>
+        public async Task<WriteResult<bool>> Destroy(string id, WriteOptions q)
+        {
+            return await _client.Put<object, bool>(string.Format("/v1/session/destroy/{0}", id), q).Execute().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -370,9 +329,9 @@ namespace Consul
         /// </summary>
         /// <param name="id">The session ID to look up</param>
         /// <returns>A query result containing the session information, or an empty query result if the session entry does not exist</returns>
-        public QueryResult<SessionEntry> Info(string id)
+        public async Task<QueryResult<SessionEntry>> Info(string id)
         {
-            return Info(id, QueryOptions.Default);
+            return await Info(id, QueryOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -381,10 +340,9 @@ namespace Consul
         /// <param name="id">The session ID to look up</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the session information, or an empty query result if the session entry does not exist</returns>
-        public QueryResult<SessionEntry> Info(string id, QueryOptions q)
+        public async Task<QueryResult<SessionEntry>> Info(string id, QueryOptions q)
         {
-            var res =
-                _client.Get<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute();
+            var res = await _client.Get<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute().ConfigureAwait(false);
             var ret = new QueryResult<SessionEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -403,9 +361,9 @@ namespace Consul
         /// List gets all active sessions
         /// </summary>
         /// <returns>A query result containing list of all sessions, or an empty query result if no sessions exist</returns>
-        public QueryResult<SessionEntry[]> List()
+        public async Task<QueryResult<SessionEntry[]>> List()
         {
-            return List(QueryOptions.Default);
+            return await List(QueryOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -413,9 +371,9 @@ namespace Consul
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
-        public QueryResult<SessionEntry[]> List(QueryOptions q)
+        public async Task<QueryResult<SessionEntry[]>> List(QueryOptions q)
         {
-            return _client.Get<SessionEntry[]>("/v1/session/list", q).Execute();
+            return await _client.Get<SessionEntry[]>("/v1/session/list", q).Execute().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -423,9 +381,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node ID</param>
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
-        public QueryResult<SessionEntry[]> Node(string node)
+        public async Task<QueryResult<SessionEntry[]>> Node(string node)
         {
-            return Node(node, QueryOptions.Default);
+            return await Node(node, QueryOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -434,9 +392,42 @@ namespace Consul
         /// <param name="node">The node ID</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
-        public QueryResult<SessionEntry[]> Node(string node, QueryOptions q)
+        public async Task<QueryResult<SessionEntry[]>> Node(string node, QueryOptions q)
         {
-            return _client.Get<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).Execute();
+            return await _client.Get<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).Execute().ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Renew renews the TTL on a given session
+        /// </summary>
+        /// <param name="id">The session ID to renew</param>
+        /// <returns>An updated session entry</returns>
+        public async Task<WriteResult<SessionEntry>> Renew(string id)
+        {
+            return await Renew(id, WriteOptions.Default).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Renew renews the TTL on a given session
+        /// </summary>
+        /// <param name="id">The session ID to renew</param>
+        /// <param name="q">Customized write options</param>
+        /// <returns>An updated session entry</returns>
+        public async Task<WriteResult<SessionEntry>> Renew(string id, WriteOptions q)
+        {
+            var res = await _client.Put<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute().ConfigureAwait(false);
+            var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
+            if (res.Response != null && res.Response.Length > 0)
+            {
+                ret.Response = res.Response[0];
+            }
+
+            if (res.StatusCode == HttpStatusCode.NotFound)
+            {
+                throw new SessionExpiredException(string.Format("Session expired: {0}", id));
+            }
+
+            return ret;
         }
     }
 
@@ -445,7 +436,7 @@ namespace Consul
         private Session _session;
 
         /// <summary>
-        /// Session returns a handle to the session endpoints
+        /// Session returns a handle to the session endpoint
         /// </summary>
         public ISessionEndpoint Session
         {

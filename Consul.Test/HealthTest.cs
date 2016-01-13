@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -24,19 +25,19 @@ namespace Consul.Test
     public class HealthTest
     {
         [Fact]
-        public void Health_Node()
+        public async Task Health_Node()
         {
             var client = new ConsulClient();
 
-            var info = client.Agent.Self();
-            var checks = client.Health.Node((string)info.Response["Config"]["NodeName"]);
+            var info = await client.Agent.Self();
+            var checks = await client.Health.Node((string)info.Response["Config"]["NodeName"]);
 
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
         }
 
         [Fact]
-        public void Health_Checks()
+        public async Task Health_Checks()
         {
             var client = new ConsulClient();
 
@@ -52,33 +53,33 @@ namespace Consul.Test
             };
             try
             {
-                client.Agent.ServiceRegister(registration);
-                var checks = client.Health.Checks("foo");
+                await client.Agent.ServiceRegister(registration);
+                var checks = await client.Health.Checks("foo");
                 Assert.NotEqual((ulong)0, checks.LastIndex);
                 Assert.NotEqual(0, checks.Response.Length);
             }
             finally
             {
-                client.Agent.ServiceDeregister("foo");
+                await client.Agent.ServiceDeregister("foo");
             }
         }
 
         [Fact]
-        public void Health_Service()
+        public async Task Health_Service()
         {
             var client = new ConsulClient();
 
-            var checks = client.Health.Service("consul", "", true);
+            var checks = await client.Health.Service("consul", "", true);
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
         }
 
         [Fact]
-        public void Health_State()
+        public async Task Health_State()
         {
             var client = new ConsulClient();
 
-            var checks = client.Health.State(CheckStatus.Any);
+            var checks = await client.Health.State(CheckStatus.Any);
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
         }
