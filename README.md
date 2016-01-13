@@ -47,7 +47,7 @@ Write a function to talk to the KV store:
 ```csharp
 public static string HelloConsul()
 {
-    var client = new Client();
+    var client = new ConsulClient();
 
     var putPair = new KVPair("hello")
     {
