@@ -1,24 +1,7 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="ACL.cs" company="PlayFab Inc">
-//    Copyright 2015 PlayFab Inc.
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-// </copyright>
-// -----------------------------------------------------------------------
-
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -171,9 +154,9 @@ namespace Consul
         /// </summary>
         /// <param name="acl">The ACL entry to create</param>
         /// <returns>A write result containing the newly created ACL token</returns>
-        public WriteResult<string> Create(ACLEntry acl)
+        public async Task<WriteResult<string>> Create(ACLEntry acl)
         {
-            return Create(acl, WriteOptions.Default);
+            return await Create(acl, WriteOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -182,9 +165,9 @@ namespace Consul
         /// <param name="acl">The ACL entry to create</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result containing the newly created ACL token</returns>
-        public WriteResult<string> Create(ACLEntry acl, WriteOptions q)
+        public async Task<WriteResult<string>> Create(ACLEntry acl, WriteOptions q)
         {
-            var res = _client.CreateWrite<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute();
+            var res = await _client.CreateWrite<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute().ConfigureAwait(false);
             return new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,
@@ -197,9 +180,9 @@ namespace Consul
         /// </summary>
         /// <param name="acl">The ACL entry to update</param>
         /// <returns>An empty write result</returns>
-        public WriteResult Update(ACLEntry acl)
+        public async Task<WriteResult> Update(ACLEntry acl)
         {
-            return Update(acl, WriteOptions.Default);
+            return await Update(acl, WriteOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -208,9 +191,9 @@ namespace Consul
         /// <param name="acl">The ACL entry to update</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public WriteResult Update(ACLEntry acl, WriteOptions q)
+        public async Task<WriteResult> Update(ACLEntry acl, WriteOptions q)
         {
-            return _client.Put<ACLEntry>("/v1/acl/update", acl, q).Execute();
+            return await _client.Put("/v1/acl/update", acl, q).Execute().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -218,9 +201,9 @@ namespace Consul
         /// </summary>
         /// <param name="id">The ACL ID to destroy</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<bool> Destroy(string id)
+        public async Task<WriteResult<bool>> Destroy(string id)
         {
-            return Destroy(id, WriteOptions.Default);
+            return await Destroy(id, WriteOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -229,9 +212,9 @@ namespace Consul
         /// <param name="id">The ACL ID to destroy</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public WriteResult<bool> Destroy(string id, WriteOptions q)
+        public async Task<WriteResult<bool>> Destroy(string id, WriteOptions q)
         {
-            return _client.EmptyPut<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute();
+            return await _client.EmptyPut<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -239,9 +222,9 @@ namespace Consul
         /// </summary>
         /// <param name="id">The ACL ID to clone</param>
         /// <returns>A write result containing the newly created ACL token</returns>
-        public WriteResult<string> Clone(string id)
+        public async Task<WriteResult<string>> Clone(string id)
         {
-            return Clone(id, WriteOptions.Default);
+            return await Clone(id, WriteOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -250,9 +233,9 @@ namespace Consul
         /// <param name="id">The ACL ID to clone</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result containing the newly created ACL token</returns>
-        public WriteResult<string> Clone(string id, WriteOptions q)
+        public async Task<WriteResult<string>> Clone(string id, WriteOptions q)
         {
-            var res = _client.EmptyPut<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute();
+            var res = await _client.EmptyPut<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute().ConfigureAwait(false);
             var ret = new WriteResult<string>
             {
                 RequestTime = res.RequestTime,
@@ -266,9 +249,9 @@ namespace Consul
         /// </summary>
         /// <param name="id">The ACL ID to request information about</param>
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
-        public QueryResult<ACLEntry> Info(string id)
+        public async Task<QueryResult<ACLEntry>> Info(string id)
         {
-            return Info(id, QueryOptions.Default, CancellationToken.None);
+            return await Info(id, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
         }
         /// <summary>
         /// Info is used to query for information about an ACL token
@@ -276,9 +259,9 @@ namespace Consul
         /// <param name="id">The ACL ID to request information about</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
-        public QueryResult<ACLEntry> Info(string id, QueryOptions q)
+        public async Task<QueryResult<ACLEntry>> Info(string id, QueryOptions q)
         {
-            return Info(id, q, CancellationToken.None);
+            return await Info(id, q, CancellationToken.None).ConfigureAwait(false);
         }
         /// <summary>
         /// Info is used to query for information about an ACL token
@@ -287,9 +270,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the ACL entry matching the provided ID, or a query result with a null response if no token matched the provided ID</returns>
-        public QueryResult<ACLEntry> Info(string id, QueryOptions q, CancellationToken ct)
+        public async Task<QueryResult<ACLEntry>> Info(string id, QueryOptions q, CancellationToken ct)
         {
-            var res = _client.Get<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct);
+            var res = await _client.Get<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct).ConfigureAwait(false);
             var ret = new QueryResult<ACLEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -308,18 +291,18 @@ namespace Consul
         /// List is used to get all the ACL tokens
         /// </summary>
         /// <returns>A write result containing the list of all ACLs</returns>
-        public QueryResult<ACLEntry[]> List()
+        public async Task<QueryResult<ACLEntry[]>> List()
         {
-            return List(QueryOptions.Default, CancellationToken.None);
+            return await List(QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
         }
         /// <summary>
         /// List is used to get all the ACL tokens
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A write result containing the list of all ACLs</returns>
-        public QueryResult<ACLEntry[]> List(QueryOptions q)
+        public async Task<QueryResult<ACLEntry[]>> List(QueryOptions q)
         {
-            return List(q, CancellationToken.None);
+            return await List(q, CancellationToken.None).ConfigureAwait(false);
         }
         /// <summary>
         /// List is used to get all the ACL tokens
@@ -327,9 +310,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A write result containing the list of all ACLs</returns>
-        public QueryResult<ACLEntry[]> List(QueryOptions q, CancellationToken ct)
+        public async Task<QueryResult<ACLEntry[]>> List(QueryOptions q, CancellationToken ct)
         {
-            return _client.Get<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
+            return await _client.Get<ACLEntry[]>("/v1/acl/list", q).Execute(ct).ConfigureAwait(false);
         }
     }
 

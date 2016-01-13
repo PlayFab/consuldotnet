@@ -17,13 +17,14 @@
 // -----------------------------------------------------------------------
 
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Consul
 {
     public interface IRawEndpoint
     {
-        QueryResult<dynamic> Query(string endpoint, QueryOptions q);
-        QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct);
-        WriteResult<dynamic> Write(string endpoint, object obj, WriteOptions q);
+        Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q);
+        Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct);
+        Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q);
     }
 }

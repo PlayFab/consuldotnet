@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -23,20 +24,19 @@ namespace Consul.Test
     public class CatalogTest
     {
         [Fact]
-        public void Catalog_Datacenters()
+        public async Task Catalog_Datacenters()
         {
             var client = new ConsulClient();
-            var datacenterList = client.Catalog.Datacenters();
+            var datacenterList = await client.Catalog.Datacenters();
 
             Assert.NotEqual(0, datacenterList.Response.Length);
         }
 
         [Fact]
-        public void Catalog_Nodes()
+        public async Task Catalog_Nodes()
         {
             var client = new ConsulClient();
-            var nodeList = client.Catalog.Nodes();
-
+            var nodeList = await client.Catalog.Nodes();
 
             Assert.NotEqual((ulong)0, nodeList.LastIndex);
             Assert.NotEqual(0, nodeList.Response.Length);
@@ -46,39 +46,38 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Catalog_Services()
+        public async Task Catalog_Services()
         {
             var client = new ConsulClient();
-            var servicesList = client.Catalog.Services();
+            var servicesList = await client.Catalog.Services();
 
-
-            Assert.NotEqual((ulong)0, servicesList.LastIndex);
+                        Assert.NotEqual((ulong)0, servicesList.LastIndex);
             Assert.NotEqual(0, servicesList.Response.Count);
         }
 
         [Fact]
-        public void Catalog_Service()
+        public async Task Catalog_Service()
         {
             var client = new ConsulClient();
-            var serviceList = client.Catalog.Service("consul");
+            var serviceList = await client.Catalog.Service("consul");
 
             Assert.NotEqual((ulong)0, serviceList.LastIndex);
             Assert.NotEqual(0, serviceList.Response.Length);
         }
 
         [Fact]
-        public void Catalog_Node()
+        public async Task Catalog_Node()
         {
             var client = new ConsulClient();
 
-            var node = client.Catalog.Node(client.Agent.NodeName);
+            var node = await client.Catalog.Node(client.Agent.NodeName);
 
             Assert.NotEqual((ulong)0, node.LastIndex);
             Assert.NotNull(node.Response.Services);
         }
 
         [Fact]
-        public void Catalog_RegistrationDeregistration()
+        public async Task Catalog_RegistrationDeregistration()
         {
             var client = new ConsulClient();
             var service = new AgentService()
@@ -108,12 +107,12 @@ namespace Consul.Test
                 Check = check
             };
 
-            client.Catalog.Register(registration);
+            await client.Catalog.Register(registration);
 
-            var node = client.Catalog.Node("foobar");
+            var node = await client.Catalog.Node("foobar");
             Assert.True(node.Response.Services.ContainsKey("redis1"));
 
-            var health = client.Health.Node("foobar");
+            var health = await client.Health.Node("foobar");
             Assert.Equal("service:redis1", health.Response[0].CheckID);
 
             var dereg = new CatalogDeregistration()
@@ -124,9 +123,9 @@ namespace Consul.Test
                 CheckID = "service:redis1"
             };
 
-            client.Catalog.Deregister(dereg);
+            await client.Catalog.Deregister(dereg);
 
-            health = client.Health.Node("foobar");
+            health = await client.Health.Node("foobar");
             Assert.Equal(0, health.Response.Length);
 
             dereg = new CatalogDeregistration()
@@ -136,9 +135,9 @@ namespace Consul.Test
                 Address = "192.168.10.10"
             };
 
-            client.Catalog.Deregister(dereg);
+            await client.Catalog.Deregister(dereg);
 
-            node = client.Catalog.Node("foobar");
+            node = await client.Catalog.Node("foobar");
             Assert.Null(node.Response);
         }
     }

@@ -16,7 +16,9 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -38,9 +40,9 @@ namespace Consul
         /// <param name="endpoint">The URL endpoint to access</param>
         /// <param name="q">Custom query options</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public QueryResult<dynamic> Query(string endpoint, QueryOptions q)
+        public async Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q)
         {
-            return Query(endpoint, q, CancellationToken.None);
+            return await Query(endpoint, q, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -50,11 +52,11 @@ namespace Consul
         /// <param name="q">Custom query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public  QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct)
+        public async Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct)
         {
-            return _client.Get<dynamic>(endpoint, q).Execute(ct);
+            return await _client.Get<dynamic>(endpoint, q).Execute(ct).ConfigureAwait(false);
         }
-
+        
         /// <summary>
         /// Write is used to do a PUT request against an endpoint and serialize/deserialized using the standard Consul conventions.
         /// </summary>
@@ -62,9 +64,9 @@ namespace Consul
         /// <param name="obj">The object to serialize and send to the endpoint. Must be able to be JSON serialized, or be an object of type byte[], which is sent without serialzation.</param>
         /// <param name="q">Custom write options</param>
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
-        public WriteResult<dynamic> Write(string endpoint, object obj, WriteOptions q)
+        public async Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q)
         {
-            return _client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute();
+            return await _client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute().ConfigureAwait(false);
         }
     }
 

@@ -20,6 +20,7 @@ using System.Globalization;
 using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Consul
 {
@@ -53,9 +54,9 @@ namespace Consul
             _client = c;
         }
 
-        public WriteResult<string> Fire(UserEvent ue)
+        public async Task<WriteResult<string>> Fire(UserEvent ue)
         {
-            return Fire(ue, WriteOptions.Default);
+            return await Fire(ue, WriteOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -64,11 +65,9 @@ namespace Consul
         /// <param name="ue">A User Event definition</param>
         /// <param name="q">Customized write options</param>
         /// <returns></returns>
-        public WriteResult<string> Fire(UserEvent ue, WriteOptions q)
+        public async Task<WriteResult<string>> Fire(UserEvent ue, WriteOptions q)
         {
-            var req =
-                _client.CreateWrite<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name),
-                    ue.Payload, q);
+            var req = _client.CreateWrite<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name), ue.Payload, q);
             if (!string.IsNullOrEmpty(ue.NodeFilter))
             {
                 req.Params["node"] = ue.NodeFilter;
@@ -81,7 +80,7 @@ namespace Consul
             {
                 req.Params["tag"] = ue.TagFilter;
             }
-            var res = req.Execute();
+            var res = await req.Execute().ConfigureAwait(false);
             var ret = new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,
@@ -94,9 +93,9 @@ namespace Consul
         /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
         /// </summary>
         /// <returns>An array of events</returns>
-        public QueryResult<UserEvent[]> List()
+        public async Task<QueryResult<UserEvent[]>> List()
         {
-            return List(string.Empty, QueryOptions.Default);
+            return await List(string.Empty, QueryOptions.Default).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -104,9 +103,9 @@ namespace Consul
         /// </summary>
         /// <param name="name">The name of the event to filter for</param>
         /// <returns>An array of events</returns>
-        public QueryResult<UserEvent[]> List(string name)
+        public async Task<QueryResult<UserEvent[]>> List(string name)
         {
-            return List(name, QueryOptions.Default, CancellationToken.None);
+            return await List(name, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -115,9 +114,9 @@ namespace Consul
         /// <param name="name">The name of the event to filter for</param>
         /// <param name="q">Customized query options</param>
         /// <returns>An array of events</returns>
-        public QueryResult<UserEvent[]> List(string name, QueryOptions q)
+        public async Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q)
         {
-            return List(name, q, CancellationToken.None);
+            return await List(name, q, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -127,14 +126,14 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>An array of events</returns>
-        public QueryResult<UserEvent[]> List(string name, QueryOptions q, CancellationToken ct)
+        public async Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q, CancellationToken ct)
         {
             var req = _client.Get<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;
             }
-            return req.Execute(ct);
+            return await req.Execute(ct).ConfigureAwait(false);
         }
 
         /// <summary>
