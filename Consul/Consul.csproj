@@ -69,9 +69,11 @@
     <Compile Include="Interfaces\ICatalogEndpoint.cs" />
     <Compile Include="Interfaces\IACLEndpoint.cs" />
     <Compile Include="Interfaces\IAgentEndpoint.cs" />
+    <Compile Include="Interfaces\IPreparedQueryEndpoint.cs" />
     <Compile Include="Interfaces\IRawEndpoint.cs" />
     <Compile Include="Interfaces\ISessionEndpoint.cs" />
     <Compile Include="Interfaces\IStatusEndpoint.cs" />
+    <Compile Include="PreparedQuery.cs" />
     <Compile Include="Utilities\JsonConverters.cs" />
     <Compile Include="KV.cs" />
     <Compile Include="Lock.cs" />

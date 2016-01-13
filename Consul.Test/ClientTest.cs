@@ -20,6 +20,7 @@ using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
@@ -62,7 +63,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Client_SetQueryOptions()
+        public async Task Client_SetQueryOptions()
         {
             var client = new ConsulClient();
             var opts = new QueryOptions()
@@ -76,7 +77,7 @@ namespace Consul.Test
             var request = client.Get<KVPair>("/v1/kv/foo", opts);
             try
             {
-                request.Execute();
+                await request.Execute();
             }
             catch (Exception)
             {
@@ -90,7 +91,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Client_SetWriteOptions()
+        public async Task Client_SetWriteOptions()
         {
             var client = new ConsulClient();
 
@@ -103,7 +104,7 @@ namespace Consul.Test
             var request = client.Put<KVPair>("/v1/kv/foo", new KVPair("kv/foo"), opts);
             try
             {
-                request.Execute();
+                await request.Execute();
             }
             catch (Exception)
             {

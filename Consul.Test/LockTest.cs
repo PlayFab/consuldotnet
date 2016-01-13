@@ -71,17 +71,17 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Lock_EphemeralAcquireRelease()
+        public async Task Lock_EphemeralAcquireRelease()
         {
             var client = new ConsulClient();
             const string keyName = "test/lock/ephemerallock";
-            var sessionId = client.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
+            var sessionId = await client.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
             using (var l = client.AcquireLock(new LockOptions(keyName) { Session = sessionId.Response }, CancellationToken.None))
             {
                 Assert.True(l.IsHeld);
-                client.Session.Destroy(sessionId.Response);
+                await client.Session.Destroy(sessionId.Response);
             }
-            Assert.Null(client.KV.Get(keyName).Response);
+            Assert.Null((await client.KV.Get(keyName)).Response);
         }
 
         [Fact]
@@ -336,7 +336,7 @@ namespace Consul.Test
             }));
         }
         [Fact]
-        public void Lock_AbortAction()
+        public async Task Lock_AbortAction()
         {
             var client = new ConsulClient();
 
@@ -346,9 +346,11 @@ namespace Consul.Test
             {
                 try
                 {
-                    string lockSession = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) }).Response;
+                    string lockSession = (await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) })).Response;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                     client.Session.RenewPeriodic(TimeSpan.FromSeconds(10), lockSession, cts.Token);
                     Task.Delay(1000).ContinueWith((w) => { client.Session.Destroy(lockSession); });
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                     client.ExecuteAbortableLocked(new LockOptions(keyName) { Session = lockSession }, CancellationToken.None, () =>
                     {
                         Thread.Sleep(60000);
@@ -362,8 +364,10 @@ namespace Consul.Test
             }
             using (var cts = new CancellationTokenSource())
             {
-                string lockSession = client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) }).Response;
+                string lockSession = (await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) })).Response;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 client.Session.RenewPeriodic(TimeSpan.FromSeconds(10), lockSession, cts.Token);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                 client.ExecuteAbortableLocked(new LockOptions(keyName) { Session = lockSession }, CancellationToken.None, () =>
                 {
                     Task.Delay(1000).ContinueWith((w) => { Assert.True(true); });
@@ -372,13 +376,13 @@ namespace Consul.Test
             }
         }
         [Fact]
-        public void Lock_ReclaimLock()
+        public async Task Lock_ReclaimLock()
         {
             var client = new ConsulClient();
 
             const string keyName = "test/lock/reclaim";
 
-            var sessionRequest = client.Session.Create();
+            var sessionRequest = await client.Session.Create();
             var sessionId = sessionRequest.Response;
             try
             {
@@ -436,7 +440,7 @@ namespace Consul.Test
             }
             finally
             {
-                Assert.True(client.Session.Destroy(sessionId).Response);
+                Assert.True((await client.Session.Destroy(sessionId)).Response);
             }
         }
 

@@ -345,7 +345,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Semaphore_DeleteKey()
+        public async Task Semaphore_DeleteKey()
         {
             var client = new ConsulClient();
 
@@ -371,7 +371,7 @@ namespace Consul.Test
 
                 Task.WaitAny(new[] { checker }, 1000);
 
-                var req = client.KV.DeleteTree(semaphore.Opts.Prefix);
+                var req = await client.KV.DeleteTree(semaphore.Opts.Prefix);
                 Assert.True(req.Response);
             }
             finally
