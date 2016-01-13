@@ -54,7 +54,7 @@ public static string HelloConsul()
         Value = Encoding.UTF8.GetBytes("Hello Consul")
     };
 
-    // The code below is synchronously.
+    // The code below is executed synchronously.
     // It should really be awaited in a proper async method.
     var putAttempt = client.KV.Put(putPair).GetAwaiter().GetResult();
 
