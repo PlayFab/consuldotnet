@@ -151,7 +151,7 @@ namespace Consul
         private Task _sessionRenewTask;
         private Task _monitorTask;
 
-        private readonly Client _client;
+        private readonly ConsulClient _client;
         internal LockOptions Opts { get; set; }
         internal string LockSession { get; set; }
 
@@ -179,7 +179,7 @@ namespace Consul
         }
 
 
-        internal Lock(Client c)
+        internal Lock(ConsulClient c)
         {
             _client = c;
             _cts = new CancellationTokenSource();
@@ -232,7 +232,7 @@ namespace Consul
                         {
                             Opts.Session = CreateSession();
                             _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
-                                WriteOptions.Empty, _cts.Token);
+                                WriteOptions.Default, _cts.Token);
                             LockSession = Opts.Session;
                         }
                         catch (Exception ex)
@@ -505,7 +505,7 @@ namespace Consul
     public class DisposableLock : Lock, IDisposable, IDisposableLock
     {
         public CancellationToken CancellationToken { get; private set; }
-        internal DisposableLock(Client client, LockOptions opts, CancellationToken ct)
+        internal DisposableLock(ConsulClient client, LockOptions opts, CancellationToken ct)
             : base(client)
         {
             Opts = opts;
@@ -553,7 +553,7 @@ namespace Consul
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         /// <summary>
         /// CreateLock returns an unlocked lock which can be used to acquire and release the mutex. The key used must have write permissions.

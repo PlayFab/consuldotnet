@@ -25,9 +25,9 @@ namespace Consul
     /// </summary>
     public class Raw : IRawEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Raw(Client c)
+        internal Raw(ConsulClient c)
         {
             _client = c;
         }
@@ -52,7 +52,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint</returns>
         public  QueryResult<dynamic> Query(string endpoint, QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<dynamic>(endpoint, q).Execute(ct);
+            return _client.Get<dynamic>(endpoint, q).Execute(ct);
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace Consul
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Raw _raw;
 

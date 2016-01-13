@@ -46,16 +46,16 @@ namespace Consul
             internal string ID { get; set; }
         }
 
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Event(Client c)
+        internal Event(ConsulClient c)
         {
             _client = c;
         }
 
         public WriteResult<string> Fire(UserEvent ue)
         {
-            return Fire(ue, WriteOptions.Empty);
+            return Fire(ue, WriteOptions.Default);
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace Consul
         /// <returns>An array of events</returns>
         public QueryResult<UserEvent[]> List(string name, QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQuery<UserEvent[]>("/v1/event/list", q);
+            var req = _client.Get<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;
@@ -152,7 +152,7 @@ namespace Consul
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Event _event;
 

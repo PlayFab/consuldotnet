@@ -18,15 +18,15 @@
 
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Security;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class ClientTest
     {
-        [TestMethod]
+        [Fact]
         public void Client_DefaultConfig_env()
         {
             const string addr = "1.2.3.4:5678";
@@ -40,13 +40,13 @@ namespace Consul.Test
 
             var config = new ConsulClientConfiguration();
 
-            Assert.AreEqual(addr, config.Address);
-            Assert.AreEqual(token, config.Token);
-            Assert.IsNotNull(config.HttpAuth);
-            Assert.AreEqual("username", config.HttpAuth.UserName);
-            Assert.AreEqual("password", config.HttpAuth.Password);
-            Assert.AreEqual("https", config.Scheme);
-            Assert.IsTrue(ServicePointManager.ServerCertificateValidationCallback(null, null, null,
+            Assert.Equal(addr, string.Format("{0}:{1}", config.Address.Host, config.Address.Port));
+            Assert.Equal(token, config.Token);
+            Assert.NotNull(config.HttpAuth);
+            Assert.Equal("username", config.HttpAuth.UserName);
+            Assert.Equal("password", config.HttpAuth.Password);
+            Assert.Equal("https", config.Address.Scheme);
+            Assert.True((config.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
                 SslPolicyErrors.RemoteCertificateChainErrors));
 
             Environment.SetEnvironmentVariable("CONSUL_HTTP_ADDR", string.Empty);
@@ -56,15 +56,15 @@ namespace Consul.Test
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL_VERIFY", string.Empty);
             ServicePointManager.ServerCertificateValidationCallback = null;
 
-            var client = new Client(config);
+            var client = new ConsulClient(config);
 
-            Assert.IsNotNull(client);
+            Assert.NotNull(client);
         }
 
-        [TestMethod]
+        [Fact]
         public void Client_SetQueryOptions()
         {
-            var client = new Client();
+            var client = new ConsulClient();
             var opts = new QueryOptions()
             {
                 Datacenter = "foo",
@@ -73,7 +73,7 @@ namespace Consul.Test
                 WaitTime = new TimeSpan(0, 0, 100),
                 Token = "12345"
             };
-            var request = client.CreateQuery("/v1/kv/foo", opts);
+            var request = client.Get<KVPair>("/v1/kv/foo", opts);
             try
             {
                 request.Execute();
@@ -82,17 +82,17 @@ namespace Consul.Test
             {
                 // ignored
             }
-            Assert.AreEqual("foo", request.Params["dc"]);
-            Assert.IsTrue(request.Params.ContainsKey("consistent"));
-            Assert.AreEqual("1000", request.Params["index"]);
-            Assert.AreEqual("1m40s", request.Params["wait"]);
-            Assert.AreEqual("12345", request.Params["token"]);
+            Assert.Equal("foo", request.Params["dc"]);
+            Assert.True(request.Params.ContainsKey("consistent"));
+            Assert.Equal("1000", request.Params["index"]);
+            Assert.Equal("1m40s", request.Params["wait"]);
+            Assert.Equal("12345", request.Params["token"]);
         }
 
-        [TestMethod]
+        [Fact]
         public void Client_SetWriteOptions()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var opts = new WriteOptions()
             {
@@ -100,7 +100,7 @@ namespace Consul.Test
                 Token = "12345"
             };
 
-            var request = client.CreateWrite("/v1/kv/foo", opts);
+            var request = client.Put<KVPair>("/v1/kv/foo", new KVPair("kv/foo"), opts);
             try
             {
                 request.Execute();
@@ -110,8 +110,8 @@ namespace Consul.Test
                 // ignored
             }
 
-            Assert.AreEqual("foo", request.Params["dc"]);
-            Assert.AreEqual("12345", request.Params["token"]);
+            Assert.Equal("foo", request.Params["dc"]);
+            Assert.Equal("12345", request.Params["token"]);
         }
     }
 }

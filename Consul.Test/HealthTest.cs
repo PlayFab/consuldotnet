@@ -17,34 +17,33 @@
 // -----------------------------------------------------------------------
 
 using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace Consul.Test
 {
-    [TestClass]
     public class HealthTest
     {
-        [TestMethod]
+        [Fact]
         public void Health_Node()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var info = client.Agent.Self();
-            var checks = client.Health.Node((string) info.Response["Config"]["NodeName"]);
+            var checks = client.Health.Node((string)info.Response["Config"]["NodeName"]);
 
-            Assert.AreNotEqual(0, checks.LastIndex);
-            Assert.AreNotEqual(0, checks.Response.Length);
+            Assert.NotEqual((ulong)0, checks.LastIndex);
+            Assert.NotEqual(0, checks.Response.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void Health_Checks()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var registration = new AgentServiceRegistration()
             {
                 Name = "foo",
-                Tags = new[] {"bar", "baz"},
+                Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Check = new AgentServiceCheck
                 {
@@ -55,8 +54,8 @@ namespace Consul.Test
             {
                 client.Agent.ServiceRegister(registration);
                 var checks = client.Health.Checks("foo");
-                Assert.AreNotEqual(0, checks.LastIndex);
-                Assert.AreNotEqual(0, checks.Response.Length);
+                Assert.NotEqual((ulong)0, checks.LastIndex);
+                Assert.NotEqual(0, checks.Response.Length);
             }
             finally
             {
@@ -64,24 +63,24 @@ namespace Consul.Test
             }
         }
 
-        [TestMethod]
+        [Fact]
         public void Health_Service()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var checks = client.Health.Service("consul", "", true);
-            Assert.AreNotEqual(0, checks.LastIndex);
-            Assert.AreNotEqual(0, checks.Response.Length);
+            Assert.NotEqual((ulong)0, checks.LastIndex);
+            Assert.NotEqual(0, checks.Response.Length);
         }
 
-        [TestMethod]
+        [Fact]
         public void Health_State()
         {
-            var client = new Client();
+            var client = new ConsulClient();
 
             var checks = client.Health.State(CheckStatus.Any);
-            Assert.AreNotEqual(0, checks.LastIndex);
-            Assert.AreNotEqual(0, checks.Response.Length);
+            Assert.NotEqual((ulong)0, checks.LastIndex);
+            Assert.NotEqual(0, checks.Response.Length);
         }
     }
 }

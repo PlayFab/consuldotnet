@@ -49,9 +49,9 @@ namespace Consul
     /// </summary>
     public class Health : IHealthEndpoint
     {
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Health(Client c)
+        internal Health(ConsulClient c)
         {
             _client = c;
         }
@@ -84,7 +84,7 @@ namespace Consul
         public QueryResult<HealthCheck[]> Node(string node, QueryOptions q, CancellationToken ct)
         {
             return
-                _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
+                _client.Get<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
         }
 
         /// <summary>
@@ -114,7 +114,7 @@ namespace Consul
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
         public QueryResult<HealthCheck[]> Checks(string service, QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
+            return _client.Get<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q)
                         .Execute(ct);
         }
 
@@ -174,7 +174,7 @@ namespace Consul
         public QueryResult<ServiceEntry[]> Service(string service, string tag, bool passingOnly,
             QueryOptions q, CancellationToken ct)
         {
-            var req = _client.CreateQuery<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
+            var req = _client.Get<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
@@ -187,7 +187,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
@@ -197,7 +197,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
@@ -207,7 +207,7 @@ namespace Consul
         }
 
         /// <summary>
-        /// // State is used to retreive all the checks in a given state. The wildcard "any" state can also be used for all checks.
+        /// // State is used to retrieve all the checks in a given state. The wildcard "any" state can also be used for all checks.
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <param name="q">Customized query options</param>
@@ -215,12 +215,12 @@ namespace Consul
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
         public QueryResult<HealthCheck[]> State(CheckStatus status, QueryOptions q, CancellationToken ct)
         {
-            return _client.CreateQuery<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
+            return _client.Get<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q)
                         .Execute(ct);
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Health _health;
 

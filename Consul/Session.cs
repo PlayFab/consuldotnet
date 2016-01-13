@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Net;
 
 namespace Consul
 {
@@ -85,6 +86,18 @@ namespace Consul
     }
 
 
+    [Serializable]
+    public class SessionExpiredException : Exception
+    {
+        public SessionExpiredException() { }
+        public SessionExpiredException(string message) : base(message) { }
+        public SessionExpiredException(string message, Exception inner) : base(message, inner) { }
+        protected SessionExpiredException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context)
+        { }
+    }
+
     public class SessionEntry
     {
         [JsonProperty]
@@ -144,9 +157,9 @@ namespace Consul
             internal string ID { get; set; }
         }
 
-        private readonly Client _client;
+        private readonly ConsulClient _client;
 
-        internal Session(Client c)
+        internal Session(ConsulClient c)
         {
             _client = c;
         }
@@ -156,7 +169,7 @@ namespace Consul
         /// </summary>
         public WriteResult<string> CreateNoChecks()
         {
-            return CreateNoChecks(new SessionEntry(), WriteOptions.Empty);
+            return CreateNoChecks(new SessionEntry(), WriteOptions.Default);
         }
 
         /// <summary>
@@ -166,7 +179,7 @@ namespace Consul
         /// <returns>A write result containing the new session ID</returns>
         public WriteResult<string> CreateNoChecks(SessionEntry se)
         {
-            return CreateNoChecks(se, WriteOptions.Empty);
+            return CreateNoChecks(se, WriteOptions.Default);
         }
 
         /// <summary>
@@ -199,7 +212,7 @@ namespace Consul
         /// <returns>A write result containing the new session ID</returns>
         public WriteResult<string> Create()
         {
-            return Create(null, WriteOptions.Empty);
+            return Create(null, WriteOptions.Default);
         }
 
         /// <summary>
@@ -209,7 +222,7 @@ namespace Consul
         /// <returns>A write result containing the new session ID</returns>
         public WriteResult<string> Create(SessionEntry se)
         {
-            return Create(se, WriteOptions.Empty);
+            return Create(se, WriteOptions.Default);
         }
 
         /// <summary>
@@ -230,7 +243,7 @@ namespace Consul
 
         public WriteResult<bool> Destroy(string id)
         {
-            return Destroy(id, WriteOptions.Empty);
+            return Destroy(id, WriteOptions.Default);
         }
 
         /// <summary>
@@ -246,7 +259,7 @@ namespace Consul
 
         public WriteResult<SessionEntry> Renew(string id)
         {
-            return Renew(id, WriteOptions.Empty);
+            return Renew(id, WriteOptions.Default);
         }
 
         /// <summary>
@@ -263,6 +276,12 @@ namespace Consul
             {
                 ret.Response = res.Response[0];
             }
+
+            if (res.StatusCode == HttpStatusCode.NotFound)
+            {
+                throw new SessionExpiredException(string.Format("Session expired: {0}", id));
+            }
+
             return ret;
         }
 
@@ -275,7 +294,7 @@ namespace Consul
         /// <param name="ct">The CancellationToken used to stop the session from being renewed (e.g. when the long-running action completes)</param>
         public Task RenewPeriodic(TimeSpan initialTTL, string id, CancellationToken ct)
         {
-            return RenewPeriodic(initialTTL, id, WriteOptions.Empty, ct);
+            return RenewPeriodic(initialTTL, id, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -296,7 +315,7 @@ namespace Consul
                 }
                 var waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                 var lastRenewTime = DateTime.Now;
-                Exception lastException = new TaskCanceledException("Session timed out");
+                Exception lastException = new SessionExpiredException(string.Format("Session expired: {0}", id));
                 try
                 {
                     while (!ct.IsCancellationRequested)
@@ -317,16 +336,13 @@ namespace Consul
                         try
                         {
                             var res = Renew(id, q);
-                            if (res.Response == null)
-                            {
-                                lastException = new TaskCanceledException("Session no longer exists");
-                            }
-                            else
-                            {
-                                initialTTL = res.Response.TTL ?? TimeSpan.Zero;
-                                waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
-                                lastRenewTime = DateTime.Now;
-                            }
+                            initialTTL = res.Response.TTL ?? TimeSpan.Zero;
+                            waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
+                            lastRenewTime = DateTime.Now;
+                        }
+                        catch (SessionExpiredException)
+                        {
+                            throw;
                         }
                         catch (OperationCanceledException)
                         {
@@ -368,7 +384,7 @@ namespace Consul
         public QueryResult<SessionEntry> Info(string id, QueryOptions q)
         {
             var res =
-                _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute();
+                _client.Get<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute();
             var ret = new QueryResult<SessionEntry>()
             {
                 KnownLeader = res.KnownLeader,
@@ -399,7 +415,7 @@ namespace Consul
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
         public QueryResult<SessionEntry[]> List(QueryOptions q)
         {
-            return _client.CreateQuery<SessionEntry[]>("/v1/session/list", q).Execute();
+            return _client.Get<SessionEntry[]>("/v1/session/list", q).Execute();
         }
 
         /// <summary>
@@ -420,11 +436,11 @@ namespace Consul
         /// <returns>A query result containing the list of sessions, or an empty query result if no sessions exist</returns>
         public QueryResult<SessionEntry[]> Node(string node, QueryOptions q)
         {
-            return _client.CreateQuery<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).Execute();
+            return _client.Get<SessionEntry[]>(string.Format("/v1/session/node/{0}", node), q).Execute();
         }
     }
 
-    public partial class Client : IConsulClient
+    public partial class ConsulClient : IConsulClient
     {
         private Session _session;
 
