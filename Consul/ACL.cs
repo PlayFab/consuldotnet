@@ -167,7 +167,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public async Task<WriteResult<string>> Create(ACLEntry acl, WriteOptions q)
         {
-            var res = await _client.CreateWrite<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute().ConfigureAwait(false);
+            var res = await _client.Put<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute().ConfigureAwait(false);
             return new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,

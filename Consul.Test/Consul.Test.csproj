@@ -94,6 +94,7 @@
     <Compile Include="AssemblyTest.cs" />
     <Compile Include="ClientTest.cs" />
     <Compile Include="CoordinateTest.cs" />
+    <Compile Include="PreparedQueryTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StatusTest.cs" />
     <Compile Include="SessionTest.cs" />

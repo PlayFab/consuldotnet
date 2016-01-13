@@ -67,7 +67,7 @@ namespace Consul
         /// <returns></returns>
         public async Task<WriteResult<string>> Fire(UserEvent ue, WriteOptions q)
         {
-            var req = _client.CreateWrite<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name), ue.Payload, q);
+            var req = _client.Put<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name), ue.Payload, q);
             if (!string.IsNullOrEmpty(ue.NodeFilter))
             {
                 req.Params["node"] = ue.NodeFilter;

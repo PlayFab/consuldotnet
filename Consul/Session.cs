@@ -254,7 +254,7 @@ namespace Consul
         /// <returns>A write result containing the new session ID</returns>
         public async Task<WriteResult<string>> Create(SessionEntry se, WriteOptions q)
         {
-            var res = await _client.CreateWrite<SessionEntry, SessionCreationResult>("/v1/session/create", se, q).Execute().ConfigureAwait(false);
+            var res = await _client.Put<SessionEntry, SessionCreationResult>("/v1/session/create", se, q).Execute().ConfigureAwait(false);
             return new WriteResult<string>()
             {
                 RequestTime = res.RequestTime,
@@ -321,7 +321,7 @@ namespace Consul
         /// <returns>A write result containing the result of the session destruction</returns>
         public async Task<WriteResult<bool>> Destroy(string id, WriteOptions q)
         {
-            return await _client.CreateWrite<object, bool>(string.Format("/v1/session/destroy/{0}", id), q).Execute().ConfigureAwait(false);
+            return await _client.Put<object, bool>(string.Format("/v1/session/destroy/{0}", id), q).Execute().ConfigureAwait(false);
         }
 
         /// <summary>
@@ -415,7 +415,7 @@ namespace Consul
         /// <returns>An updated session entry</returns>
         public async Task<WriteResult<SessionEntry>> Renew(string id, WriteOptions q)
         {
-            var res = await _client.CreateWrite<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute().ConfigureAwait(false);
+            var res = await _client.Put<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute().ConfigureAwait(false);
             var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
             if (res.Response != null && res.Response.Length > 0)
             {

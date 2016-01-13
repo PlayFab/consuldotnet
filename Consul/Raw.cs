@@ -66,7 +66,7 @@ namespace Consul
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
         public async Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q)
         {
-            return await _client.CreateWrite<object, dynamic>(endpoint, obj, q).Execute().ConfigureAwait(false);
+            return await _client.Put<object, dynamic>(endpoint, obj, q).Execute().ConfigureAwait(false);
         }
     }
 
