@@ -54,7 +54,9 @@ public static string HelloConsul()
         Value = Encoding.UTF8.GetBytes("Hello Consul")
     };
 
-    var putAttempt = client.KV.Put(putPair).GetAwaiter().GetResult(); // Done synchronously - should really be awaited.
+    // The code below is synchronously.
+    // It should really be awaited in a proper async method.
+    var putAttempt = client.KV.Put(putPair).GetAwaiter().GetResult();
 
     if (putAttempt.Response)
     {
@@ -85,10 +87,11 @@ The API just went out to Consul, wrote "Hello Consul" under the key
 
 ## Usage
 
-All operations are done using a `Client` object. First, instantiate a
-`Consul.Client` object, which connects to `localhost:8500` - the default
-Consul HTTP API port. Once you've got a `Client` object, various
-functionality is exposed as properties under the `Client`.
+All operations are done using a `ConsulClient` object. First,
+instantiate a `ConsulClient` object, which connects to `localhost:8500`,
+the default Consul HTTP API port. Once you've got a `ConsulClient`
+object, various functionality is exposed as properties under the
+`ConsulClient`.
 
 All responses are wrapped in `QueryResponse` and `WriteResponse`
 classes, which provide metadata about the request, like how long it
