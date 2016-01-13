@@ -220,15 +220,12 @@ namespace Consul
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        await _client.Session.Destroy(id).ConfigureAwait(false);
+                        _client.Session.Destroy(id).GetAwaiter().GetResult();
                     }
                 }
             });
         }
-
-
-        //------------------------------------------------------
-
+        
         /// <summary>
         /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
         /// </summary>
