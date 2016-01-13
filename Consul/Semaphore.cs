@@ -384,7 +384,7 @@ namespace Consul
                     if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                     {
                         _cts.Cancel();
-                        _client.KV.Delete(ContenderEntry(LockSession).Key);
+                        _client.KV.Delete(ContenderEntry(LockSession).Key).GetAwaiter().GetResult();
                         if (_sessionRenewTask != null)
                         {
                             try
@@ -451,7 +451,7 @@ namespace Consul
 
                     var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                    _client.KV.Delete(contenderKey);
+                    _client.KV.Delete(contenderKey).Wait();
                 }
                 finally
                 {

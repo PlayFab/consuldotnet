@@ -1,3 +1,4 @@
+os: Visual Studio 2015
 version: 0.6.1.{build}-{branch}
 configuration: Release
 platform: Any CPU
@@ -8,7 +9,7 @@ init:
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
-  assembly_version: $(APPVEYOR_BUILD_VERSION)
+  assembly_version: 1.0.0.0
   assembly_file_version: $(APPVEYOR_BUILD_VERSION)
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:

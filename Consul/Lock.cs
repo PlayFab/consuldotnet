@@ -367,7 +367,7 @@ namespace Consul
                     var lockEnt = LockEntry(Opts.Session);
 
                     Opts.Session = null;
-                    _client.KV.Release(lockEnt);
+                    _client.KV.Release(lockEnt).Wait();
                 }
                 finally
                 {

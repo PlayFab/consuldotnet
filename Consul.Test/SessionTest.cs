@@ -224,7 +224,7 @@ namespace Consul.Test
             }
             finally
             {
-                var destroyRequest = client.Session.Destroy(id).GetAwaiter().GetResult();
+                var destroyRequest = await client.Session.Destroy(id);
 
                 Assert.True(destroyRequest.Response);
             }
@@ -248,7 +248,7 @@ namespace Consul.Test
             }
             finally
             {
-                var destroyRequest = client.Session.Destroy(id).GetAwaiter().GetResult();
+                var destroyRequest = await client.Session.Destroy(id);
 
                 Assert.True(destroyRequest.Response);
             }

@@ -220,7 +220,7 @@ namespace Consul
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        _client.Session.Destroy(id).GetAwaiter().GetResult();
+                        await _client.Session.Destroy(id).ConfigureAwait(false);
                     }
                 }
             });
