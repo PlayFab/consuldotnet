@@ -108,7 +108,7 @@ namespace Consul
         public async Task<WriteResult<bool>> Acquire(KVPair p, WriteOptions q)
         {
             p.Validate();
-            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -136,7 +136,7 @@ namespace Consul
         public async Task<WriteResult<bool>> CAS(KVPair p, WriteOptions q)
         {
             p.Validate();
-            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -367,7 +367,7 @@ namespace Consul
         public async Task<WriteResult<bool>> Put(KVPair p, WriteOptions q)
         {
             p.Validate();
-            var req = _client.CreateWrite<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -394,7 +394,7 @@ namespace Consul
         public async Task<WriteResult<bool>> Release(KVPair p, WriteOptions q)
         {
             p.Validate();
-            var req = _client.CreateWrite<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.Put<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
