@@ -440,7 +440,7 @@ namespace Consul.Test
             }
             finally
             {
-                Assert.True((await client.Session.Destroy(sessionId)).Response);
+                Assert.True(client.Session.Destroy(sessionId).GetAwaiter().GetResult().Response);
             }
         }
 

@@ -60,7 +60,7 @@ namespace Consul.Test
             }
             finally
             {
-                await client.Agent.ServiceDeregister("foo");
+                client.Agent.ServiceDeregister("foo").GetAwaiter().GetResult();
             }
         }
 
