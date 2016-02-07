@@ -89,9 +89,9 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog registration</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> Register(CatalogRegistration reg)
+        public Task<WriteResult> Register(CatalogRegistration reg)
         {
-            return await Register(reg, WriteOptions.Default).ConfigureAwait(false);
+            return Register(reg, WriteOptions.Default);
         }
 
         /// <summary>
@@ -100,9 +100,9 @@ namespace Consul
         /// <param name="reg">A catalog registration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> Register(CatalogRegistration reg, WriteOptions q)
+        public Task<WriteResult> Register(CatalogRegistration reg, WriteOptions q)
         {
-            return await _client.Put("/v1/catalog/register", reg, q).Execute().ConfigureAwait(false);
+            return _client.Put("/v1/catalog/register", reg, q).Execute();
         }
 
         /// <summary>
@@ -110,9 +110,9 @@ namespace Consul
         /// </summary>
         /// <param name="reg">A catalog deregistration</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> Deregister(CatalogDeregistration reg)
+        public Task<WriteResult> Deregister(CatalogDeregistration reg)
         {
-            return await Deregister(reg, WriteOptions.Default).ConfigureAwait(false);
+            return Deregister(reg, WriteOptions.Default);
         }
 
         /// <summary>
@@ -121,35 +121,35 @@ namespace Consul
         /// <param name="reg">A catalog deregistration</param>
         /// <param name="q">Customized write options</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> Deregister(CatalogDeregistration reg, WriteOptions q)
+        public Task<WriteResult> Deregister(CatalogDeregistration reg, WriteOptions q)
         {
-            return await _client.Put("/v1/catalog/deregister", reg, q).Execute().ConfigureAwait(false);
+            return _client.Put("/v1/catalog/deregister", reg, q).Execute();
         }
 
         /// <summary>
         /// Datacenters is used to query for all the known datacenters
         /// </summary>
         /// <returns>A list of datacenter names</returns>
-        public async Task<QueryResult<string[]>> Datacenters()
+        public Task<QueryResult<string[]>> Datacenters()
         {
-            return await _client.Get<string[]>("/v1/catalog/datacenters").Execute().ConfigureAwait(false);
+            return _client.Get<string[]>("/v1/catalog/datacenters").Execute();
         }
 
         /// <summary>
         /// Nodes is used to query all the known nodes
         /// </summary>
         /// <returns>A list of all nodes</returns>
-        public async Task<QueryResult<Node[]>> Nodes()
+        public Task<QueryResult<Node[]>> Nodes()
         {
-            return await Nodes(QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Nodes(QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Nodes is used to query all the known nodes
         /// </summary>
         /// <returns>A list of all nodes</returns>
-        public async Task<QueryResult<Node[]>> Nodes(QueryOptions q)
+        public Task<QueryResult<Node[]>> Nodes(QueryOptions q)
         {
-            return await Nodes(q, CancellationToken.None).ConfigureAwait(false);
+            return Nodes(q, CancellationToken.None);
         }
         /// <summary>
         /// Nodes is used to query all the known nodes
@@ -157,27 +157,27 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A list of all nodes</returns>
-        public async Task<QueryResult<Node[]>> Nodes(QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<Node[]>> Nodes(QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<Node[]>("/v1/catalog/nodes", q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<Node[]>("/v1/catalog/nodes", q).Execute(ct);
         }
 
         /// <summary>
         /// Services is used to query for all known services
         /// </summary>
         /// <returns>A list of all services</returns>
-        public async Task<QueryResult<Dictionary<string, string[]>>> Services()
+        public Task<QueryResult<Dictionary<string, string[]>>> Services()
         {
-            return await Services(QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Services(QueryOptions.Default, CancellationToken.None);
         }
         /// <summary>
         /// Services is used to query for all known services
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of all services</returns>
-        public async Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q)
+        public Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q)
         {
-            return await Services(q, CancellationToken.None).ConfigureAwait(false);
+            return Services(q, CancellationToken.None);
         }
         /// <summary>
         /// Services is used to query for all known services
@@ -185,9 +185,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A list of all services</returns>
-        public async Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<Dictionary<string, string[]>>("/v1/catalog/services", q).Execute(ct);
         }
 
         /// <summary>
@@ -195,9 +195,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service)
+        public Task<QueryResult<CatalogService[]>> Service(string service)
         {
-            return await Service(service, string.Empty, QueryOptions.Default).ConfigureAwait(false);
+            return Service(service, string.Empty, QueryOptions.Default);
         }
 
         /// <summary>
@@ -206,9 +206,9 @@ namespace Consul
         /// <param name="service">The service ID</param>
         /// <param name="tag">A tag to filter on</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service, string tag)
+        public Task<QueryResult<CatalogService[]>> Service(string service, string tag)
         {
-            return await Service(service, tag, QueryOptions.Default).ConfigureAwait(false);
+            return Service(service, tag, QueryOptions.Default);
         }
 
         /// <summary>
@@ -218,14 +218,14 @@ namespace Consul
         /// <param name="tag">A tag to filter on</param>
         /// <param name="q">Customized query options</param>
         /// <returns>A list of service instances</returns>
-        public async Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q)
+        public Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q)
         {
             var req = _client.Get<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
             }
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
@@ -233,9 +233,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name</param>
         /// <returns>The node information including a list of services</returns>
-        public async Task<QueryResult<CatalogNode>> Node(string node)
+        public Task<QueryResult<CatalogNode>> Node(string node)
         {
-            return await Node(node, QueryOptions.Default).ConfigureAwait(false);
+            return Node(node, QueryOptions.Default);
         }
 
         /// <summary>
@@ -244,9 +244,9 @@ namespace Consul
         /// <param name="node">The node name</param>
         /// <param name="q">Customized query options</param>
         /// <returns>The node information including a list of services</returns>
-        public async Task<QueryResult<CatalogNode>> Node(string node, QueryOptions q)
+        public Task<QueryResult<CatalogNode>> Node(string node, QueryOptions q)
         {
-            return await _client.Get<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute().ConfigureAwait(false);
+            return _client.Get<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
         }
     }
 

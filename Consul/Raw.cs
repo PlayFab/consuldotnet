@@ -40,9 +40,9 @@ namespace Consul
         /// <param name="endpoint">The URL endpoint to access</param>
         /// <param name="q">Custom query options</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public async Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q)
+        public Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q)
         {
-            return await Query(endpoint, q, CancellationToken.None).ConfigureAwait(false);
+            return Query(endpoint, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -52,9 +52,9 @@ namespace Consul
         /// <param name="q">Custom query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>The data returned by the custom endpoint</returns>
-        public async Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<dynamic>(endpoint, q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<dynamic>(endpoint, q).Execute(ct);
         }
         
         /// <summary>
@@ -64,9 +64,9 @@ namespace Consul
         /// <param name="obj">The object to serialize and send to the endpoint. Must be able to be JSON serialized, or be an object of type byte[], which is sent without serialzation.</param>
         /// <param name="q">Custom write options</param>
         /// <returns>The data returned by the custom endpoint in response to the write request</returns>
-        public async Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q)
+        public Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q)
         {
-            return await _client.Put<object, dynamic>(endpoint, obj, q).Execute().ConfigureAwait(false);
+            return _client.Put<object, dynamic>(endpoint, obj, q).Execute();
         }
     }
 

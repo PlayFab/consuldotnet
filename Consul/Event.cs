@@ -54,9 +54,9 @@ namespace Consul
             _client = c;
         }
 
-        public async Task<WriteResult<string>> Fire(UserEvent ue)
+        public Task<WriteResult<string>> Fire(UserEvent ue)
         {
-            return await Fire(ue, WriteOptions.Default).ConfigureAwait(false);
+            return Fire(ue, WriteOptions.Default);
         }
 
         /// <summary>
@@ -93,9 +93,9 @@ namespace Consul
         /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
         /// </summary>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List()
+        public Task<QueryResult<UserEvent[]>> List()
         {
-            return await List(string.Empty, QueryOptions.Default).ConfigureAwait(false);
+            return List(string.Empty, QueryOptions.Default);
         }
 
         /// <summary>
@@ -103,9 +103,9 @@ namespace Consul
         /// </summary>
         /// <param name="name">The name of the event to filter for</param>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List(string name)
+        public Task<QueryResult<UserEvent[]>> List(string name)
         {
-            return await List(name, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return List(name, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -114,9 +114,9 @@ namespace Consul
         /// <param name="name">The name of the event to filter for</param>
         /// <param name="q">Customized query options</param>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q)
+        public Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q)
         {
-            return await List(name, q, CancellationToken.None).ConfigureAwait(false);
+            return List(name, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -126,14 +126,14 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>An array of events</returns>
-        public async Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q, CancellationToken ct)
         {
             var req = _client.Get<UserEvent[]>("/v1/event/list", q);
             if (!string.IsNullOrEmpty(name))
             {
                 req.Params["name"] = name;
             }
-            return await req.Execute(ct).ConfigureAwait(false);
+            return req.Execute(ct);
         }
 
         /// <summary>
