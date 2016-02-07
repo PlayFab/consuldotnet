@@ -11,6 +11,10 @@
   `Address` property to the Consul server. It is now a `System.Uri`
   named `Address`.
 
+## 2016-02-07
+* Reduce the callstack and task overhead by returning the originating
+  Task where possible.
+
 ## 2016-01-12
 * Rewrote entire API to be `async`.
 * Added Prepared Queries from Consul 0.6.0.
