@@ -63,18 +63,18 @@ namespace Consul
         /// Datacenters is used to return the coordinates of all the servers in the WAN pool.
         /// </summary>
         /// <returns>A query result containing a map of datacenters, each with a list of coordinates of all the servers in the WAN pool</returns>
-        public async Task<QueryResult<CoordinateDatacenterMap[]>> Datacenters()
+        public Task<QueryResult<CoordinateDatacenterMap[]>> Datacenters()
         {
-            return await _client.Get<CoordinateDatacenterMap[]>(string.Format("/v1/coordinate/datacenters")).Execute().ConfigureAwait(false);
+            return _client.Get<CoordinateDatacenterMap[]>(string.Format("/v1/coordinate/datacenters")).Execute();
         }
 
         /// <summary>
         /// Nodes is used to return the coordinates of all the nodes in the LAN pool.
         /// </summary>
         /// <returns>A query result containing coordinates of all the nodes in the LAN pool</returns>
-        public async Task<QueryResult<CoordinateEntry[]>> Nodes()
+        public Task<QueryResult<CoordinateEntry[]>> Nodes()
         {
-            return await Nodes(QueryOptions.Default).ConfigureAwait(false);
+            return Nodes(QueryOptions.Default);
         }
 
         /// <summary>
@@ -82,9 +82,9 @@ namespace Consul
         /// </summary>
         /// <param name="q">Customized query options</param>
         /// <returns>A query result containing coordinates of all the nodes in the LAN pool</returns>
-        public async Task<QueryResult<CoordinateEntry[]>> Nodes(QueryOptions q)
+        public Task<QueryResult<CoordinateEntry[]>> Nodes(QueryOptions q)
         {
-            return await _client.Get<CoordinateEntry[]>(string.Format("/v1/coordinate/nodes"), q).Execute().ConfigureAwait(false);
+            return _client.Get<CoordinateEntry[]>(string.Format("/v1/coordinate/nodes"), q).Execute();
         }
     }
 

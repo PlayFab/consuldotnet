@@ -325,9 +325,9 @@ namespace Consul
         /// Self is used to query the agent we are speaking to for information about itself
         /// </summary>
         /// <returns>A somewhat dynamic object representing the various data elements in Self</returns>
-        public async Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> Self()
+        public Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> Self()
         {
-            return await _client.Get<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self").Execute().ConfigureAwait(false);
+            return _client.Get<Dictionary<string, Dictionary<string, dynamic>>>("/v1/agent/self").Execute();
         }
 
         /// <summary>
@@ -350,33 +350,32 @@ namespace Consul
         /// Checks returns the locally registered checks
         /// </summary>
         /// <returns>A map of the registered check names and check data</returns>
-        public async Task<QueryResult<Dictionary<string, AgentCheck>>> Checks()
+        public Task<QueryResult<Dictionary<string, AgentCheck>>> Checks()
         {
-            return await _client.Get<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute().ConfigureAwait(false);
+            return _client.Get<Dictionary<string, AgentCheck>>("/v1/agent/checks").Execute();
         }
 
         /// <summary>
         /// Services returns the locally registered services
         /// </summary>
         /// <returns>A map of the registered services and service data</returns>
-        public async Task<QueryResult<Dictionary<string, AgentService>>> Services()
+        public Task<QueryResult<Dictionary<string, AgentService>>> Services()
         {
-            var req = await _client.Get<Dictionary<string, AgentService>>("/v1/agent/services").Execute().ConfigureAwait(false);
-            return req;
+            return _client.Get<Dictionary<string, AgentService>>("/v1/agent/services").Execute();
         }
 
         /// <summary>
         /// Members returns the known gossip members. The WAN flag can be used to query a server for WAN members.
         /// </summary>
         /// <returns>An array of gossip peers</returns>
-        public async Task<QueryResult<AgentMember[]>> Members(bool wan)
+        public Task<QueryResult<AgentMember[]>> Members(bool wan)
         {
             var req = _client.Get<AgentMember[]>("/v1/agent/members");
             if (wan)
             {
                 req.Params["wan"] = "1";
             }
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
@@ -384,9 +383,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">A service registration object</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> ServiceRegister(AgentServiceRegistration service)
+        public Task<WriteResult> ServiceRegister(AgentServiceRegistration service)
         {
-            return await _client.Put("/v1/agent/service/register", service).Execute().ConfigureAwait(false);
+            return _client.Put("/v1/agent/service/register", service).Execute();
         }
 
         /// <summary>
@@ -394,9 +393,9 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> ServiceDeregister(string serviceID)
+        public Task<WriteResult> ServiceDeregister(string serviceID)
         {
-            return await _client.Put(string.Format("/v1/agent/service/deregister/{0}", serviceID)).Execute().ConfigureAwait(false);
+            return _client.Put(string.Format("/v1/agent/service/deregister/{0}", serviceID)).Execute();
         }
 
         /// <summary>
@@ -404,9 +403,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task PassTTL(string checkID, string note)
+        public Task PassTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Pass).ConfigureAwait(false);
+            return UpdateTTL(checkID, note, TTLStatus.Pass);
         }
 
         /// <summary>
@@ -414,9 +413,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task WarnTTL(string checkID, string note)
+        public Task WarnTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Warn).ConfigureAwait(false);
+            return UpdateTTL(checkID, note, TTLStatus.Warn);
         }
 
         /// <summary>
@@ -424,9 +423,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
-        public async Task FailTTL(string checkID, string note)
+        public Task FailTTL(string checkID, string note)
         {
-            await UpdateTTL(checkID, note, TTLStatus.Fail).ConfigureAwait(false);
+            return UpdateTTL(checkID, note, TTLStatus.Fail);
         }
 
         /// <summary>
@@ -436,12 +435,12 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         /// <param name="status">The state to set the check to</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> UpdateTTL(string checkID, string note, TTLStatus status)
+        public Task<WriteResult> UpdateTTL(string checkID, string note, TTLStatus status)
         {
             var request = _client.Put(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
             if (!string.IsNullOrEmpty(note))
                 request.Params.Add("note", Uri.EscapeDataString(note));
-            return await request.Execute().ConfigureAwait(false);
+            return request.Execute();
         }
 
         /// <summary>
@@ -449,9 +448,9 @@ namespace Consul
         /// </summary>
         /// <param name="check">A check registration object</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> CheckRegister(AgentCheckRegistration check)
+        public Task<WriteResult> CheckRegister(AgentCheckRegistration check)
         {
-            return await _client.Put("/v1/agent/check/register", check).Execute().ConfigureAwait(false);
+            return _client.Put("/v1/agent/check/register", check).Execute();
         }
 
         /// <summary>
@@ -459,9 +458,9 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID to deregister</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> CheckDeregister(string checkID)
+        public Task<WriteResult> CheckDeregister(string checkID)
         {
-            return await _client.Put(string.Format("/v1/agent/check/deregister/{0}", checkID)).Execute().ConfigureAwait(false);
+            return _client.Put(string.Format("/v1/agent/check/deregister/{0}", checkID)).Execute();
         }
 
         /// <summary>
@@ -470,14 +469,14 @@ namespace Consul
         /// <param name="addr">The address to join to</param>
         /// <param name="wan">Join the WAN pool</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> Join(string addr, bool wan)
+        public Task<WriteResult> Join(string addr, bool wan)
         {
             var req = _client.Put(string.Format("/v1/agent/join/{0}", addr));
             if (wan)
             {
                 req.Params["wan"] = "1";
             }
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
@@ -485,9 +484,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name to remove. An attempt to eject a node that doesn't exist will still be successful</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> ForceLeave(string node)
+        public Task<WriteResult> ForceLeave(string node)
         {
-            return await _client.Put(string.Format("/v1/agent/force-leave/{0}", node)).Execute().ConfigureAwait(false);
+            return _client.Put(string.Format("/v1/agent/force-leave/{0}", node)).Execute();
         }
 
         /// <summary>
@@ -496,12 +495,12 @@ namespace Consul
         /// <param name="serviceID">The service ID</param>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> EnableServiceMaintenance(string serviceID, string reason)
+        public Task<WriteResult> EnableServiceMaintenance(string serviceID, string reason)
         {
             var req = _client.Put(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
@@ -509,11 +508,11 @@ namespace Consul
         /// </summary>
         /// <param name="serviceID">The service ID</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> DisableServiceMaintenance(string serviceID)
+        public Task<WriteResult> DisableServiceMaintenance(string serviceID)
         {
             var req = _client.Put(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "false";
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
@@ -521,23 +520,23 @@ namespace Consul
         /// </summary>
         /// <param name="reason">An optional reason</param>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> EnableNodeMaintenance(string reason)
+        public Task<WriteResult> EnableNodeMaintenance(string reason)
         {
             var req = _client.Put("/v1/agent/maintenance");
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
 
         /// <summary>
         /// DisableNodeMaintenance toggles node maintenance mode off for the agent we are connected to
         /// </summary>
         /// <returns>An empty write result</returns>
-        public async Task<WriteResult> DisableNodeMaintenance()
+        public Task<WriteResult> DisableNodeMaintenance()
         {
             var req = _client.Put("/v1/agent/maintenance");
             req.Params["enable"] = "false";
-            return await req.Execute().ConfigureAwait(false);
+            return req.Execute();
         }
     }
 

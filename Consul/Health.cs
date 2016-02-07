@@ -64,9 +64,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Checks(string service)
+        public Task<QueryResult<HealthCheck[]>> Checks(string service)
         {
-            return await Checks(service, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Checks(service, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -74,9 +74,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Checks(string service, QueryOptions q)
+        public Task<QueryResult<HealthCheck[]>> Checks(string service, QueryOptions q)
         {
-            return await Checks(service, q, CancellationToken.None).ConfigureAwait(false);
+            return Checks(service, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -86,9 +86,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the health checks matching the provided service ID, or a query result with a null response if no service matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Checks(string service, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<HealthCheck[]>> Checks(string service, QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<HealthCheck[]>(string.Format("/v1/health/checks/{0}", service), q).Execute(ct);
         }
 
         /// <summary>
@@ -96,9 +96,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Node(string node)
+        public Task<QueryResult<HealthCheck[]>> Node(string node)
         {
-            return await Node(node, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Node(node, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -106,9 +106,9 @@ namespace Consul
         /// </summary>
         /// <param name="node">The node name</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Node(string node, QueryOptions q)
+        public Task<QueryResult<HealthCheck[]>> Node(string node, QueryOptions q)
         {
-            return await Node(node, q, CancellationToken.None).ConfigureAwait(false);
+            return Node(node, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -118,9 +118,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the health checks matching the provided node ID, or a query result with a null response if no node matched the provided ID</returns>
-        public async Task<QueryResult<HealthCheck[]>> Node(string node, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<HealthCheck[]>> Node(string node, QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<HealthCheck[]>(string.Format("/v1/health/node/{0}", node), q).Execute(ct);
         }
 
         /// <summary>
@@ -128,9 +128,9 @@ namespace Consul
         /// </summary>
         /// <param name="service">The service ID</param>
         /// <returns>A query result containing the service members matching the provided service ID, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service)
+        public Task<QueryResult<ServiceEntry[]>> Service(string service)
         {
-            return await Service(service, string.Empty, false, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Service(service, string.Empty, false, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -139,9 +139,9 @@ namespace Consul
         /// <param name="service">The service ID</param>
         /// <param name="tag">The service member tag</param>
         /// <returns>A query result containing the service members matching the provided service ID and tag, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag)
+        public Task<QueryResult<ServiceEntry[]>> Service(string service, string tag)
         {
-            return await Service(service, tag, false, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Service(service, tag, false, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -151,9 +151,9 @@ namespace Consul
         /// <param name="tag">The service member tag</param>
         /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly)
+        public Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly)
         {
-            return await Service(service, tag, passingOnly, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return Service(service, tag, passingOnly, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -163,9 +163,9 @@ namespace Consul
         /// <param name="tag">The service member tag</param>
         /// <param name="passingOnly">Only return if the health check is in the Passing state</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly, QueryOptions q)
+        public Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly, QueryOptions q)
         {
-            return await Service(service, tag, passingOnly, q, CancellationToken.None).ConfigureAwait(false);
+            return Service(service, tag, passingOnly, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -177,7 +177,7 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the service members matching the provided service ID, tag, and health status, or a query result with a null response if no service members matched the filters provided</returns>
-        public async Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<ServiceEntry[]>> Service(string service, string tag, bool passingOnly, QueryOptions q, CancellationToken ct)
         {
             var req = _client.Get<ServiceEntry[]>(string.Format("/v1/health/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
@@ -188,7 +188,7 @@ namespace Consul
             {
                 req.Params["passing"] = "1";
             }
-            return await req.Execute(ct).ConfigureAwait(false);
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -196,9 +196,9 @@ namespace Consul
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public async Task<QueryResult<HealthCheck[]>> State(CheckStatus status)
+        public Task<QueryResult<HealthCheck[]>> State(CheckStatus status)
         {
-            return await State(status, QueryOptions.Default, CancellationToken.None).ConfigureAwait(false);
+            return State(status, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -206,9 +206,9 @@ namespace Consul
         /// </summary>
         /// <param name="status">The health status to filter for</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public async Task<QueryResult<HealthCheck[]>> State(CheckStatus status, QueryOptions q)
+        public Task<QueryResult<HealthCheck[]>> State(CheckStatus status, QueryOptions q)
         {
-            return await State(status, q, CancellationToken.None).ConfigureAwait(false);
+            return State(status, q, CancellationToken.None);
         }
 
         /// <summary>
@@ -218,9 +218,9 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing a list of health checks in the specified state, or a query result with a null response if no health checks matched the provided state</returns>
-        public async Task<QueryResult<HealthCheck[]>> State(CheckStatus status, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<HealthCheck[]>> State(CheckStatus status, QueryOptions q, CancellationToken ct)
         {
-            return await _client.Get<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q).Execute(ct).ConfigureAwait(false);
+            return _client.Get<HealthCheck[]>(string.Format("/v1/health/state/{0}", status.Status), q).Execute(ct);
         }
     }
 
