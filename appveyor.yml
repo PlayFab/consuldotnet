@@ -12,10 +12,10 @@ assembly_info:
   assembly_file_version: $(APPVEYOR_BUILD_VERSION)
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:
-  CONSUL_VERSION: 0.6.1
+  CONSUL_VERSION: 0.6.3
 install:
 - ps: >-
-    $consul_version = '0.6.1'
+    $consul_version = '0.6.3'
     
     choco install 7zip.commandline
 
