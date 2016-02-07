@@ -526,7 +526,7 @@ namespace Consul
             Options = options ?? QueryOptions.Default;
         }
 
-        public async Task<QueryResult<T>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<QueryResult<T>> Execute() { return Execute(CancellationToken.None); }
         public async Task<QueryResult<T>> Execute(CancellationToken ct)
         {
             var start = DateTime.UtcNow;
@@ -658,7 +658,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
@@ -726,7 +726,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
@@ -794,7 +794,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
             timer.Start();
@@ -861,7 +861,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
             timer.Start();
@@ -939,7 +939,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
@@ -1027,7 +1027,7 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public async Task<WriteResult<TOut>> Execute() { return await Execute(CancellationToken.None).ConfigureAwait(false); }
+        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             timer.Start();
