@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -40,7 +41,7 @@ namespace Consul.Test
             var res = await client.ACL.Create(aclEntry);
             var id = res.Response;
 
-            Assert.NotEqual(0, res.RequestTime.TotalMilliseconds);
+            Assert.NotEqual(TimeSpan.Zero, res.RequestTime);
             Assert.False(string.IsNullOrEmpty(res.Response));
 
             var aclEntry2 = await client.ACL.Info(id);
@@ -72,7 +73,7 @@ namespace Consul.Test
 
             var id = cloneRequest.Response;
 
-            Assert.NotEqual(0, cloneRequest.RequestTime.TotalMilliseconds);
+            Assert.NotEqual(TimeSpan.Zero, cloneRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(aclID));
 
             Assert.True((await client.ACL.Destroy(id)).Response);
@@ -88,7 +89,7 @@ namespace Consul.Test
             var aclEntry = await client.ACL.Info(ConsulRoot);
 
             Assert.NotNull(aclEntry.Response);
-            Assert.NotEqual(aclEntry.RequestTime.TotalMilliseconds, 0);
+            Assert.NotEqual(TimeSpan.Zero, aclEntry.RequestTime);
             Assert.Equal(aclEntry.Response.ID, ConsulRoot);
             Assert.Equal(aclEntry.Response.Type, ACLType.Management);
         }
@@ -103,7 +104,7 @@ namespace Consul.Test
             var aclList = await client.ACL.List();
 
             Assert.NotNull(aclList.Response);
-            Assert.NotEqual(aclList.RequestTime.TotalMilliseconds, 0);
+            Assert.NotEqual(TimeSpan.Zero, aclList.RequestTime);
             Assert.True(aclList.Response.Length >= 2);
         }
     }

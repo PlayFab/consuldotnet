@@ -31,7 +31,7 @@ namespace Consul.Test
             var client = new ConsulClient();
             var sessionRequest = await client.Session.Create();
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var destroyRequest = await client.Session.Destroy(id);
@@ -45,7 +45,7 @@ namespace Consul.Test
             var sessionRequest = await client.Session.CreateNoChecks();
 
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var destroyRequest = await client.Session.Destroy(id);
@@ -59,11 +59,11 @@ namespace Consul.Test
             var sessionRequest = await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var renewRequest = await client.Session.Renew(id);
-            Assert.True(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, renewRequest.RequestTime);
             Assert.NotNull(renewRequest.Response.ID);
             Assert.Equal(sessionRequest.Response, renewRequest.Response.ID);
             Assert.True(renewRequest.Response.TTL.HasValue);
@@ -80,11 +80,11 @@ namespace Consul.Test
             var sessionRequest = await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var renewRequest = await client.Session.Renew(id);
-            Assert.True(renewRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, renewRequest.RequestTime);
             Assert.NotNull(renewRequest.Response.ID);
             Assert.Equal(sessionRequest.Response, renewRequest.Response.ID);
             Assert.Equal(renewRequest.Response.TTL.Value.TotalSeconds, TimeSpan.FromSeconds(10).TotalSeconds);
@@ -110,7 +110,7 @@ namespace Consul.Test
             var sessionRequest = await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(10) });
 
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var tokenSource = new CancellationTokenSource();
@@ -144,7 +144,7 @@ namespace Consul.Test
             var sessionRequest = await client.Session.Create(new SessionEntry() { TTL = TimeSpan.FromSeconds(500) });
 
             var id = sessionRequest.Response;
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var tokenSource = new CancellationTokenSource();
@@ -180,7 +180,7 @@ namespace Consul.Test
 
             var id = sessionRequest.Response;
 
-            Assert.True(sessionRequest.RequestTime.TotalMilliseconds > 0);
+            Assert.NotEqual(TimeSpan.Zero, sessionRequest.RequestTime);
             Assert.False(string.IsNullOrEmpty(sessionRequest.Response));
 
             var infoRequest = await client.Session.Info(id);

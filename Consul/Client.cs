@@ -420,6 +420,14 @@ namespace Consul
             Dispose(true);
             GC.SuppressFinalize(this);
         }
+
+        public void CheckDisposed()
+        {
+            if (disposedValue)
+            {
+                throw new ObjectDisposedException(typeof(ConsulClient).FullName.ToString());
+            }
+        }
         #endregion
 
         internal GetRequest<T> Get<T>(string path, QueryOptions opts = null)
@@ -555,7 +563,8 @@ namespace Consul
         public Task<QueryResult<T>> Execute() { return Execute(CancellationToken.None); }
         public async Task<QueryResult<T>> Execute(CancellationToken ct)
         {
-            var start = DateTime.UtcNow;
+            Client.CheckDisposed();
+            timer.Start();
             var result = new QueryResult<T>();
 
             var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
@@ -584,7 +593,8 @@ namespace Consul
                 result.Response = Deserialize<T>(ResponseStream);
             }
 
-            result.RequestTime = DateTime.UtcNow - start;
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
 
             return result;
         }
@@ -687,6 +697,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -755,6 +766,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -823,6 +835,7 @@ namespace Consul
         public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult();
 
@@ -890,6 +903,7 @@ namespace Consul
         public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult();
 
@@ -968,6 +982,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -1056,6 +1071,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
