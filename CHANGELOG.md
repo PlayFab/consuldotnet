@@ -10,6 +10,15 @@
 * The `ConsulClientConfiguration` class no longer accepts a string
   `Address` property to the Consul server. It is now a `System.Uri`
   named `Address`.
+* `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
+  clean it up. It is still supposed to be used in a long-lived fashion, though.
+
+## 2016-02-09
+* Implemented the IDisposable Pattern for the `ConsulClient` class.
+  `ConsulClient` objects should now have `Dispose()` called on them to properly
+  clean up. Thanks @TMaster!
+* Cleaned up the Prepared Queries endpoint stack.
+* Fixed a timing bug in one of the client execute calls.
 
 ## 2016-02-09
 * Implemented the IDisposable Pattern for the `ConsulClient` class.
@@ -18,7 +27,7 @@
 
 ## 2016-02-07
 * Reduce the callstack and task overhead by returning the originating
-  Task where possible.
+  Task where possible. Thanks @TMaster!
 
 ## 2016-01-12
 * Rewrote entire API to be `async`.

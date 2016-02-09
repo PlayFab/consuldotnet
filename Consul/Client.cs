@@ -401,6 +401,10 @@ namespace Consul
                     {
                         HttpClient.Dispose();
                     }
+                    if (Config.Handler != null)
+                    {
+                        Config.Handler.Dispose();
+                    }
                 }
 
                 disposedValue = true;
