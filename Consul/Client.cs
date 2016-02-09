@@ -361,7 +361,7 @@ namespace Consul
     /// <summary>
     /// Represents a persistant connection to a Consul agent. Instances of this class should be created rarely and reused often.
     /// </summary>
-    public partial class ConsulClient
+    public partial class ConsulClient :IDisposable
     {
         private object _lock = new object();
         internal HttpClient HttpClient { get; set; }
@@ -388,13 +388,47 @@ namespace Consul
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
         }
 
-        ~ConsulClient()
+        #region IDisposable Support
+        private bool disposedValue = false; // To detect redundant calls
+
+        protected virtual void Dispose(bool disposing)
         {
-            if (HttpClient != null)
+            if (!disposedValue)
             {
-                HttpClient.Dispose();
+                if (disposing)
+                {
+                    if (HttpClient != null)
+                    {
+                        HttpClient.Dispose();
+                    }
+                }
+
+                disposedValue = true;
             }
         }
+
+        ~ConsulClient()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(false);
+        }
+
+        // This code added to correctly implement the disposable pattern.
+        public void Dispose()
+        {
+            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void CheckDisposed()
+        {
+            if (disposedValue)
+            {
+                throw new ObjectDisposedException(typeof(ConsulClient).FullName.ToString());
+            }
+        }
+        #endregion
 
         internal GetRequest<T> Get<T>(string path, QueryOptions opts = null)
         {
@@ -529,7 +563,8 @@ namespace Consul
         public Task<QueryResult<T>> Execute() { return Execute(CancellationToken.None); }
         public async Task<QueryResult<T>> Execute(CancellationToken ct)
         {
-            var start = DateTime.UtcNow;
+            Client.CheckDisposed();
+            timer.Start();
             var result = new QueryResult<T>();
 
             var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
@@ -558,7 +593,8 @@ namespace Consul
                 result.Response = Deserialize<T>(ResponseStream);
             }
 
-            result.RequestTime = DateTime.UtcNow - start;
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
 
             return result;
         }
@@ -661,6 +697,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -729,6 +766,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -797,6 +835,7 @@ namespace Consul
         public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult();
 
@@ -864,6 +903,7 @@ namespace Consul
         public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult();
 
@@ -942,6 +982,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 
@@ -1030,6 +1071,7 @@ namespace Consul
         public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
+            Client.CheckDisposed();
             timer.Start();
             var result = new WriteResult<TOut>();
 

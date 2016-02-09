@@ -1,22 +1,4 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="ClientTest.cs" company="PlayFab Inc">
-//    Copyright 2015 PlayFab Inc.
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-//  </copyright>
-// -----------------------------------------------------------------------
-
-using System;
+﻿using System;
 using System.Net;
 using System.Net.Http;
 using System.Net.Security;
@@ -75,14 +57,9 @@ namespace Consul.Test
                 Token = "12345"
             };
             var request = client.Get<KVPair>("/v1/kv/foo", opts);
-            try
-            {
-                await request.Execute();
-            }
-            catch (Exception)
-            {
-                // ignored
-            }
+
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
+
             Assert.Equal("foo", request.Params["dc"]);
             Assert.True(request.Params.ContainsKey("consistent"));
             Assert.Equal("1000", request.Params["index"]);
@@ -101,18 +78,29 @@ namespace Consul.Test
                 Token = "12345"
             };
 
-            var request = client.Put<KVPair>("/v1/kv/foo", new KVPair("kv/foo"), opts);
-            try
-            {
-                await request.Execute();
-            }
-            catch (Exception)
-            {
-                // ignored
-            }
+            var request = client.Put("/v1/kv/foo", new KVPair("kv/foo"), opts);
+
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
 
             Assert.Equal("foo", request.Params["dc"]);
             Assert.Equal("12345", request.Params["token"]);
+        }
+
+        [Fact]
+        public async Task Client_DisposeBehavior()
+        {
+            var client = new ConsulClient();
+            var opts = new WriteOptions()
+            {
+                Datacenter = "foo",
+                Token = "12345"
+            };
+
+            client.Dispose();
+
+            var request = client.Put("/v1/kv/foo", new KVPair("kv/foo"), opts);
+
+            await Assert.ThrowsAsync<ObjectDisposedException>(() => request.Execute());
         }
     }
 }
