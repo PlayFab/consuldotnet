@@ -251,6 +251,37 @@ namespace Consul.Test
         }
 
         [Fact]
+        public async Task Agent_Checks_Docker()
+        {
+            using (var client = new ConsulClient())
+            {
+                var serviceReg = new AgentServiceRegistration()
+                {
+                    Name = "redis"
+                };
+                await client.Agent.ServiceRegister(serviceReg);
+
+                var reg = new AgentCheckRegistration()
+                {
+                    Name = "redischeck",
+                    ServiceID = "redis",
+                    DockerContainerID = "f972c95ebf0e",
+                    Script = "/bin/true",
+                    Shell = "/bin/bash",
+                    Interval = TimeSpan.FromSeconds(10)
+                };
+                await client.Agent.CheckRegister(reg);
+
+                var checks = await client.Agent.Checks();
+                Assert.True(checks.Response.ContainsKey("redischeck"));
+                Assert.Equal("redis", checks.Response["redischeck"].ServiceID);
+
+                await client.Agent.CheckDeregister("redischeck");
+                await client.Agent.ServiceDeregister("redis");
+            }
+        }
+
+        [Fact]
         public async Task Agent_CheckStartPassing()
         {
             var client = new ConsulClient();
