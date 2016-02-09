@@ -134,7 +134,7 @@ namespace Consul
         public static readonly TimeSpan DefaultLockWaitTime = TimeSpan.FromSeconds(15);
 
         /// <summary>
-        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting to do the lock again. This is so that once a lock-delay is in affect, we do not hot loop retrying the acquisition.
+        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting to do the lock again. This is so that once a lock-delay is in effect, we do not hot loop retrying the acquisition.
         /// </summary>
         public static readonly TimeSpan DefaultLockRetryTime = TimeSpan.FromSeconds(5);
 
@@ -146,6 +146,7 @@ namespace Consul
         private readonly object _lock = new object();
         private readonly object _heldLock = new object();
         private bool _isheld;
+        private int _retries;
 
         private CancellationTokenSource _cts;
         private Task _sessionRenewTask;
@@ -237,7 +238,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            throw new InvalidOperationException("Failed to create session", ex);
+                            throw new ConsulRequestException("Failed to create session", ex);
                         }
                     }
                     else
@@ -259,7 +260,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            throw new ApplicationException("Failed to read lock key", ex);
+                            throw new ConsulRequestException("Failed to read lock key", ex);
                         }
 
                         if (pair.Response != null)
@@ -437,30 +438,48 @@ namespace Consul
                 try
                 {
                     var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
+                    _retries = Opts.MonitorRetries;
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        // Check to see if the current session holds the lock
-                        var pair = await _client.KV.Get(Opts.Key, opts).ConfigureAwait(false);
-                        if (pair.Response != null)
+                        try
                         {
-                            // Lock is no longer held! Shut down everything.
-                            if (pair.Response.Session != Opts.Session)
+                            // Check to see if the current session holds the lock
+                            var pair = await _client.KV.Get(Opts.Key, opts).ConfigureAwait(false);
+                            if (pair.Response != null)
                             {
+                                _retries = Opts.MonitorRetries;
+                                // Lock is no longer held! Shut down everything.
+                                if (pair.Response.Session != Opts.Session)
+                                {
+                                    IsHeld = false;
+                                    _cts.Cancel();
+                                    return;
+                                }
+                                // Lock is still held, start a blocking query
+                                opts.WaitIndex = pair.LastIndex;
+                                continue;
+                            }
+                            else
+                            {
+                                // Failsafe in case the KV store is unavailable
                                 IsHeld = false;
                                 _cts.Cancel();
                                 return;
                             }
-                            // Lock is still held, start a blocking query
-                            opts.WaitIndex = pair.LastIndex;
                         }
-                        else
+                        catch (Exception)
                         {
-                            // Failsafe in case the KV store is unavailable
-                            IsHeld = false;
-                            _cts.Cancel();
-                            return;
+                            if (_retries > 0)
+                            {
+                                await Task.Delay(Opts.MonitorRetryTime).ConfigureAwait(false);
+                                _retries--;
+                                opts.WaitIndex = 0;
+                                continue;
+                            }
+                            throw;
                         }
                     }
+
                 }
                 finally
                 {
@@ -538,18 +557,29 @@ namespace Consul
         /// DefaultLockSessionTTL is the default session TTL if no Session is provided when creating a new Lock. This is used because we do not have another other check to depend upon.
         /// </summary>
         private readonly TimeSpan DefaultLockSessionTTL = TimeSpan.FromSeconds(15);
+        
+        /// <summary>
+        /// DefaultMonitorRetryTime is how long we wait after a failed monitor check
+        /// of a lock (500 response code). This allows the monitor to ride out brief
+        /// periods of unavailability, subject to the MonitorRetries setting in the
+        /// lock options which is by default set to 0, disabling this feature.
+        /// </summary>
+        public static readonly TimeSpan DefaultMonitorRetryTime = TimeSpan.FromSeconds(2);
 
         public string Key { get; set; }
         public byte[] Value { get; set; }
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
+        public int MonitorRetries { get; set; }
+        public TimeSpan MonitorRetryTime { get; set; }
 
         public LockOptions(string key)
         {
             Key = key;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
+            MonitorRetryTime = DefaultMonitorRetryTime;
         }
     }
 

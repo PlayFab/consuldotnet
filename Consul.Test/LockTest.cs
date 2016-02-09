@@ -24,7 +24,7 @@ using Xunit;
 
 namespace Consul.Test
 {
-    [Trait("speed","slow")]
+    [Trait("speed", "slow")]
     public class LockTest
     {
         [Fact]
