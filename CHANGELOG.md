@@ -11,6 +11,11 @@
   `Address` property to the Consul server. It is now a `System.Uri`
   named `Address`.
 
+## 2016-02-09
+* Implemented the IDisposable Pattern for the `ConsulClient` class.
+  `ConsulClient` objects should now have `Dispose()` called on them to properly
+  clean up.
+
 ## 2016-02-07
 * Reduce the callstack and task overhead by returning the originating
   Task where possible.
