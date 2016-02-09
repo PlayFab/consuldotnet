@@ -171,9 +171,9 @@ namespace Consul
             _client = c;
         }
 
-        public async Task<WriteResult<string>> Create(PreparedQueryDefinition query)
+        public Task<WriteResult<string>> Create(PreparedQueryDefinition query)
         {
-            return await Create(query, WriteOptions.Default).ConfigureAwait(false);
+            return Create(query, WriteOptions.Default);
         }
 
         public async Task<WriteResult<string>> Create(PreparedQueryDefinition query, WriteOptions q)
@@ -186,54 +186,58 @@ namespace Consul
             };
         }
 
-        public async Task<WriteResult> Delete(string queryID)
+        public Task<WriteResult> Delete(string queryID)
         {
-            return await Delete(queryID, WriteOptions.Default).ConfigureAwait(false);
+            return Delete(queryID, WriteOptions.Default);
         }
 
         public async Task<WriteResult> Delete(string queryID, WriteOptions q)
         {
-            return await _client.Delete<string>(string.Format("/v1/query/{0}", queryID), q).Execute().ConfigureAwait(false);
+            var res = await _client.Delete<string>(string.Format("/v1/query/{0}", queryID), q).Execute();
+            return new WriteResult
+            {
+                RequestTime = res.RequestTime
+            };
         }
 
-        public async Task<QueryResult<PreparedQueryExecuteResponse>> Execute(string queryIDOrName)
+        public Task<QueryResult<PreparedQueryExecuteResponse>> Execute(string queryIDOrName)
         {
-            return await Execute(queryIDOrName, QueryOptions.Default).ConfigureAwait(false);
+            return Execute(queryIDOrName, QueryOptions.Default);
         }
 
-        public async Task<QueryResult<PreparedQueryExecuteResponse>> Execute(string queryIDOrName, QueryOptions q)
+        public Task<QueryResult<PreparedQueryExecuteResponse>> Execute(string queryIDOrName, QueryOptions q)
         {
-            return await _client.Get<PreparedQueryExecuteResponse>(string.Format("/v1/query/{0}/execute", queryIDOrName), q).Execute().ConfigureAwait(false);
+            return _client.Get<PreparedQueryExecuteResponse>(string.Format("/v1/query/{0}/execute", queryIDOrName), q).Execute();
         }
 
-        public async Task<QueryResult<PreparedQueryDefinition[]>> Get(string queryID)
+        public Task<QueryResult<PreparedQueryDefinition[]>> Get(string queryID)
         {
-            return await Get(queryID, QueryOptions.Default).ConfigureAwait(false);
+            return Get(queryID, QueryOptions.Default);
         }
 
-        public async Task<QueryResult<PreparedQueryDefinition[]>> Get(string queryID, QueryOptions q)
+        public Task<QueryResult<PreparedQueryDefinition[]>> Get(string queryID, QueryOptions q)
         {
-            return await _client.Get<PreparedQueryDefinition[]>(string.Format("/v1/query/{0}", queryID), q).Execute().ConfigureAwait(false);
+            return _client.Get<PreparedQueryDefinition[]>(string.Format("/v1/query/{0}", queryID), q).Execute();
         }
 
-        public async Task<QueryResult<PreparedQueryDefinition[]>> List()
+        public Task<QueryResult<PreparedQueryDefinition[]>> List()
         {
-            return await List(QueryOptions.Default);
+            return List(QueryOptions.Default);
         }
 
-        public async Task<QueryResult<PreparedQueryDefinition[]>> List(QueryOptions q)
+        public Task<QueryResult<PreparedQueryDefinition[]>> List(QueryOptions q)
         {
-            return await _client.Get<PreparedQueryDefinition[]>("/v1/query", q).Execute().ConfigureAwait(false);
+            return _client.Get<PreparedQueryDefinition[]>("/v1/query", q).Execute();
         }
 
-        public async Task<WriteResult> Update(PreparedQueryDefinition query)
+        public Task<WriteResult> Update(PreparedQueryDefinition query)
         {
-            return await Update(query, WriteOptions.Default);
+            return Update(query, WriteOptions.Default);
         }
 
-        public async Task<WriteResult> Update(PreparedQueryDefinition query, WriteOptions q)
+        public Task<WriteResult> Update(PreparedQueryDefinition query, WriteOptions q)
         {
-            return await _client.Put(string.Format("/v1/query/{0}", query.ID), query, q).Execute().ConfigureAwait(false);
+            return _client.Put(string.Format("/v1/query/{0}", query.ID), query, q).Execute();
         }
     }
 
