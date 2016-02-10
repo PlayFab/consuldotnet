@@ -187,7 +187,7 @@ namespace Consul
                         }
                         try
                         {
-                            Task.Delay(waitDuration, ct).Wait(ct);
+                            await Task.Delay(waitDuration, ct).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
@@ -196,7 +196,7 @@ namespace Consul
 
                         try
                         {
-                            var res = await Renew(id, q);
+                            var res = await Renew(id, q).ConfigureAwait(false);
                             initialTTL = res.Response.TTL ?? TimeSpan.Zero;
                             waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                             lastRenewTime = DateTime.Now;
@@ -220,7 +220,7 @@ namespace Consul
                 {
                     if (ct.IsCancellationRequested)
                     {
-                        await _client.Session.Destroy(id);
+                        await _client.Session.Destroy(id).ConfigureAwait(false);
                     }
                 }
             });
