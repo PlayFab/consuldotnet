@@ -35,11 +35,6 @@
   `LockOptions` class and the `SemaphoreWaitTime` and `SemaphoreTryOnce` fields
   on the `SemaphoreOptions` class.
 
-## 2016-02-09
-* Implemented the IDisposable Pattern for the `ConsulClient` class.
-  `ConsulClient` objects should now have `Dispose()` called on them to properly
-  clean up.
-
 ## 2016-02-07
 * Reduce the callstack and task overhead by returning the originating
   Task where possible. Thanks @TMaster!
