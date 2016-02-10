@@ -19,6 +19,16 @@
   clean up. Thanks @TMaster!
 * Cleaned up the Prepared Queries endpoint stack.
 * Fixed a timing bug in one of the client execute calls.
+* Added Docker checks
+* Added the ability for Semaphores and Locks to ride out brief periods of
+  failure using the `MonitorRetries` and `MonitorRetryTime` fields in
+  `LockOptions` and `SemaphoreOptions` classes.
+* Added the ability for Semaphores and Locks to have configureable WaitTime
+  values, as well as to operate in `TryOnce` mode, which means it attempts to
+  acquire once and throws an exception if the acquisition was not successful.
+  To use these, set the `LockWaitTime` and `LockTryOnce` fields on the
+  `LockOptions` class and the `SemaphoreWaitTime` and `SemaphoreTryOnce` fields
+  on the `SemaphoreOptions` class.
 
 ## 2016-02-09
 * Implemented the IDisposable Pattern for the `ConsulClient` class.

@@ -24,7 +24,7 @@ using Xunit;
 
 namespace Consul.Test
 {
-    [Trait("speed","slow")]
+    [Trait("speed", "slow")]
     public class LockTest
     {
         [Fact]
@@ -68,6 +68,46 @@ namespace Consul.Test
             }
 
             Assert.False(lockKey.IsHeld);
+        }
+
+        [Fact]
+        public void Lock_OneShot()
+        {
+            var client = new ConsulClient();
+            const string keyName = "test/lock/oneshot";
+            var lockOptions = new LockOptions(keyName)
+            {
+                LockTryOnce = true
+            };
+
+            Assert.Equal(Lock.DefaultLockWaitTime, lockOptions.LockWaitTime);
+
+            lockOptions.LockWaitTime = TimeSpan.FromMilliseconds(250);
+
+            var lockKey = client.CreateLock(lockOptions);
+
+            lockKey.Acquire(CancellationToken.None);
+
+            var contender = client.CreateLock(new LockOptions(keyName)
+            {
+                LockTryOnce = true,
+                LockWaitTime = TimeSpan.FromMilliseconds(250)
+            });
+
+            Task.WaitAny(Task.Run(() =>
+            {
+                Assert.Throws<LockMaxAttemptsReachedException>(() => 
+                contender.Acquire()
+                );
+            }),
+            Task.Delay(2 * lockOptions.LockWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
+            );
+
+            lockKey.Release();
+
+            contender.Acquire();
+            contender.Release();
+            contender.Destroy();
         }
 
         [Fact]

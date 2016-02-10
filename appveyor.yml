@@ -1,4 +1,4 @@
-version: 0.6.1.{build}-{branch}
+version: 0.6.3.{build}-{branch}
 configuration: Release
 platform: Any CPU
 clone_depth: 1

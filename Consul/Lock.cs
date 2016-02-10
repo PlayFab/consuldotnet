@@ -1,22 +1,4 @@
-﻿// -----------------------------------------------------------------------
-//  <copyright file="Lock.cs" company="PlayFab Inc">
-//    Copyright 2015 PlayFab Inc.
-//
-//    Licensed under the Apache License, Version 2.0 (the "License");
-//    you may not use this file except in compliance with the License.
-//    You may obtain a copy of the License at
-//
-//        http://www.apache.org/licenses/LICENSE-2.0
-//
-//    Unless required by applicable law or agreed to in writing, software
-//    distributed under the License is distributed on an "AS IS" BASIS,
-//    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//    See the License for the specific language governing permissions and
-//    limitations under the License.
-//  </copyright>
-// -----------------------------------------------------------------------
-
-using System;
+﻿using System;
 using System.Runtime.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -123,6 +105,19 @@ namespace Consul
         }
     }
 
+
+    [Serializable]
+    public class LockMaxAttemptsReachedException : Exception
+    {
+        public LockMaxAttemptsReachedException() { }
+        public LockMaxAttemptsReachedException(string message) : base(message) { }
+        public LockMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
+        protected LockMaxAttemptsReachedException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context)
+        { }
+    }
+
     /// <summary>
     /// Lock is used to implement client-side leader election. It is follows the algorithm as described here: https://consul.io/docs/guides/leader-election.html.
     /// </summary>
@@ -134,9 +129,17 @@ namespace Consul
         public static readonly TimeSpan DefaultLockWaitTime = TimeSpan.FromSeconds(15);
 
         /// <summary>
-        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting to do the lock again. This is so that once a lock-delay is in affect, we do not hot loop retrying the acquisition.
+        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting to do the lock again. This is so that once a lock-delay is in effect, we do not hot loop retrying the acquisition.
         /// </summary>
         public static readonly TimeSpan DefaultLockRetryTime = TimeSpan.FromSeconds(5);
+
+        /// <summary>
+        /// DefaultMonitorRetryTime is how long we wait after a failed monitor check
+        /// of a lock (500 response code). This allows the monitor to ride out brief
+        /// periods of unavailability, subject to the MonitorRetries setting in the
+        /// lock options which is by default set to 0, disabling this feature.
+        /// </summary>
+        public static readonly TimeSpan DefaultMonitorRetryTime = TimeSpan.FromSeconds(2);
 
         /// <summary>
         /// LockFlagValue is a magic flag we set to indicate a key is being used for a lock. It is used to detect a potential conflict with a semaphore.
@@ -146,6 +149,7 @@ namespace Consul
         private readonly object _lock = new object();
         private readonly object _heldLock = new object();
         private bool _isheld;
+        private int _retries;
 
         private CancellationTokenSource _cts;
         private Task _sessionRenewTask;
@@ -237,7 +241,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            throw new InvalidOperationException("Failed to create session", ex);
+                            throw new ConsulRequestException("Failed to create session", ex);
                         }
                     }
                     else
@@ -247,11 +251,20 @@ namespace Consul
 
                     var qOpts = new QueryOptions()
                     {
-                        WaitTime = DefaultLockWaitTime
+                        WaitTime = Opts.LockWaitTime
                     };
+
+                    var attempts = 0;
 
                     while (!ct.IsCancellationRequested)
                     {
+                        if (attempts > 0 && Opts.LockTryOnce)
+                        {
+                            throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
+                        }
+
+                        attempts++;
+
                         QueryResult<KVPair> pair;
                         try
                         {
@@ -259,7 +272,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            throw new ApplicationException("Failed to read lock key", ex);
+                            throw new ConsulRequestException("Failed to read lock key", ex);
                         }
 
                         if (pair.Response != null)
@@ -342,6 +355,11 @@ namespace Consul
                                 // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                             }
                         }
+                        else
+                        {
+                            _client.Session.Destroy(Opts.Session).Wait();
+                        }
+                        Opts.Session = null;
                     }
                 }
             }
@@ -437,30 +455,50 @@ namespace Consul
                 try
                 {
                     var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
+                    _retries = Opts.MonitorRetries;
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        // Check to see if the current session holds the lock
-                        var pair = await _client.KV.Get(Opts.Key, opts).ConfigureAwait(false);
-                        if (pair.Response != null)
+                        try
                         {
-                            // Lock is no longer held! Shut down everything.
-                            if (pair.Response.Session != Opts.Session)
+                            // Check to see if the current session holds the lock
+                            var pair = await _client.KV.Get(Opts.Key, opts).ConfigureAwait(false);
+                            if (pair.Response != null)
                             {
+                                _retries = Opts.MonitorRetries;
+
+                                // Lock is no longer held! Shut down everything.
+                                if (pair.Response.Session != Opts.Session)
+                                {
+                                    IsHeld = false;
+                                    _cts.Cancel();
+                                    return;
+                                }
+
+                                // Lock is still held, start a blocking query
+                                opts.WaitIndex = pair.LastIndex;
+                                continue;
+                            }
+                            else
+                            {
+                                // Failsafe in case the KV store is unavailable
                                 IsHeld = false;
                                 _cts.Cancel();
                                 return;
                             }
-                            // Lock is still held, start a blocking query
-                            opts.WaitIndex = pair.LastIndex;
                         }
-                        else
+                        catch (Exception)
                         {
-                            // Failsafe in case the KV store is unavailable
-                            IsHeld = false;
-                            _cts.Cancel();
-                            return;
+                            if (_retries > 0)
+                            {
+                                await Task.Delay(Opts.MonitorRetryTime, _cts.Token).ConfigureAwait(false);
+                                _retries--;
+                                opts.WaitIndex = 0;
+                                continue;
+                            }
+                            throw;
                         }
                     }
+
                 }
                 finally
                 {
@@ -544,12 +582,18 @@ namespace Consul
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
+        public int MonitorRetries { get; set; }
+        public TimeSpan MonitorRetryTime { get; set; }
+        public TimeSpan LockWaitTime { get; set; }
+        public bool LockTryOnce { get; set; }
 
         public LockOptions(string key)
         {
             Key = key;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
+            MonitorRetryTime = Lock.DefaultMonitorRetryTime;
+            LockWaitTime = Lock.DefaultLockWaitTime;
         }
     }
 
