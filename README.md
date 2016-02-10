@@ -54,8 +54,6 @@ public static async Task<string> HelloConsul()
             Value = Encoding.UTF8.GetBytes("Hello Consul")
         };
 
-        // The code below is executed synchronously.
-        // It should really be awaited in a proper async method.
         var putAttempt = await client.KV.Put(putPair);
 
         if (putAttempt.Response)
