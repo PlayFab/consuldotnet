@@ -465,6 +465,7 @@ namespace Consul
                             if (pair.Response != null)
                             {
                                 _retries = Opts.MonitorRetries;
+
                                 // Lock is no longer held! Shut down everything.
                                 if (pair.Response.Session != Opts.Session)
                                 {
@@ -472,6 +473,7 @@ namespace Consul
                                     _cts.Cancel();
                                     return;
                                 }
+
                                 // Lock is still held, start a blocking query
                                 opts.WaitIndex = pair.LastIndex;
                                 continue;

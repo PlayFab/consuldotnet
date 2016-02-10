@@ -195,7 +195,7 @@ namespace Consul.Test
             var semaphoreOptions = new SemaphoreOptions(keyName, 1)
             {
                 SessionName = "test_semaphoresession",
-                SessionTTL = TimeSpan.FromSeconds(10)
+                SessionTTL = TimeSpan.FromSeconds(10), MonitorRetries = 10
             };
 
             var semaphore = client.Semaphore(semaphoreOptions);
