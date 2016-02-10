@@ -159,6 +159,18 @@ namespace Consul
         }
     }
 
+    [Serializable]
+    public class SemaphoreMaxAttemptsReachedException : Exception
+    {
+        public SemaphoreMaxAttemptsReachedException() { }
+        public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
+        public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
+        protected SemaphoreMaxAttemptsReachedException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context)
+        { }
+    }
+
     /// <summary>
     /// Semaphore is used to implement a distributed semaphore using the Consul KV primitives.
     /// </summary>
@@ -208,6 +220,14 @@ namespace Consul
         public static readonly TimeSpan DefaultSemaphoreRetryTime = TimeSpan.FromSeconds(5);
 
         /// <summary>
+        /// DefaultMonitorRetryTime is how long we wait after a failed monitor check
+        /// of a semaphore (500 response code). This allows the monitor to ride out brief
+        /// periods of unavailability, subject to the MonitorRetries setting in the
+        /// lock options which is by default set to 0, disabling this feature.
+        /// </summary>
+        public static readonly TimeSpan DefaultMonitorRetryTime = TimeSpan.FromSeconds(2);
+
+        /// <summary>
         /// DefaultSemaphoreKey is the key used within the prefix to use for coordination between all the contenders.
         /// </summary>
         public static readonly string DefaultSemaphoreKey = ".lock";
@@ -220,6 +240,7 @@ namespace Consul
         private readonly object _lock = new object();
         private readonly object _heldLock = new object();
         private bool _isheld;
+        private int _retries;
 
         private CancellationTokenSource _cts;
 
@@ -320,11 +341,20 @@ namespace Consul
 
                     var qOpts = new QueryOptions()
                     {
-                        WaitTime = DefaultSemaphoreWaitTime
+                        WaitTime = Opts.SemaphoreWaitTime
                     };
+
+                    var attempts = 0;
 
                     while (!ct.IsCancellationRequested)
                     {
+                        if (attempts > 0 && Opts.SemaphoreTryOnce)
+                        {
+                            throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
+                        }
+
+                        attempts++;
+
                         QueryResult<KVPair[]> pairs;
                         try
                         {
@@ -396,6 +426,11 @@ namespace Consul
                                 // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                             }
                         }
+                        else
+                        {
+                            _client.Session.Destroy(Opts.Session).Wait();
+                        }
+                        Opts.Session = null;
                     }
                 }
             }
@@ -533,34 +568,51 @@ namespace Consul
                 try
                 {
                     var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
+                    _retries = Opts.MonitorRetries;
                     while (IsHeld && !_cts.Token.IsCancellationRequested)
                     {
-                        var pairs = await _client.KV.List(Opts.Prefix, opts).ConfigureAwait(false);
-                        if (pairs.Response != null)
+                        try
                         {
-                            var lockPair = FindLock(pairs.Response);
-                            var semaphoreLock = DecodeLock(lockPair);
-                            PruneDeadHolders(semaphoreLock, pairs.Response);
-
-                            // Check to see if the current session holds a semaphore slot
-                            if (semaphoreLock.Holders.ContainsKey(lockSession))
+                            var pairs = await _client.KV.List(Opts.Prefix, opts).ConfigureAwait(false);
+                            if (pairs.Response != null)
                             {
+                                _retries = Opts.MonitorRetries;
+
+                                var lockPair = FindLock(pairs.Response);
+                                var semaphoreLock = DecodeLock(lockPair);
+                                PruneDeadHolders(semaphoreLock, pairs.Response);
+
+                                // Slot is no longer held! Shut down everything.
+                                if (!semaphoreLock.Holders.ContainsKey(lockSession))
+                                {
+
+                                    IsHeld = false;
+                                    _cts.Cancel();
+                                    return;
+                                }
+
+                                // Semaphore is still held, start a blocking query
                                 opts.WaitIndex = pairs.LastIndex;
+                                continue;
                             }
+                            // Failsafe in case the KV store is unavailable
                             else
                             {
-                                // Slot is no longer held! Shut down everything.
                                 IsHeld = false;
                                 _cts.Cancel();
                                 return;
                             }
                         }
-                        // Failsafe in case the KV store is unavailable
-                        else
+                        catch (Exception)
                         {
-                            IsHeld = false;
-                            _cts.Cancel();
-                            return;
+                            if (_retries > 0)
+                            {
+                                await Task.Delay(Opts.MonitorRetryTime, _cts.Token).ConfigureAwait(false);
+                                _retries--;
+                                opts.WaitIndex = 0;
+                                continue;
+                            }
+                            throw;
                         }
                     }
                 }
@@ -752,6 +804,10 @@ namespace Consul
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
+        public int MonitorRetries { get; set; }
+        public TimeSpan MonitorRetryTime { get; set; }
+        public TimeSpan SemaphoreWaitTime { get; set; }
+        public bool SemaphoreTryOnce { get; set; }
 
         public SemaphoreOptions(string prefix, int limit)
         {
@@ -759,6 +815,8 @@ namespace Consul
             Limit = limit;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
+            MonitorRetryTime = Semaphore.DefaultMonitorRetryTime;
+            SemaphoreWaitTime = Semaphore.DefaultSemaphoreWaitTime;
         }
     }
 
