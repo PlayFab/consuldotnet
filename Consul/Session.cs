@@ -187,7 +187,7 @@ namespace Consul
                         }
                         try
                         {
-                            Task.Delay(waitDuration, ct).Wait(ct);
+                            await Task.Delay(waitDuration, ct).ConfigureAwait(false);
                         }
                         catch (OperationCanceledException)
                         {
