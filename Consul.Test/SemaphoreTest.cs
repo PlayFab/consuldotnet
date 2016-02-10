@@ -116,6 +116,55 @@ namespace Consul.Test
 
             Assert.False(semaphore.IsHeld);
         }
+
+        [Fact]
+        public void Semaphore_OneShot()
+        {
+            var client = new ConsulClient();
+            const string keyName = "test/semaphore/oneshot";
+            var semaphoreOptions = new SemaphoreOptions(keyName, 2)
+            {
+                SemaphoreTryOnce = true
+            };
+
+            Assert.Equal(Semaphore.DefaultSemaphoreWaitTime, semaphoreOptions.SemaphoreWaitTime);
+
+            semaphoreOptions.SemaphoreWaitTime = TimeSpan.FromMilliseconds(250);
+
+            var semaphorekey = client.Semaphore(semaphoreOptions);
+
+            semaphorekey.Acquire(CancellationToken.None);
+
+            var another = client.Semaphore(new SemaphoreOptions(keyName, 2)
+            {
+                SemaphoreTryOnce = true,
+                SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
+            });
+
+            another.Acquire();
+
+            var contender = client.Semaphore(new SemaphoreOptions(keyName, 2)
+            {
+                SemaphoreTryOnce = true,
+                SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
+            });
+
+            Task.WaitAny(Task.Run(() =>
+            {
+                Assert.Throws<LockMaxAttemptsReachedException>(() =>
+                contender.Acquire()
+                );
+            }),
+            Task.Delay(2 * semaphoreOptions.SemaphoreWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
+            );
+
+            semaphorekey.Release();
+            contender.Acquire();
+            contender.Release();
+            another.Release();
+            contender.Destroy();
+        }
+
         [Fact]
         public void Semaphore_Disposable()
         {

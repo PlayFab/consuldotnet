@@ -159,6 +159,18 @@ namespace Consul
         }
     }
 
+    [Serializable]
+    public class SemaphoreMaxAttemptsReachedException : Exception
+    {
+        public SemaphoreMaxAttemptsReachedException() { }
+        public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
+        public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
+        protected SemaphoreMaxAttemptsReachedException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context)
+        { }
+    }
+
     /// <summary>
     /// Semaphore is used to implement a distributed semaphore using the Consul KV primitives.
     /// </summary>
@@ -320,11 +332,20 @@ namespace Consul
 
                     var qOpts = new QueryOptions()
                     {
-                        WaitTime = DefaultSemaphoreWaitTime
+                        WaitTime = Opts.SemaphoreWaitTime
                     };
+
+                    var attempts = 0;
 
                     while (!ct.IsCancellationRequested)
                     {
+                        if (attempts > 0 && Opts.SemaphoreTryOnce)
+                        {
+                            throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
+                        }
+
+                        attempts++;
+
                         QueryResult<KVPair[]> pairs;
                         try
                         {
@@ -396,6 +417,11 @@ namespace Consul
                                 // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                             }
                         }
+                        else
+                        {
+                            _client.Session.Destroy(Opts.Session).Wait();
+                        }
+                        Opts.Session = null;
                     }
                 }
             }
@@ -752,6 +778,8 @@ namespace Consul
         public string Session { get; set; }
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
+        public TimeSpan SemaphoreWaitTime { get; set; }
+        public bool SemaphoreTryOnce { get; set; }
 
         public SemaphoreOptions(string prefix, int limit)
         {
@@ -759,6 +787,7 @@ namespace Consul
             Limit = limit;
             SessionName = DefaultLockSessionName;
             SessionTTL = DefaultLockSessionTTL;
+            SemaphoreWaitTime = Semaphore.DefaultSemaphoreWaitTime;
         }
     }
 
