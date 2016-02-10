@@ -45,32 +45,34 @@ using Consul;
 Write a function to talk to the KV store:
 
 ```csharp
-public static string HelloConsul()
+public static async Task<string> HelloConsul()
 {
-    var client = new ConsulClient();
-
-    var putPair = new KVPair("hello")
+    using (var client = new ConsulClient())
     {
-        Value = Encoding.UTF8.GetBytes("Hello Consul")
-    };
+        var putPair = new KVPair("hello")
+        {
+            Value = Encoding.UTF8.GetBytes("Hello Consul")
+        };
 
-    // The code below is executed synchronously.
-    // It should really be awaited in a proper async method.
-    var putAttempt = client.KV.Put(putPair).GetAwaiter().GetResult();
+        // The code below is executed synchronously.
+        // It should really be awaited in a proper async method.
+        var putAttempt = await client.KV.Put(putPair);
 
-    if (putAttempt.Response)
-    {
-        var getPair = client.KV.Get("hello").GetAwaiter().GetResult();
-        return Encoding.UTF8.GetString(getPair.Response.Value, 0, getPair.Response.Value.Length);
+        if (putAttempt.Response)
+        {
+            var getPair = await client.KV.Get("hello");
+            return Encoding.UTF8.GetString(getPair.Response.Value, 0,
+                getPair.Response.Value.Length);
+        }
+        return "";
     }
-    return "";
 }
 ```
 
 And call it:
 
 ```csharp
-Console.WriteLine(HelloConsul());
+Console.WriteLine(HelloConsul().GetAwaiter().GetResult());
 ```
 
 You should see `Hello Consul` in the output of your program. You should
