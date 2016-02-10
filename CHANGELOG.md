@@ -13,6 +13,11 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-02-10
+* Added the ability to use Client Certificates to authenticate a client against
+  a Consul agent endpoint that is protected by some other service. See the
+  `ClientCertificate` property of `ConsulClientConfiguration`. Thanks @AndyRB!
+
 ## 2016-02-09
 * Implemented the IDisposable Pattern for the `ConsulClient` class.
   `ConsulClient` objects should now have `Dispose()` called on them to properly

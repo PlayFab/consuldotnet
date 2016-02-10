@@ -28,6 +28,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 
 namespace Consul
 {
@@ -57,6 +58,9 @@ namespace Consul
     public class ConsulClientConfiguration
     {
         private NetworkCredential _httpauth;
+
+        private X509Certificate2 _clientCertificate;
+
         /// <summary>
         /// The Uri to connect to the Consul agent.
         /// </summary>
@@ -83,6 +87,28 @@ namespace Consul
                 if (_httpauth != null)
                 {
                     (Handler as WebRequestHandler).Credentials = _httpauth;
+                }
+            }
+        }
+
+        /// <summary>
+        /// TLS Client Certificate used to secure a connection to a Consul agent.
+        /// This is only needed if an authenticating service exists in front of Consul; Token is used for ACL authentication by Consul. This is not the same as RPC Encryption with TLS certificates.
+        /// </summary>
+        public X509Certificate2 ClientCertificate
+        {
+            internal get
+            {
+                return _clientCertificate;
+            }
+            set
+            {
+                _clientCertificate = value;
+                if (_clientCertificate != null)
+                {
+                    var handler = (Handler as WebRequestHandler);
+                    handler.ClientCertificates.Add(_clientCertificate);
+                    handler.ClientCertificateOptions = ClientCertificateOption.Manual;
                 }
             }
         }
