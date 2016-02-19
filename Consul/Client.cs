@@ -387,7 +387,7 @@ namespace Consul
     /// <summary>
     /// Represents a persistant connection to a Consul agent. Instances of this class should be created rarely and reused often.
     /// </summary>
-    public partial class ConsulClient :IDisposable
+    public partial class ConsulClient : IDisposable
     {
         private object _lock = new object();
         internal HttpClient HttpClient { get; set; }
@@ -565,16 +565,9 @@ namespace Consul
             }
         }
 
-        protected void Serialize(object value, Stream stream)
+        protected byte[] Serialize(object value)
         {
-            using (var writer = new StreamWriter(stream))
-            {
-                using (var jsonWriter = new JsonTextWriter(writer))
-                {
-                    Client.serializer.Serialize(jsonWriter, value);
-                    jsonWriter.Flush();
-                }
-            }
+            return System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value));
         }
     }
     public class GetRequest<T> : ConsulRequest
@@ -945,7 +938,7 @@ namespace Consul
             }
             else
             {
-                content = new PushStreamContent((stream, httpContent, transportContext) => { Serialize(_body, stream); });
+                content = new ByteArrayContent(Serialize(_body));
             }
 
             var response = await Client.HttpClient.PutAsync(BuildConsulUri(Endpoint, Params), content, ct).ConfigureAwait(false);
@@ -1028,7 +1021,7 @@ namespace Consul
             }
             else
             {
-                content = new PushStreamContent((stream, httpContent, transportContext) => { Serialize(_body, stream); });
+                content = new ByteArrayContent(Serialize(_body));
             }
 
             var response = await Client.HttpClient.PutAsync(BuildConsulUri(Endpoint, Params), content, ct).ConfigureAwait(false);
@@ -1117,7 +1110,7 @@ namespace Consul
             }
             else
             {
-                content = new PushStreamContent((stream, httpContent, transportContext) => { Serialize(_body, stream); });
+                content = new ByteArrayContent(Serialize(_body));
             }
 
             var response = await Client.HttpClient.PostAsync(BuildConsulUri(Endpoint, Params), content, ct).ConfigureAwait(false);
