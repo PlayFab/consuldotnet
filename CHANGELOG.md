@@ -13,6 +13,9 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-02-24
+* Removed use of PushStreamContent to fix Mono problems.
+
 ## 2016-02-10
 * Added the ability to use Client Certificates to authenticate a client against
   a Consul agent endpoint that is protected by some other service. See the
