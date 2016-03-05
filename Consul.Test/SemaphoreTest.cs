@@ -159,7 +159,6 @@ namespace Consul.Test
             );
 
             semaphorekey.Release();
-            contender.Release();
             another.Release();
             contender.Destroy();
         }

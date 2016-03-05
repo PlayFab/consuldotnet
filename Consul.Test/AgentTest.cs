@@ -135,9 +135,9 @@ namespace Consul.Test
 
             Assert.True(checks.Response.ContainsKey("service:foo"));
             Assert.Equal(CheckStatus.Passing, checks.Response["service:foo"].Status);
-            Assert.Equal("ok", checks.Response["service:foo"].Output);
+            Assert.Equal("test is ok", checks.Response["service:foo"].Output);
 
-            await client.Agent.ServiceDeregister("test is ok");
+            await client.Agent.ServiceDeregister("foo");
         }
         [Fact]
         public void Agent_Services_CheckBadStatus()
