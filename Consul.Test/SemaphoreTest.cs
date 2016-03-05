@@ -151,7 +151,7 @@ namespace Consul.Test
 
             Task.WaitAny(Task.Run(() =>
             {
-                Assert.Throws<LockMaxAttemptsReachedException>(() =>
+                Assert.Throws<SemaphoreMaxAttemptsReachedException>(() =>
                 contender.Acquire()
                 );
             }),
@@ -159,7 +159,6 @@ namespace Consul.Test
             );
 
             semaphorekey.Release();
-            contender.Acquire();
             contender.Release();
             another.Release();
             contender.Destroy();
