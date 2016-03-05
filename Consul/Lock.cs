@@ -153,7 +153,6 @@ namespace Consul
 
         private CancellationTokenSource _cts;
         private Task _sessionRenewTask;
-        private Task _monitorTask;
 
         private readonly ConsulClient _client;
         internal LockOptions Opts { get; set; }
@@ -291,7 +290,7 @@ namespace Consul
                                     return _cts.Token;
                                 }
                                 IsHeld = true;
-                                _monitorTask = MonitorLock();
+                                MonitorLock();
                                 return _cts.Token;
                             }
 
@@ -311,7 +310,7 @@ namespace Consul
                         if (locked)
                         {
                             IsHeld = true;
-                            _monitorTask = MonitorLock();
+                            MonitorLock();
                             return _cts.Token;
                         }
 

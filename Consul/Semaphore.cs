@@ -246,7 +246,6 @@ namespace Consul
 
         private readonly ConsulClient _client;
         private Task _sessionRenewTask;
-        private Task _monitorTask;
         internal SemaphoreOptions Opts { get; set; }
 
         public bool IsHeld
@@ -404,7 +403,7 @@ namespace Consul
                         }
 
                         IsHeld = true;
-                        _monitorTask = MonitorLock(LockSession);
+                        MonitorLock(LockSession);
                         return _cts.Token;
                     }
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
