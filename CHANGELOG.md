@@ -13,6 +13,9 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-03-04
+* Fixed double-encoding of `UpdateTTL` `note` argument.
+
 ## 2016-02-24
 * Removed use of PushStreamContent to fix Mono problems.
 
