@@ -177,7 +177,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            const string keyName = "test/lock/contend";
+            const string keyName = "test/lock/contendwait";
             const int contenderPool = 3;
 
             var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
@@ -215,7 +215,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            const string keyName = "test/lock/contend";
+            const string keyName = "test/lock/contendfast";
             const int contenderPool = 10;
 
             var acquired = new System.Collections.Concurrent.ConcurrentDictionary<int, bool>();
