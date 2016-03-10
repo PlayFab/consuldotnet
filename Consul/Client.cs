@@ -414,6 +414,35 @@ namespace Consul
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
         }
 
+        /// <summary>
+        /// Initializes a new Consul client with the configuration specified and a custom HttpClient, which is useful for setting proxies/custom timeouts.
+        /// Do not reuse HttpClients with different ConsulClients, since the HttpClient will be disposed of by the ConsulClient.
+        /// The base address of the HTTP client will be set to the Address of the ConsulClientConfiguration.
+        /// If the HttpClient's timeout value is less than 15 minutes, it will be increased to 15 minutes to allow for blocking queries.
+        /// If the HttpClient does not accept the media type "application/json" it will be added.
+        /// If the HttpClient does not set Keep-Alive to true, it will be set to true.
+        /// </summary>
+        /// <param name="config">A Consul client configuration</param>
+        /// <param name="client">A custom HttpClient</param>
+        public ConsulClient(ConsulClientConfiguration config, HttpClient client)
+        {
+            Config = config;
+            HttpClient = client;
+            HttpClient.BaseAddress = config.Address;
+            if (HttpClient.Timeout < TimeSpan.FromMinutes(15))
+            {
+                HttpClient.Timeout = TimeSpan.FromMinutes(15);
+            }
+            if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
+            {
+                HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            }
+            if (!HttpClient.DefaultRequestHeaders.Contains("Keep-Alive"))
+            {
+                HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+            }
+        }
+
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
