@@ -427,7 +427,7 @@ namespace Consul
             skipClientDispose = true;
             if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
             {
-                throw new ArgumentException("HttpClient must accept MIME type application/json", "client");
+                throw new ArgumentException("HttpClient must accept the application/json content type", "client");
             }
         }
 
