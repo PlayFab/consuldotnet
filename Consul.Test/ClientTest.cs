@@ -92,11 +92,12 @@ namespace Consul.Test
         {
             var hc = new HttpClient();
             hc.Timeout = TimeSpan.FromDays(10);
-            var client = new ConsulClient(new ConsulClientConfiguration(), hc);
-
-            await client.KV.Put(new KVPair("kv/customhttpclient"));
-            Assert.Equal(TimeSpan.FromDays(10), client.HttpClient.Timeout);
-            Assert.True(client.HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")));
+            using (var client = new ConsulClient(new ConsulClientConfiguration(), hc))
+            {
+                await client.KV.Put(new KVPair("kv/customhttpclient"));
+                Assert.Equal(TimeSpan.FromDays(10), client.HttpClient.Timeout);
+                Assert.True(client.HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")));
+            }
         }
 
         [Fact]
