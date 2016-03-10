@@ -13,6 +13,11 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-03-10
+* Added a `ConsulClient(ConsulClientConfiguration, HttpClient)` constructor
+  that allows a user to pass in a custom HttpClient to set a custom proxy
+  setting/timeout.
+
 ## 2016-03-04
 * Fixed double-encoding of `UpdateTTL` `note` argument.
 

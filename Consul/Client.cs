@@ -390,6 +390,7 @@ namespace Consul
     public partial class ConsulClient : IDisposable
     {
         private object _lock = new object();
+        private bool skipClientDispose;
         internal HttpClient HttpClient { get; set; }
         internal ConsulClientConfiguration Config { get; set; }
 
@@ -409,9 +410,25 @@ namespace Consul
             Config = config;
             HttpClient = new HttpClient(config.Handler);
             HttpClient.Timeout = TimeSpan.FromMinutes(15);
-            HttpClient.BaseAddress = config.Address;
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+        }
+
+        /// <summary>
+        /// Initializes a new Consul client with the configuration specified and a custom HttpClient, which is useful for setting proxies/custom timeouts.
+        /// The HttpClient must accept the "application/json" content type and the Timeout property should be set to at least 15 minutes to allow for blocking queries.
+        /// </summary>
+        /// <param name="config">A Consul client configuration</param>
+        /// <param name="client">A custom HttpClient</param>
+        public ConsulClient(ConsulClientConfiguration config, HttpClient client)
+        {
+            Config = config;
+            HttpClient = client;
+            skipClientDispose = true;
+            if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
+            {
+                throw new ArgumentException("HttpClient must accept the application/json content type", "client");
+            }
         }
 
         #region IDisposable Support
@@ -423,7 +440,7 @@ namespace Consul
             {
                 if (disposing)
                 {
-                    if (HttpClient != null)
+                    if (HttpClient != null && !skipClientDispose)
                     {
                         HttpClient.Dispose();
                     }

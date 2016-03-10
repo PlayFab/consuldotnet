@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Threading.Tasks;
 using Xunit;
@@ -84,6 +85,23 @@ namespace Consul.Test
 
             Assert.Equal("foo", request.Params["dc"]);
             Assert.Equal("12345", request.Params["token"]);
+        }
+
+        [Fact]
+        public async Task Client_CustomHttpClient()
+        {
+            using (var hc = new HttpClient())
+            {
+                hc.Timeout = TimeSpan.FromDays(10);
+                hc.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                using (var client = new ConsulClient(new ConsulClientConfiguration(), hc))
+                {
+                    await client.KV.Put(new KVPair("customhttpclient") { Value = System.Text.Encoding.UTF8.GetBytes("hello world") });
+                    Assert.Equal(TimeSpan.FromDays(10), client.HttpClient.Timeout);
+                    Assert.True(client.HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")));
+                }
+                Assert.Equal("hello world", await (await hc.GetAsync("http://localhost:8500/v1/kv/customhttpclient?raw")).Content.ReadAsStringAsync());
+            }
         }
 
         [Fact]
