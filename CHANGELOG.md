@@ -15,6 +15,10 @@
 
 ## 2016-03-15
 * Add missing `IDisposable` to `IConsulClient`.
+* Made the setters for `CreateIndex` and `ModifyIndex` on `ACLEntry`, `KVPair`
+  and `SessionEntry` public to allow for easier unit testing.
+* Ported the `EnableTagOverride` feature from
+  https://github.com/hashicorp/consul/commit/afdeb2f1fc189c5a9e6440c27c1918e7b09c2cdc
 
 ## 2016-03-10
 * Added a `ConsulClient(ConsulClientConfiguration, HttpClient)` constructor

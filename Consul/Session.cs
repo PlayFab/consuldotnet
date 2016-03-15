@@ -82,8 +82,7 @@ namespace Consul
 
     public class SessionEntry
     {
-        [JsonProperty]
-        public ulong CreateIndex { get; private set; }
+        public ulong CreateIndex { get; set; }
 
         public string ID { get; set; }
 

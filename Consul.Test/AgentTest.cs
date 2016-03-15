@@ -176,6 +176,38 @@ namespace Consul.Test
         }
 
         [Fact]
+        public async Task Agent_EnableTagOverride()
+        {
+            var reg1 = new AgentServiceRegistration
+            {
+                Name = "foo1",
+                Port = 8000,
+                Address = "192.168.0.42",
+                EnableTagOverride = true
+            };
+
+            var reg2 = new AgentServiceRegistration
+            {
+                Name = "foo2",
+                Port = 8000
+            };
+
+            using (IConsulClient client = new ConsulClient())
+            {
+                await client.Agent.ServiceRegister(reg1);
+                await client.Agent.ServiceRegister(reg2);
+
+                var services = await client.Agent.Services();
+
+                Assert.Contains("foo1", services.Response.Keys);
+                Assert.True(services.Response["foo1"].EnableTagOverride);
+
+                Assert.Contains("foo2", services.Response.Keys);
+                Assert.False(services.Response["foo2"].EnableTagOverride);
+            }
+        }
+
+        [Fact]
         public async Task Agent_Services_MultipleChecks()
         {
             var client = new ConsulClient();

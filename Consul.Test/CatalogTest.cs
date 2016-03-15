@@ -51,7 +51,7 @@ namespace Consul.Test
             var client = new ConsulClient();
             var servicesList = await client.Catalog.Services();
 
-                        Assert.NotEqual((ulong)0, servicesList.LastIndex);
+            Assert.NotEqual((ulong)0, servicesList.LastIndex);
             Assert.NotEqual(0, servicesList.Response.Count);
         }
 
@@ -139,6 +139,62 @@ namespace Consul.Test
 
             node = await client.Catalog.Node("foobar");
             Assert.Null(node.Response);
+        }
+
+        [Fact]
+        public async Task Catalog_EnableTagOverride()
+        {
+            var service = new AgentService()
+            {
+                ID = "redis1",
+                Service = "redis",
+                Tags = new[] { "master", "v1" },
+                Port = 8000
+            };
+
+            var registration = new CatalogRegistration()
+            {
+                Datacenter = "dc1",
+                Node = "foobar",
+                Address = "192.168.10.10",
+                Service = service
+            };
+
+            using (IConsulClient client = new ConsulClient())
+            {
+                await client.Catalog.Register(registration);
+
+                var node = await client.Catalog.Node("foobar");
+
+                Assert.Contains("redis1", node.Response.Services.Keys);
+                Assert.False(node.Response.Services["redis1"].EnableTagOverride);
+
+                var services = await client.Catalog.Service("redis");
+
+                Assert.NotEmpty(services.Response);
+                Assert.Equal("redis", services.Response[0].ServiceName);
+
+                Assert.False(services.Response[0].ServiceEnableTagOverride);
+            }
+
+            // Use a new scope
+            using (IConsulClient client = new ConsulClient())
+            {
+                service.EnableTagOverride = true;
+
+                await client.Catalog.Register(registration);
+                var node = await client.Catalog.Node("foobar");
+
+                Assert.Contains("redis1", node.Response.Services.Keys);
+                Assert.True(node.Response.Services["redis1"].EnableTagOverride);
+
+                var services = await client.Catalog.Service("redis");
+
+                Assert.NotEmpty(services.Response);
+                Assert.Equal("redis", services.Response[0].ServiceName);
+
+                Assert.True(services.Response[0].ServiceEnableTagOverride);
+            }
         }
     }
 }
