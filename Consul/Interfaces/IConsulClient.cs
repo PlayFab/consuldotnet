@@ -20,7 +20,7 @@ using System;
 using System.Threading;
 namespace Consul
 {
-    public interface IConsulClient
+    public interface IConsulClient : IDisposable
     {
         IACLEndpoint ACL { get; }
         IDisposableLock AcquireLock(LockOptions opts);
