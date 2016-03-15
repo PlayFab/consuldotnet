@@ -41,6 +41,7 @@ namespace Consul
         public string ServiceAddress { get; set; }
         public string[] ServiceTags { get; set; }
         public int ServicePort { get; set; }
+        public bool ServiceEnableTagOverride { get; set; }
     }
 
     public class CatalogNode

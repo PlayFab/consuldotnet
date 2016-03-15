@@ -87,11 +87,8 @@ namespace Consul
     /// </summary>
     public class ACLEntry
     {
-        [JsonProperty]
-        public ulong CreateIndex { get; private set; }
-
-        [JsonProperty]
-        public ulong ModifyIndex { get; private set; }
+        public ulong CreateIndex { get; set; }
+        public ulong ModifyIndex { get; set; }
 
         public string ID { get; set; }
         public string Name { get; set; }
