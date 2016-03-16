@@ -41,7 +41,7 @@ namespace Consul
         Task<WriteResult> ServiceDeregister(string serviceID);
         Task<WriteResult> ServiceRegister(AgentServiceRegistration service);
         Task<QueryResult<Dictionary<string, AgentService>>> Services();
-        Task<WriteResult> UpdateTTL(string checkID, string note, TTLStatus status);
+        Task<WriteResult> UpdateTTL(string checkID, string output, TTLStatus status);
         Task WarnTTL(string checkID, string note);
     }
 }

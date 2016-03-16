@@ -13,6 +13,15 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-03-16
+* Port in Consul 0.6.4 API since 0.6.4 is now released, which was just an
+  update to `UpdateTTL` and a rename of some of the strings.
+* Moved all the helper objects (`TTLStatus`, `CheckStatus.Passing`, etc.) to
+  reference `static readonly` instances to cut down on allocation and ease
+  comparison.
+* Marked AbortableLock obselete since `Thread.Abort` doesn't exist in DNXCore
+  and it's contrary to the Task philosophy to abort threads.
+
 ## 2016-03-15
 * Add missing `IDisposable` to `IConsulClient`.
 * Made the setters for `CreateIndex` and `ModifyIndex` on `ACLEntry`, `KVPair`
