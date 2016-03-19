@@ -51,6 +51,7 @@ namespace Consul.Test
             var value = Encoding.UTF8.GetBytes("test");
 
             var getRequest = await kv.Get(key);
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, getRequest.StatusCode);
             Assert.Null(getRequest.Response);
 
             var pair = new KVPair(key)
@@ -60,6 +61,7 @@ namespace Consul.Test
             };
 
             var putRequest = await kv.Put(pair);
+            Assert.Equal(System.Net.HttpStatusCode.OK, putRequest.StatusCode);
             Assert.True(putRequest.Response);
 
             try
@@ -79,6 +81,7 @@ namespace Consul.Test
             }
 
             getRequest = await kv.Get(key);
+            Assert.Equal(System.Net.HttpStatusCode.OK, getRequest.StatusCode);
             var res = getRequest.Response;
 
             Assert.NotNull(res);

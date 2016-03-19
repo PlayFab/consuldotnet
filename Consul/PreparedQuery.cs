@@ -179,11 +179,7 @@ namespace Consul
         public async Task<WriteResult<string>> Create(PreparedQueryDefinition query, WriteOptions q)
         {
             var res = await _client.Post<PreparedQueryDefinition, PreparedQueryCreationResult>("/v1/query", query, q).Execute().ConfigureAwait(false);
-            return new WriteResult<string>()
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
+            return new WriteResult<string>(res, res.Response.ID);
         }
 
         public Task<WriteResult> Delete(string queryID)
@@ -194,10 +190,7 @@ namespace Consul
         public async Task<WriteResult> Delete(string queryID, WriteOptions q)
         {
             var res = await _client.Delete<string>(string.Format("/v1/query/{0}", queryID), q).Execute();
-            return new WriteResult
-            {
-                RequestTime = res.RequestTime
-            };
+            return new WriteResult(res);
         }
 
         public Task<QueryResult<PreparedQueryExecuteResponse>> Execute(string queryIDOrName)

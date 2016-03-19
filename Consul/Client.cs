@@ -314,6 +314,12 @@ namespace Consul
         /// Exposed so that the consumer can to check for a specific status code
         /// </summary>
         public HttpStatusCode StatusCode { get; set; }
+        public ConsulResult() { }
+        public ConsulResult(ConsulResult other)
+        {
+            RequestTime = other.RequestTime;
+            StatusCode = other.StatusCode;
+        }
     }
     /// <summary>
     /// The result of a Consul API query
@@ -334,6 +340,14 @@ namespace Consul
         /// Is there a known leader
         /// </summary>
         public bool KnownLeader { get; set; }
+
+        public QueryResult() { }
+        public QueryResult(QueryResult other) : base(other)
+        {
+            LastIndex = other.LastIndex;
+            LastContact = other.LastContact;
+            KnownLeader = other.KnownLeader;
+        }
     }
 
     /// <summary>
@@ -346,6 +360,12 @@ namespace Consul
         /// The result of the query
         /// </summary>
         public T Response { get; set; }
+        public QueryResult() { }
+        public QueryResult(QueryResult other) : base(other) { }
+        public QueryResult(QueryResult other, T value) : base(other)
+        {
+            Response = value;
+        }
     }
 
     /// <summary>
@@ -353,6 +373,8 @@ namespace Consul
     /// </summary>
     public class WriteResult : ConsulResult
     {
+        public WriteResult() { }
+        public WriteResult(WriteResult other) : base(other) { }
     }
     /// <summary>
     /// The result of a Consul API write
@@ -364,6 +386,12 @@ namespace Consul
         /// The result of the write
         /// </summary>
         public T Response { get; set; }
+        public WriteResult() { }
+        public WriteResult(WriteResult other) : base(other) { }
+        public WriteResult(WriteResult other, T value) : base(other)
+        {
+            Response = value;
+        }
     }
 
     /// <summary>

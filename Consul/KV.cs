@@ -83,7 +83,7 @@ namespace Consul
         {
             _client = c;
         }
-        
+
         /// <summary>
         /// Acquire is used for a lock acquisition operation. The Key, Flags, Value and Session are respected.
         /// </summary>p.Validate();
@@ -242,18 +242,7 @@ namespace Consul
         {
             var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
             var res = await req.Execute(ct).ConfigureAwait(false);
-            var ret = new QueryResult<KVPair>()
-            {
-                KnownLeader = res.KnownLeader,
-                LastContact = res.LastContact,
-                LastIndex = res.LastIndex,
-                RequestTime = res.RequestTime
-            };
-            if (res.Response != null && res.Response.Length > 0)
-            {
-                ret.Response = res.Response[0];
-            }
-            return ret;
+            return new QueryResult<KVPair>(res, res.Response != null && res.Response.Length > 0 ? res.Response[0] : null);
         }
 
         /// <summary>

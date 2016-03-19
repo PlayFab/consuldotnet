@@ -165,11 +165,7 @@ namespace Consul
         public async Task<WriteResult<string>> Create(ACLEntry acl, WriteOptions q)
         {
             var res = await _client.Put<ACLEntry, ACLCreationResult>("/v1/acl/create", acl, q).Execute().ConfigureAwait(false);
-            return new WriteResult<string>()
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
+            return new WriteResult<string>(res, res.Response.ID);
         }
 
         /// <summary>
@@ -233,12 +229,7 @@ namespace Consul
         public async Task<WriteResult<string>> Clone(string id, WriteOptions q)
         {
             var res = await _client.EmptyPut<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute().ConfigureAwait(false);
-            var ret = new WriteResult<string>
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
-            return ret;
+            return new WriteResult<string>(res, res.Response.ID);
         }
 
         /// <summary>
@@ -270,18 +261,7 @@ namespace Consul
         public async Task<QueryResult<ACLEntry>> Info(string id, QueryOptions q, CancellationToken ct)
         {
             var res = await _client.Get<ACLEntry[]>(string.Format("/v1/acl/info/{0}", id), q).Execute(ct).ConfigureAwait(false);
-            var ret = new QueryResult<ACLEntry>()
-            {
-                KnownLeader = res.KnownLeader,
-                LastContact = res.LastContact,
-                LastIndex = res.LastIndex,
-                RequestTime = res.RequestTime
-            };
-            if (res.Response != null && res.Response.Length > 0)
-            {
-                ret.Response = res.Response[0];
-            }
-            return ret;
+            return new QueryResult<ACLEntry>(res, res.Response != null && res.Response.Length > 0 ? res.Response[0] : null);
         }
 
         /// <summary>

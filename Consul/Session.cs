@@ -227,7 +227,7 @@ namespace Consul
                 }
             });
         }
-        
+
         /// <summary>
         /// Create makes a new session. Providing a session entry can customize the session. It can also be null to use defaults.
         /// </summary>
@@ -257,11 +257,7 @@ namespace Consul
         public async Task<WriteResult<string>> Create(SessionEntry se, WriteOptions q)
         {
             var res = await _client.Put<SessionEntry, SessionCreationResult>("/v1/session/create", se, q).Execute().ConfigureAwait(false);
-            return new WriteResult<string>()
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
+            return new WriteResult<string>(res, res.Response.ID);
         }
         /// <summary>
         /// CreateNoChecks is like Create but is used specifically to create a session with no associated health checks.
@@ -345,18 +341,7 @@ namespace Consul
         public async Task<QueryResult<SessionEntry>> Info(string id, QueryOptions q)
         {
             var res = await _client.Get<SessionEntry[]>(string.Format("/v1/session/info/{0}", id), q).Execute().ConfigureAwait(false);
-            var ret = new QueryResult<SessionEntry>()
-            {
-                KnownLeader = res.KnownLeader,
-                LastContact = res.LastContact,
-                LastIndex = res.LastIndex,
-                RequestTime = res.RequestTime
-            };
-            if (res.Response != null && res.Response.Length > 0)
-            {
-                ret.Response = res.Response[0];
-            }
-            return ret;
+            return new QueryResult<SessionEntry>(res, res.Response != null && res.Response.Length > 0 ? res.Response[0] : null);
         }
 
         /// <summary>
@@ -418,18 +403,11 @@ namespace Consul
         public async Task<WriteResult<SessionEntry>> Renew(string id, WriteOptions q)
         {
             var res = await _client.Put<object, SessionEntry[]>(string.Format("/v1/session/renew/{0}", id), q).Execute().ConfigureAwait(false);
-            var ret = new WriteResult<SessionEntry>() { RequestTime = res.RequestTime };
-            if (res.Response != null && res.Response.Length > 0)
-            {
-                ret.Response = res.Response[0];
-            }
-
             if (res.StatusCode == HttpStatusCode.NotFound)
             {
                 throw new SessionExpiredException(string.Format("Session expired: {0}", id));
             }
-
-            return ret;
+            return new WriteResult<SessionEntry>(res, res.Response != null && res.Response.Length > 0 ? res.Response[0] : null);
         }
     }
 
