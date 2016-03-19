@@ -13,6 +13,10 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-03-19
+* Fix a bug where the StatusCode was not being set correctly on some result
+  types.
+
 ## 2016-03-16
 * Port in Consul 0.6.4 API since 0.6.4 is now released, which was just an
   update to `UpdateTTL` and a rename of some of the strings.
