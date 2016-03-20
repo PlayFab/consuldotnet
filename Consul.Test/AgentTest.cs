@@ -254,12 +254,41 @@ namespace Consul.Test
             };
             await client.Agent.ServiceRegister(registration);
 
-            await client.Agent.WarnTTL("service:foo", "test");
-
+            await client.Agent.WarnTTL("service:foo", "warning");
             var checks = await client.Agent.Checks();
-            Assert.True(checks.Response.ContainsKey("service:foo"));
-
+            Assert.Contains("service:foo", checks.Response.Keys);
             Assert.Equal(CheckStatus.Warning, checks.Response["service:foo"].Status);
+            Assert.Equal("warning", checks.Response["service:foo"].Output);
+
+            await client.Agent.PassTTL("service:foo", "passing");
+            checks = await client.Agent.Checks();
+            Assert.Contains("service:foo", checks.Response.Keys);
+            Assert.Equal(CheckStatus.Passing, checks.Response["service:foo"].Status);
+            Assert.Equal("passing", checks.Response["service:foo"].Output);
+
+            await client.Agent.FailTTL("service:foo", "failing");
+            checks = await client.Agent.Checks();
+            Assert.Contains("service:foo", checks.Response.Keys);
+            Assert.Equal(CheckStatus.Critical, checks.Response["service:foo"].Status);
+            Assert.Equal("failing", checks.Response["service:foo"].Output);
+
+            await client.Agent.UpdateTTL("service:foo", "foo", TTLStatus.Pass);
+            checks = await client.Agent.Checks();
+            Assert.Contains("service:foo", checks.Response.Keys);
+            Assert.Equal(CheckStatus.Passing, checks.Response["service:foo"].Status);
+            Assert.Equal("foo", checks.Response["service:foo"].Output);
+
+            await client.Agent.UpdateTTL("service:foo", "foo warning", TTLStatus.Warn);
+            checks = await client.Agent.Checks();
+            Assert.Contains("service:foo", checks.Response.Keys);
+            Assert.Equal(CheckStatus.Warning, checks.Response["service:foo"].Status);
+            Assert.Equal("foo warning", checks.Response["service:foo"].Output);
+
+            await client.Agent.UpdateTTL("service:foo", "foo failing", TTLStatus.Critical);
+            checks = await client.Agent.Checks();
+            Assert.Contains("service:foo", checks.Response.Keys);
+            Assert.Equal(CheckStatus.Critical, checks.Response["service:foo"].Status);
+            Assert.Equal("foo failing", checks.Response["service:foo"].Output);
 
             await client.Agent.ServiceDeregister("foo");
         }

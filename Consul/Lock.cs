@@ -767,6 +767,7 @@ namespace Consul
         /// </summary>
         /// <param name="key"></param>
         /// <param name="action"></param>
+        [Obsolete("This method is not compatible with DNXCore and is slated for removal in 0.7.0+. Please file a github issue if you use it so we can explore alternatives.", false)]
         public void ExecuteAbortableLocked(string key, Action action)
         {
             if (string.IsNullOrEmpty(key))
@@ -785,6 +786,7 @@ namespace Consul
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="action"></param>
+        [Obsolete("This method is not compatible with DNXCore and is slated for removal in 0.7.0+. Please file a github issue if you use it so we can explore alternatives.", false)]
         public void ExecuteAbortableLocked(LockOptions opts, Action action)
         {
             if (opts == null)
@@ -804,6 +806,7 @@ namespace Consul
         /// <param name="key"></param>
         /// <param name="ct"></param>
         /// <param name="action"></param>
+        [Obsolete("This method is not compatible with DNXCore and is slated for removal in 0.7.0+. Please file a github issue if you use it so we can explore alternatives.", false)]
         public void ExecuteAbortableLocked(string key, CancellationToken ct, Action action)
         {
             if (string.IsNullOrEmpty(key))
@@ -823,6 +826,7 @@ namespace Consul
         /// <param name="opts"></param>
         /// <param name="ct"></param>
         /// <param name="action"></param>
+        [Obsolete("This method is not compatible with DNXCore and is slated for removal in 0.7.0+. Please file a github issue if you use it so we can explore alternatives.", false)]
         public void ExecuteAbortableLocked(LockOptions opts, CancellationToken ct, Action action)
         {
             using (var l = AcquireLock(opts, ct))

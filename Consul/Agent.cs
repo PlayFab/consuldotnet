@@ -20,7 +20,6 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Web;
 
 namespace Consul
 {
@@ -29,32 +28,43 @@ namespace Consul
     /// </summary>
     public class TTLStatus : IEquatable<TTLStatus>
     {
+        private static readonly TTLStatus passingStatus = new TTLStatus() { Status = "passing", LegacyStatus = "pass" };
+        private static readonly TTLStatus warningStatus = new TTLStatus() { Status = "warning", LegacyStatus = "warn" };
+        private static readonly TTLStatus criticalStatus = new TTLStatus() { Status = "critical", LegacyStatus = "fail" };
+
         public string Status { get; private set; }
+        internal string LegacyStatus { get; private set; }
 
         public static TTLStatus Pass
         {
-            get { return new TTLStatus() { Status = "pass" }; }
+            get { return passingStatus; }
         }
 
         public static TTLStatus Warn
         {
-            get { return new TTLStatus() { Status = "warn" }; }
+            get { return warningStatus; }
         }
 
+        public static TTLStatus Critical
+        {
+            get { return criticalStatus; }
+        }
+
+        [Obsolete("Use TTLStatus.Critical instead. This status will be an error in 0.7.0+", false)]
         public static TTLStatus Fail
         {
-            get { return new TTLStatus() { Status = "fail" }; }
+            get { return criticalStatus; }
         }
 
         public bool Equals(TTLStatus other)
         {
-            return other != null && Status.Equals(other.Status);
+            return other != null && ReferenceEquals(this, other);
         }
 
         public override bool Equals(object other)
         {
             // other could be a reference type, the is operator will return false if null
-            return other is TTLStatus && Equals((TTLStatus)other);
+            return other is TTLStatus && Equals(other as TTLStatus);
         }
 
         public override int GetHashCode()
@@ -78,10 +88,16 @@ namespace Consul
             {
                 case "pass":
                     return TTLStatus.Pass;
+                case "passing":
+                    return TTLStatus.Pass;
                 case "warn":
                     return TTLStatus.Warn;
+                case "warning":
+                    return TTLStatus.Warn;
                 case "fail":
-                    return TTLStatus.Fail;
+                    return TTLStatus.Critical;
+                case "critical":
+                    return TTLStatus.Critical;
                 default:
                     throw new ArgumentException("Invalid TTL status value during deserialization");
             }
@@ -98,43 +114,48 @@ namespace Consul
     /// </summary>
     public class CheckStatus : IEquatable<CheckStatus>
     {
+        private static readonly CheckStatus passing = new CheckStatus() { Status = "passing" };
+        private static readonly CheckStatus warning = new CheckStatus() { Status = "warning" };
+        private static readonly CheckStatus critical = new CheckStatus() { Status = "critical" };
+        private static readonly CheckStatus any = new CheckStatus() { Status = "any" };
+        private static readonly CheckStatus unknown = new CheckStatus() { Status = "unknown" };
+
         public string Status { get; private set; }
 
         public static CheckStatus Passing
         {
-            get { return new CheckStatus() { Status = "passing" }; }
+            get { return passing; }
         }
 
         public static CheckStatus Warning
         {
-            get { return new CheckStatus() { Status = "warning" }; }
+            get { return warning; }
         }
 
         public static CheckStatus Critical
         {
-            get { return new CheckStatus() { Status = "critical" }; }
+            get { return critical; }
         }
 
         public static CheckStatus Any
         {
-            get { return new CheckStatus() { Status = "any" }; }
+            get { return any; }
         }
 
         public static CheckStatus Unknown
         {
-            get { return new CheckStatus() { Status = "unknown" }; }
+            get { return unknown; }
         }
 
         public bool Equals(CheckStatus other)
         {
-            return other != null && Status.Equals(other.Status);
+            return other != null && ReferenceEquals(this, other);
         }
 
         public override bool Equals(object other)
         {
             // other could be a reference type, the is operator will return false if null
-            var a = other as CheckStatus;
-            return a != null && Equals(a);
+            return other is CheckStatus && Equals(other as CheckStatus);
         }
 
         public override int GetHashCode()
@@ -321,6 +342,11 @@ namespace Consul
     /// </summary>
     public class Agent : IAgentEndpoint
     {
+        private class CheckUpdate
+        {
+            public string Status { get; set; }
+            public string Output { get; set; }
+        }
         private readonly ConsulClient _client;
 
         // cache the node name
@@ -415,7 +441,7 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         public Task PassTTL(string checkID, string note)
         {
-            return UpdateTTL(checkID, note, TTLStatus.Pass);
+            return LegacyUpdateTTL(checkID, note, TTLStatus.Pass);
         }
 
         /// <summary>
@@ -425,7 +451,7 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         public Task WarnTTL(string checkID, string note)
         {
-            return UpdateTTL(checkID, note, TTLStatus.Warn);
+            return LegacyUpdateTTL(checkID, note, TTLStatus.Warn);
         }
 
         /// <summary>
@@ -435,19 +461,29 @@ namespace Consul
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
         public Task FailTTL(string checkID, string note)
         {
-            return UpdateTTL(checkID, note, TTLStatus.Fail);
+            return LegacyUpdateTTL(checkID, note, TTLStatus.Critical);
         }
 
         /// <summary>
         /// UpdateTTL is used to update the TTL of a check
         /// </summary>
         /// <param name="checkID">The check ID</param>
-        /// <param name="note">An optional, arbitrary string to write to the check status</param>
+        /// <param name="output">An optional, arbitrary string to write to the check status</param>
         /// <param name="status">The state to set the check to</param>
         /// <returns>An empty write result</returns>
-        public Task<WriteResult> UpdateTTL(string checkID, string note, TTLStatus status)
+        public Task<WriteResult> UpdateTTL(string checkID, string output, TTLStatus status)
         {
-            var request = _client.Put(string.Format("/v1/agent/check/{0}/{1}", status.Status, checkID));
+            var u = new CheckUpdate
+            {
+                Status = status.Status,
+                Output = output
+            };
+            return _client.Put(string.Format("/v1/agent/check/update/{0}", checkID), u).Execute();
+        }
+
+        private Task<WriteResult> LegacyUpdateTTL(string checkID, string note, TTLStatus status)
+        {
+            var request = _client.Put(string.Format("/v1/agent/check/{0}/{1}", status.LegacyStatus, checkID));
             if (!string.IsNullOrEmpty(note))
             {
                 request.Params.Add("note", note);

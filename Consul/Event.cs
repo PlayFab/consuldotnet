@@ -81,12 +81,7 @@ namespace Consul
                 req.Params["tag"] = ue.TagFilter;
             }
             var res = await req.Execute().ConfigureAwait(false);
-            var ret = new WriteResult<string>()
-            {
-                RequestTime = res.RequestTime,
-                Response = res.Response.ID
-            };
-            return ret;
+            return new WriteResult<string>(res, res.Response.ID);
         }
 
         /// <summary>
