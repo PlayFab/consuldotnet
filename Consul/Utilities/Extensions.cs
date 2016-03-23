@@ -49,37 +49,37 @@ namespace Consul
             {
                 return "0";
             }
-            var outDuration = new StringBuilder();
+
             if (ts.TotalSeconds < 1)
             {
-                outDuration.Append(ts.TotalMilliseconds.ToString("#ms"));
+                return ts.TotalMilliseconds.ToString("#ms");
             }
             else
             {
+                var outDuration = new StringBuilder();
                 if ((int)ts.TotalHours > 0)
                 {
                     outDuration.Append(ts.TotalHours.ToString("#h"));
                 }
-                if ((int)ts.TotalMinutes > 0)
+                if (ts.Minutes > 0)
                 {
-                    outDuration.Append(ts.Minutes.ToString("#m"));
+                    outDuration.Append(ts.ToString("%m'm'"));
                 }
-                if ((int)ts.TotalSeconds > 0)
+                if (ts.Seconds > 0)
                 {
-                    outDuration.Append(ts.Seconds.ToString("#"));
+                    outDuration.Append(ts.ToString("%s"));
                 }
-
                 if (ts.Milliseconds > 0)
                 {
                     outDuration.Append(".");
-                    outDuration.Append(ts.Milliseconds.ToString("#"));
+                    outDuration.Append(ts.ToString("fff"));
                 }
                 if (ts.Seconds > 0)
                 {
                     outDuration.Append("s");
                 }
+                return outDuration.ToString();
             }
-            return outDuration.ToString();
         }
         internal static TimeSpan FromGoDuration(string value)
         {

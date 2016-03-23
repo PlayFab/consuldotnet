@@ -244,8 +244,7 @@ namespace Consul
             Consistency = ConsistencyMode.Default,
             Datacenter = string.Empty,
             Token = string.Empty,
-            WaitIndex = 0,
-            WaitTime = TimeSpan.Zero
+            WaitIndex = 0
         };
 
         /// <summary>
@@ -266,7 +265,7 @@ namespace Consul
         /// <summary>
         /// WaitTime is used to bound the duration of a wait. Defaults to that of the Config, but can be overridden.
         /// </summary>
-        public TimeSpan WaitTime { get; set; }
+        public TimeSpan? WaitTime { get; set; }
 
         /// <summary>
         /// Token is used to provide a per-request ACL token which overrides the agent's default token.
@@ -546,7 +545,7 @@ namespace Consul
             }
             if (client.Config.WaitTime.HasValue)
             {
-                Params["wait"] = client.Config.WaitTime.Value.TotalMilliseconds.ToString(CultureInfo.InvariantCulture);
+                Params["wait"] = client.Config.WaitTime.Value.ToGoDuration();
             }
             if (!string.IsNullOrEmpty(client.Config.Token))
             {
@@ -675,9 +674,9 @@ namespace Consul
             {
                 Params["index"] = Options.WaitIndex.ToString();
             }
-            if (Options.WaitTime != TimeSpan.Zero)
+            if (Options.WaitTime.HasValue)
             {
-                Params["wait"] = Options.WaitTime.ToGoDuration();
+                Params["wait"] = Options.WaitTime.Value.ToGoDuration();
             }
             if (!string.IsNullOrEmpty(Options.Token))
             {

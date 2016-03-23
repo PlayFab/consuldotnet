@@ -98,6 +98,7 @@
     <Compile Include="SessionTest.cs" />
     <Compile Include="StatusTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UtilTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
