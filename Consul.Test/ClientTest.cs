@@ -69,6 +69,24 @@ namespace Consul.Test
         }
 
         [Fact]
+        public async Task Client_SetClientOptions()
+        {
+            var config = new ConsulClientConfiguration()
+            {
+                Datacenter = "foo",
+                WaitTime = new TimeSpan(0, 0, 100),
+                Token = "12345"
+            };
+            var client = new ConsulClient(config);
+            var request = client.Get<KVPair>("/v1/kv/foo");
+
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
+
+            Assert.Equal("foo", request.Params["dc"]);
+            Assert.Equal("1m40s", request.Params["wait"]);
+            Assert.Equal("12345", request.Params["token"]);
+        }
+        [Fact]
         public async Task Client_SetWriteOptions()
         {
             var client = new ConsulClient();

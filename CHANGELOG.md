@@ -13,6 +13,12 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-03-23
+* Fix a bug where setting `ConsulClientConfiguration.WaitTime` would cause 400
+  Bad Request responses. Also converted `QueryOptions.WaitTime` to a nullable
+  timespan to match the `ConsulClientConfiguration` property of the same
+  name/purpose.
+
 ## 2016-03-19
 * Fix a bug where the StatusCode was not being set correctly on some result
   types.
