@@ -42,7 +42,7 @@ build:
   verbosity: minimal
 before_test:
 - ps: >-
-    $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -config-file C:\consul\Consul.Test\test_config.json -advertise 127.0.0.1 -bind 127.0.0.1}
+    $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
 
     $running = $false
 

@@ -27,16 +27,16 @@ Agent connected to a Consul Server cluster. To run a local server:
 1. [Download a copy](https://www.consul.io/downloads.html) of the latest Windows
 version and unzip it into the `Consul.Test` folder.
 2. Open a command prompt and `cd` to the `Consul.Test` folder.
-3. Run `consul.exe agent -bind 127.0.0.1 -config-file test_config.json`
+3. Run `.\consul.exe agent -dev -config-file test_config.json`
 
-This creates a 1-server cluster that writes data to `.\consul-data` and
-listens on `localhost:8500`.
+This creates a 1-server cluster that operates in "dev" mode (does not
+write data to disk) and listens on `127.0.0.1:8500`.
 
 Once Consul is running (you'll see something like `consul: cluster
 leadership acquired`) in your command prompt, then do the following
 steps in your project.
 
-Add a reference to Consul and add a using statement:
+Add a reference to the Consul library and add a using statement:
 
 ```csharp
 using Consul;
