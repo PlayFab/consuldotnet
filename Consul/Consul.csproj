@@ -112,7 +112,7 @@
       <MergerEXEPath>$(SolutionDir)packages\ILRepack.2.0.10\tools\ILRepack.exe</MergerEXEPath>
       <MergerEXE Condition="('$(OS)' == 'Windows_NT')">$(MergerEXEPath)</MergerEXE>
       <MergerEXE Condition="('$(OS)' != 'Windows_NT')">mono $(MergerEXEPath)</MergerEXE>
-      <MergerCommands>/keyfile:$(KeyFilePath) /parallel /internalize /xmldocs /out:$(FullOutputAssemblyPath) @(InputAssemblies->'%(FullPath)', ' ')</MergerCommands>
+      <MergerCommands>/keyfile:$(KeyFilePath) /parallel /internalize /out:$(FullOutputAssemblyPath) @(InputAssemblies->'%(FullPath)', ' ')</MergerCommands>
     </PropertyGroup>
     <Message Text="MERGING: @(InputAssemblies->'%(Filename)') into $(FullOutputAssemblyPath) with the command $(MergerEXE) $(MergerCommands)" Importance="High" />
     <Exec Command="$(MergerEXE) $(MergerCommands)" WorkingDirectory="$(OutputPath)" />
