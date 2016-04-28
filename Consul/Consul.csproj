@@ -98,27 +98,28 @@
   -->
   <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
     <ItemGroup>
-      <InputAssemblies Include="$(OutputPath)\$(AssemblyName).dll" />
-      <InputAssemblies Include="$(OutputPath)\Newtonsoft.Json.dll" />
+      <InputAssemblies Include="$(ProjectDir)$(OutputPath)$(AssemblyName).dll" />
+      <InputAssemblies Include="$(ProjectDir)$(OutputPath)Newtonsoft.Json.dll" />
       <FilesToDelete Include="@(InputAssemblies)" />
-      <FilesToDelete Include="$(OutputPath)\Consul.pdb" />
-      <FilesToDelete Include="$(OutputPath)\Newtonsoft.Json.xml" />
+      <FilesToDelete Include="$(ProjectDir)$(OutputPath)Consul.pdb" />
+      <FilesToDelete Include="$(ProjectDir)$(OutputPath)Newtonsoft.Json.xml" />
     </ItemGroup>
     <PropertyGroup>
       <OutputFileName>$(AssemblyName).dll</OutputFileName>
-      <OutputFolder>$(OutputPath)\Standalone</OutputFolder>
-      <OutputAssembly>$(OutputFolder)\$(OutputFileName)</OutputAssembly>
+      <OutputFolder>$(ProjectDir)$(OutputPath)Standalone</OutputFolder>
+      <FullOutputAssemblyPath>$(OutputFolder)\$(OutputFileName)</FullOutputAssemblyPath>
+      <KeyFilePath>$(ProjectDir)$(AssemblyOriginatorKeyFile)</KeyFilePath>
+      <MergerEXEPath>$(SolutionDir)packages\ILRepack.2.0.10\tools\ILRepack.exe</MergerEXEPath>
+      <MergerEXE Condition="('$(OS)' == 'Windows_NT')">$(MergerEXEPath)</MergerEXE>
+      <MergerEXE Condition="('$(OS)' != 'Windows_NT')">mono $(MergerEXEPath)</MergerEXE>
+      <MergerCommands>/keyfile:$(KeyFilePath) /parallel /internalize /xmldocs /out:$(FullOutputAssemblyPath) @(InputAssemblies->'%(FullPath)', ' ')</MergerCommands>
     </PropertyGroup>
-    <ILRepack KeyFile="$(AssemblyOriginatorKeyFile)" Parallel="true" Internalize="true" XmlDocumentation="true" DebugInfo="true" InputAssemblies="@(InputAssemblies)" TargetKind="Dll" OutputFile="$(OutputAssembly)" />
+    <Message Text="MERGING: @(InputAssemblies->'%(Filename)') into $(FullOutputAssemblyPath) with the command $(MergerEXE) $(MergerCommands)" Importance="High" />
+    <Exec Command="$(MergerEXE) $(MergerCommands)" WorkingDirectory="$(OutputPath)" />
+    <Message Text="DELETING: original files - @(FilesToDelete->'%(Filename)')" Importance="High" />
     <Delete Files="@(FilesToDelete)" />
-    <Copy SourceFiles="$(OutputAssembly)" DestinationFolder="$(OutputPath)" />
+    <Message Text="COPYING: @(FilesToCopy->'%(Filename)')" Importance="High" />
+    <Exec Command="xcopy /s $(OutputFolder)\*.* $(ProjectDir)$(OutputPath)" />
     <RemoveDir Directories="$(OutputFolder)" />
-  </Target>
-  <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets')" />
-  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
-    <PropertyGroup>
-      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
-    </PropertyGroup>
-    <Error Condition="!Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets'))" />
   </Target>
 </Project>
