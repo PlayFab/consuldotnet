@@ -109,7 +109,7 @@
       <OutputFolder>$(OutputPath)\Standalone</OutputFolder>
       <OutputAssembly>$(OutputFolder)\$(OutputFileName)</OutputAssembly>
     </PropertyGroup>
-    <ILRepack Parallel="true" Internalize="true" XmlDocumentation="true" DebugInfo="true" InputAssemblies="@(InputAssemblies)" TargetKind="library" OutputFile="$(OutputAssembly)" />
+    <ILRepack KeyFile="$(AssemblyOriginatorKeyFile)" Parallel="true" Internalize="true" XmlDocumentation="true" DebugInfo="true" InputAssemblies="@(InputAssemblies)" TargetKind="Dll" OutputFile="$(OutputAssembly)" />
     <Delete Files="@(FilesToDelete)" />
     <Copy SourceFiles="$(OutputAssembly)" DestinationFolder="$(OutputPath)" />
     <RemoveDir Directories="$(OutputFolder)" />
