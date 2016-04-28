@@ -100,7 +100,9 @@
     <ItemGroup>
       <InputAssemblies Include="$(OutputPath)\$(AssemblyName).dll" />
       <InputAssemblies Include="$(OutputPath)\Newtonsoft.Json.dll" />
-      <FilesToDelete Include="$(OutputPath)\*.*" />
+      <FilesToDelete Include="@(InputAssemblies)" />
+      <FilesToDelete Include="$(OutputPath)\Consul.pdb" />
+      <FilesToDelete Include="$(OutputPath)\Newtonsoft.Json.xml" />
     </ItemGroup>
     <PropertyGroup>
       <OutputFileName>$(AssemblyName).dll</OutputFileName>
