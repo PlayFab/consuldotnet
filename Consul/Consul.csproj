@@ -119,7 +119,7 @@
     <Message Text="DELETING: original files - @(FilesToDelete->'%(Filename)')" Importance="High" />
     <Delete Files="@(FilesToDelete)" />
     <Message Text="COPYING: @(FilesToCopy->'%(Filename)')" Importance="High" />
-    <Exec Command="xcopy /s $(OutputFolder)\*.* $(ProjectDir)$(OutputPath)" />
+    <Exec Command="xcopy /s /y $(OutputFolder)\*.* $(ProjectDir)$(OutputPath)" />
     <RemoveDir Directories="$(OutputFolder)" />
   </Target>
 </Project>
