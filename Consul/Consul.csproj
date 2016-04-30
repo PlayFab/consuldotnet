@@ -39,8 +39,8 @@
     <AssemblyOriginatorKeyFile>..\assets\consuldotnet.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.7.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -96,4 +96,31 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+    <ItemGroup>
+      <InputAssemblies Include="$(ProjectDir)$(OutputPath)$(AssemblyName).dll" />
+      <InputAssemblies Include="$(ProjectDir)$(OutputPath)Newtonsoft.Json.dll" />
+      <FilesToDelete Include="@(InputAssemblies)" />
+      <FilesToDelete Include="$(ProjectDir)$(OutputPath)Consul.pdb" />
+      <FilesToDelete Include="$(ProjectDir)$(OutputPath)Newtonsoft.Json.xml" />
+    </ItemGroup>
+    <PropertyGroup>
+      <OutputFileName>$(AssemblyName).dll</OutputFileName>
+      <OutputFolder>$(ProjectDir)$(OutputPath)Standalone</OutputFolder>
+      <FullOutputAssemblyPath>$(OutputFolder)\$(OutputFileName)</FullOutputAssemblyPath>
+      <KeyFilePath>$(ProjectDir)$(AssemblyOriginatorKeyFile)</KeyFilePath>
+      <MergerEXEPath>$(ProjectDir)..\packages\ILRepack.2.0.10\tools\ILRepack.exe</MergerEXEPath>
+      <MergerEXE Condition="('$(OS)' == 'Windows_NT')">$(MergerEXEPath)</MergerEXE>
+      <MergerEXE Condition="('$(OS)' != 'Windows_NT')">mono $(MergerEXEPath)</MergerEXE>
+      <MergerCommands>/keyfile:$(KeyFilePath) /parallel /internalize /out:$(FullOutputAssemblyPath) @(InputAssemblies->'%(FullPath)', ' ')</MergerCommands>
+    </PropertyGroup>
+    <Message Text="MERGING: @(InputAssemblies->'%(Filename)') into $(FullOutputAssemblyPath) with the command $(MergerEXE) $(MergerCommands)" Importance="High" />
+    <Exec Command="$(MergerEXE) $(MergerCommands)" WorkingDirectory="$(OutputPath)" />
+    <Message Text="DELETING: original files - @(FilesToDelete->'%(Filename)')" Importance="High" />
+    <Delete Files="@(FilesToDelete)" />
+    <Message Text="COPYING: @(FilesToCopy->'%(Filename)')" Importance="High" />
+    <Exec Condition="('$(OS)' == 'Windows_NT')" Command="xcopy /s /y $(OutputFolder)\*.* $(ProjectDir)$(OutputPath)" />
+    <Exec Condition="('$(OS)' != 'Windows_NT')" Command="cp -a $(OutputFolder)/. $(ProjectDir)$(OutputPath)/" />
+    <RemoveDir Directories="$(OutputFolder)" />
+  </Target>
 </Project>

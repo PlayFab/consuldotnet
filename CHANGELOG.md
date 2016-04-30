@@ -13,6 +13,11 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-04-29
+* The `Newtonsoft.Json` DLL is now ILMerged into the `Consul` DLL, so
+  there should be no more issues with mismatched JSON.NET versions in
+  user projects. Thanks @grounded042!
+
 ## 2016-03-23
 * Fix a bug where setting `ConsulClientConfiguration.WaitTime` would cause 400
   Bad Request responses. Also converted `QueryOptions.WaitTime` to a nullable

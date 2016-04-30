@@ -27,16 +27,16 @@ Agent connected to a Consul Server cluster. To run a local server:
 1. [Download a copy](https://www.consul.io/downloads.html) of the latest Windows
 version and unzip it into the `Consul.Test` folder.
 2. Open a command prompt and `cd` to the `Consul.Test` folder.
-3. Run `consul.exe agent -bind 127.0.0.1 -config-file test_config.json`
+3. Run `.\consul.exe agent -dev -config-file test_config.json`
 
-This creates a 1-server cluster that writes data to `.\consul-data` and
-listens on `localhost:8500`.
+This creates a 1-server cluster that operates in "dev" mode (does not
+write data to disk) and listens on `127.0.0.1:8500`.
 
 Once Consul is running (you'll see something like `consul: cluster
 leadership acquired`) in your command prompt, then do the following
 steps in your project.
 
-Add a reference to Consul and add a using statement:
+Add a reference to the Consul library and add a using statement:
 
 ```csharp
 using Consul;
@@ -169,3 +169,14 @@ Election](https://consul.io/docs/guides/leader-election.html) guide.
 Semaphore is used to implement a distributed semaphore using the Consul
 KV primitives. It is an implementaiton of the [Consul Semaphore
 ](https://www.consul.io/docs/guides/semaphore.html) guide.
+
+## Using with Mono/DNXCore
+
+This package should work correctly with Mono. It compiles and runs with
+Mono 4.2.3, but if you have any issues using the Nuget package or
+compiling this code with Mono, please file a Github issue with details
+of the problem.
+
+This package is not usable on DNXCore due to a problem with [large
+integer support](https://github.com/JamesNK/Newtonsoft.Json/issues/838)
+in Json.NET. It should work fine on DNX451 targets though.

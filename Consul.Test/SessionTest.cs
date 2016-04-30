@@ -128,7 +128,7 @@ namespace Consul.Test
 
             try
             {
-                renewTask.Wait(5000);
+                renewTask.Wait(10000);
                 Assert.True(false, "timedout: missing session did not terminate renewal loop");
             }
             catch (AggregateException ae)
