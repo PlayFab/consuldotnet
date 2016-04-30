@@ -169,3 +169,14 @@ Election](https://consul.io/docs/guides/leader-election.html) guide.
 Semaphore is used to implement a distributed semaphore using the Consul
 KV primitives. It is an implementaiton of the [Consul Semaphore
 ](https://www.consul.io/docs/guides/semaphore.html) guide.
+
+## Using with Mono/DNXCore
+
+This package should work correctly with Mono. It compiles and runs with
+Mono 4.2.3, but if you have any issues using the Nuget package or
+compiling this code with Mono, please file a Github issue with details
+of the problem.
+
+This package is not usable on DNXCore due to a problem with [large
+integer support](https://github.com/JamesNK/Newtonsoft.Json/issues/838)
+in Json.NET. It should work fine on DNX451 targets though.
