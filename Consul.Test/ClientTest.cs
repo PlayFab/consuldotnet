@@ -30,8 +30,6 @@ namespace Consul.Test
             Assert.Equal("username", config.HttpAuth.UserName);
             Assert.Equal("password", config.HttpAuth.Password);
             Assert.Equal("https", config.Address.Scheme);
-            Assert.True((config.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
-                SslPolicyErrors.RemoteCertificateChainErrors));
 
             Environment.SetEnvironmentVariable("CONSUL_HTTP_ADDR", string.Empty);
             Environment.SetEnvironmentVariable("CONSUL_HTTP_TOKEN", string.Empty);
@@ -41,6 +39,9 @@ namespace Consul.Test
             ServicePointManager.ServerCertificateValidationCallback = null;
 
             var client = new ConsulClient(config);
+
+            Assert.True((client.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
+                SslPolicyErrors.RemoteCertificateChainErrors));
 
             Assert.NotNull(client);
         }
@@ -137,6 +138,34 @@ namespace Consul.Test
             var request = client.Put("/v1/kv/foo", new KVPair("kv/foo"), opts);
 
             await Assert.ThrowsAsync<ObjectDisposedException>(() => request.Execute());
+        }
+
+        [Fact]
+        public async Task Client_ReuseAndUpdateConfig()
+        {
+            var config = new ConsulClientConfiguration();
+
+            using (var client = new ConsulClient(config))
+            {
+                config.DisableServerCertificateValidation = true;
+                await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 1000 });
+                Assert.Equal<ulong>(1000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
+                Assert.True((client.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
+                    SslPolicyErrors.RemoteCertificateChainErrors));
+            }
+
+            using (var client = new ConsulClient(config))
+            {
+                config.DisableServerCertificateValidation = false;
+                await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 2000 });
+                Assert.Equal<ulong>(2000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
+                Assert.Null((client.Handler as WebRequestHandler).ServerCertificateValidationCallback);
+            }
+
+            using (var client = new ConsulClient(config))
+            {
+                await client.KV.Delete("kv/reuseconfig");
+            }
         }
     }
 }

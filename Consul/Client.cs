@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -40,8 +39,23 @@ namespace Consul
     public class ConsulClientConfiguration
     {
         private NetworkCredential _httpauth;
-
+        private bool _disableServerCertificateValidation;
         private X509Certificate2 _clientCertificate;
+
+        internal event EventHandler Updated;
+
+        internal bool DisableServerCertificateValidation
+        {
+            get
+            {
+                return _disableServerCertificateValidation;
+            }
+            set
+            {
+                _disableServerCertificateValidation = value;
+                OnUpdated(new EventArgs());
+            }
+        }
 
         /// <summary>
         /// The Uri to connect to the Consul agent.
@@ -66,10 +80,7 @@ namespace Consul
             set
             {
                 _httpauth = value;
-                if (_httpauth != null)
-                {
-                    (Handler as WebRequestHandler).Credentials = _httpauth;
-                }
+                OnUpdated(new EventArgs());
             }
         }
 
@@ -86,12 +97,7 @@ namespace Consul
             set
             {
                 _clientCertificate = value;
-                if (_clientCertificate != null)
-                {
-                    var handler = (Handler as WebRequestHandler);
-                    handler.ClientCertificates.Add(_clientCertificate);
-                    handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                }
+                OnUpdated(new EventArgs());
             }
         }
 
@@ -107,18 +113,12 @@ namespace Consul
         public TimeSpan? WaitTime { get; set; }
 
         /// <summary>
-        /// A handler used to bypass HTTPS certificate validation if validation is disabled.
-        /// </summary>
-        internal HttpMessageHandler Handler;
-
-        /// <summary>
         /// Creates a new instance of a Consul client configuration.
         /// </summary>
         /// <exception cref="ConsulConfigurationException">An error that occured while building the configuration.</exception>
         public ConsulClientConfiguration()
         {
             UriBuilder consulAddress = new UriBuilder("http://127.0.0.1:8500");
-            Handler = new WebRequestHandler();
             ConfigureFromEnvironment(consulAddress);
 
             Address = consulAddress.Uri;
@@ -178,8 +178,7 @@ namespace Consul
                 {
                     if (verifySsl == "0" || bool.Parse(verifySsl))
                     {
-                        (Handler as WebRequestHandler).ServerCertificateValidationCallback +=
-                            (sender, cert, chain, sslPolicyErrors) => true;
+                        DisableServerCertificateValidation = true;
                     }
                 }
                 catch (Exception ex)
@@ -208,6 +207,21 @@ namespace Consul
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN")))
             {
                 Token = Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN");
+            }
+        }
+
+        internal virtual void OnUpdated(EventArgs e)
+        {
+            // Make a temporary copy of the event to avoid possibility of
+            // a race condition if the last subscriber unsubscribes
+            // immediately after the null check and before the event is raised.
+            EventHandler handler = Updated;
+
+            // Event will be null if there are no subscribers
+            if (handler != null)
+            {
+                // Use the () operator to raise the event.
+                handler(this, e);
             }
         }
     }
@@ -401,6 +415,7 @@ namespace Consul
         private object _lock = new object();
         private bool skipClientDispose;
         internal HttpClient HttpClient { get; set; }
+        internal HttpMessageHandler Handler;
         internal ConsulClientConfiguration Config { get; set; }
 
         internal readonly JsonSerializer serializer = new JsonSerializer();
@@ -417,7 +432,10 @@ namespace Consul
         public ConsulClient(ConsulClientConfiguration config)
         {
             Config = config;
-            HttpClient = new HttpClient(config.Handler);
+            config.Updated += HandleConfigUpdateEvent;
+            Handler = new WebRequestHandler();
+            ApplyConfig(config);
+            HttpClient = new HttpClient(Handler);
             HttpClient.Timeout = TimeSpan.FromMinutes(15);
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
@@ -449,13 +467,14 @@ namespace Consul
             {
                 if (disposing)
                 {
+                    Config.Updated -= HandleConfigUpdateEvent;
                     if (HttpClient != null && !skipClientDispose)
                     {
                         HttpClient.Dispose();
                     }
-                    if (Config.Handler != null)
+                    if (Handler != null)
                     {
-                        Config.Handler.Dispose();
+                        Handler.Dispose();
                     }
                 }
 
@@ -485,6 +504,38 @@ namespace Consul
             }
         }
         #endregion
+
+        void HandleConfigUpdateEvent(object sender, EventArgs e)
+        {
+            ApplyConfig(sender as ConsulClientConfiguration);
+
+        }
+        void ApplyConfig(ConsulClientConfiguration config)
+        {
+            var handler = (Handler as WebRequestHandler);
+            if (config.HttpAuth != null)
+            {
+                handler.Credentials = config.HttpAuth;
+            }
+            if (config.ClientCertificate != null)
+            {
+                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                handler.ClientCertificates.Add(config.ClientCertificate);
+            }
+            else
+            {
+                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                handler.ClientCertificates.Clear();
+            }
+            if (config.DisableServerCertificateValidation)
+            {
+                handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => true;
+            }
+            else
+            {
+                handler.ServerCertificateValidationCallback = null;
+            }
+        }
 
         internal GetRequest<T> Get<T>(string path, QueryOptions opts = null)
         {
