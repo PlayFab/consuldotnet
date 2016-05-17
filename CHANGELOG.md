@@ -13,6 +13,12 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-05-16
+* Fixed configuration reuse between multiple clients so multiple
+  `ConsulClient`s that exist one after the other that both reference the same
+  configuration do not spuriously dispose of part of the
+  `ConsulClientConfiguration`.
+
 ## 2016-04-29
 * The `Newtonsoft.Json` DLL is now ILMerged into the `Consul` DLL, so
   there should be no more issues with mismatched JSON.NET versions in

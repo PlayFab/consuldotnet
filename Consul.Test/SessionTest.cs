@@ -154,7 +154,7 @@ namespace Consul.Test
             {
                 var renewTask = client.Session.RenewPeriodic(TimeSpan.FromSeconds(1), id, WriteOptions.Default, ct);
                 Assert.True((await client.Session.Destroy(id)).Response);
-                renewTask.Wait(1000);
+                renewTask.Wait(10000);
             }
             catch (AggregateException ae)
             {
