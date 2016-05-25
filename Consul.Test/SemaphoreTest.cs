@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +29,7 @@ namespace Consul.Test
     public class SemaphoreTest
     {
         [Fact]
-        public void Semaphore_BadLimit()
+        public async Task Semaphore_BadLimit()
         {
             var client = new ConsulClient();
 
@@ -44,12 +45,12 @@ namespace Consul.Test
             }
 
             var semaphore1 = client.Semaphore(keyName, 1);
-            semaphore1.Acquire(CancellationToken.None);
+            await semaphore1.Acquire(CancellationToken.None);
 
             try
             {
                 var semaphore2 = client.Semaphore(keyName, 2);
-                semaphore2.Acquire(CancellationToken.None);
+                await semaphore2.Acquire(CancellationToken.None);
             }
             catch (SemaphoreLimitConflictException ex)
             {
@@ -60,8 +61,8 @@ namespace Consul.Test
 
             try
             {
-                semaphore1.Release();
-                semaphore1.Destroy();
+                await semaphore1.Release();
+                await semaphore1.Destroy();
             }
             catch (SemaphoreNotHeldException ex)
             {
@@ -71,7 +72,7 @@ namespace Consul.Test
             Assert.False(semaphore1.IsHeld);
         }
         [Fact]
-        public void Semaphore_AcquireRelease()
+        public async Task Semaphore_AcquireRelease()
         {
             var client = new ConsulClient();
 
@@ -81,20 +82,20 @@ namespace Consul.Test
 
             try
             {
-                semaphore.Release();
+                await semaphore.Release();
             }
             catch (SemaphoreNotHeldException ex)
             {
                 Assert.IsType<SemaphoreNotHeldException>(ex);
             }
 
-            semaphore.Acquire(CancellationToken.None);
+            await semaphore.Acquire(CancellationToken.None);
 
             Assert.True(semaphore.IsHeld);
 
             try
             {
-                semaphore.Acquire(CancellationToken.None);
+                await semaphore.Acquire(CancellationToken.None);
             }
             catch (SemaphoreHeldException ex)
             {
@@ -103,11 +104,11 @@ namespace Consul.Test
 
             Assert.True(semaphore.IsHeld);
 
-            semaphore.Release();
+            await semaphore.Release();
 
             try
             {
-                semaphore.Release();
+                await semaphore.Release();
             }
             catch (SemaphoreNotHeldException ex)
             {
@@ -118,7 +119,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Semaphore_OneShot()
+        public async Task Semaphore_OneShot()
         {
             var client = new ConsulClient();
             const string keyName = "test/semaphore/oneshot";
@@ -133,7 +134,7 @@ namespace Consul.Test
 
             var semaphorekey = client.Semaphore(semaphoreOptions);
 
-            semaphorekey.Acquire(CancellationToken.None);
+            await semaphorekey.Acquire(CancellationToken.None);
 
             var another = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
@@ -141,7 +142,7 @@ namespace Consul.Test
                 SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
             });
 
-            another.Acquire();
+            await another.Acquire();
 
             var contender = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
@@ -149,41 +150,47 @@ namespace Consul.Test
                 SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
             });
 
-            Task.WaitAny(Task.Run(() =>
+            Task.WaitAny(Task.Run(async () =>
             {
-                Assert.Throws<SemaphoreMaxAttemptsReachedException>(() =>
-                contender.Acquire()
+                await Assert.ThrowsAsync<SemaphoreMaxAttemptsReachedException>(async () =>
+                    await contender.Acquire()
                 );
             }),
             Task.Delay(2 * semaphoreOptions.SemaphoreWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
             );
 
-            semaphorekey.Release();
-            another.Release();
-            contender.Destroy();
+            await semaphorekey.Release();
+            await another.Release();
+            await contender.Destroy();
         }
 
         [Fact]
-        public void Semaphore_Disposable()
+        public async Task Semaphore_AcquireSemaphore()
         {
             var client = new ConsulClient();
 
             const string keyName = "test/semaphore/disposable";
-            using (var semaphore = client.AcquireSemaphore(keyName, 2))
+            var semaphore = await client.AcquireSemaphore(keyName, 2);
+
+            try
             {
                 Assert.True(semaphore.IsHeld);
             }
+            finally
+            {
+                await semaphore.Release();
+            }
         }
         [Fact]
-        public void Semaphore_ExecuteAction()
+        public async Task Semaphore_ExecuteAction()
         {
             var client = new ConsulClient();
 
             const string keyName = "test/semaphore/action";
-            client.ExecuteInSemaphore(keyName, 2, () => Assert.True(true));
+            await client.ExecuteInSemaphore(keyName, 2, () => Assert.True(true));
         }
         [Fact]
-        public void Semaphore_AcquireWaitRelease()
+        public async Task Semaphore_AcquireWaitRelease()
         {
 
             var client = new ConsulClient();
@@ -198,23 +205,23 @@ namespace Consul.Test
 
             var semaphore = client.Semaphore(semaphoreOptions);
 
-            semaphore.Acquire(CancellationToken.None);
+            await semaphore.Acquire(CancellationToken.None);
 
             Assert.True(semaphore.IsHeld);
 
             // Wait for multiple renewal cycles to ensure the semaphore session stays renewed.
-            Task.Delay(TimeSpan.FromSeconds(60)).Wait();
+            await Task.Delay(TimeSpan.FromSeconds(60));
             Assert.True(semaphore.IsHeld);
 
-            semaphore.Release();
+            await semaphore.Release();
 
             Assert.False(semaphore.IsHeld);
 
-            semaphore.Destroy();
+            await semaphore.Destroy();
         }
 
         [Fact]
-        public void Semaphore_ContendWait()
+        public async Task Semaphore_ContendWait()
         {
             var client = new ConsulClient();
 
@@ -226,14 +233,21 @@ namespace Consul.Test
             {
                 cts.CancelAfter((contenderPool - 1) * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
 
-                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
+                var tasks = new List<Task>();
+                for (var i = 0; i < contenderPool; i++)
                 {
-                    var semaphore = client.Semaphore(keyName, 2);
-                    semaphore.Acquire(CancellationToken.None);
-                    acquired[v] = semaphore.IsHeld;
-                    Task.Delay(1000).Wait();
-                    semaphore.Release();
-                });
+                    var v = i;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var semaphore = client.Semaphore(keyName, 2);
+                        await semaphore.Acquire(CancellationToken.None);
+                        acquired[v] = semaphore.IsHeld;
+                        await Task.Delay(1000);
+                        await semaphore.Release();
+                    }));
+                }
+
+                await Task.WhenAny(Task.WhenAll(tasks), Task.Delay(Timeout.Infinite, cts.Token));
             }
 
             for (var i = 0; i < contenderPool; i++)
@@ -249,7 +263,7 @@ namespace Consul.Test
             }
         }
         [Fact]
-        public void Semaphore_ContendFast()
+        public async Task Semaphore_ContendFast()
         {
             var client = new ConsulClient();
 
@@ -261,13 +275,20 @@ namespace Consul.Test
             {
                 cts.CancelAfter((contenderPool - 1) * (int)Semaphore.DefaultSemaphoreWaitTime.TotalMilliseconds);
 
-                Parallel.For(0, contenderPool, new ParallelOptions { MaxDegreeOfParallelism = contenderPool, CancellationToken = cts.Token }, (v) =>
+                var tasks = new List<Task>();
+                for (var i = 0; i < contenderPool; i++)
                 {
-                    var semaphore = client.Semaphore(keyName, 2);
-                    semaphore.Acquire(CancellationToken.None);
-                    acquired[v] = semaphore.IsHeld;
-                    semaphore.Release();
-                });
+                    var v = i;
+                    tasks.Add(Task.Run(async () =>
+                    {
+                        var semaphore = client.Semaphore(keyName, 2);
+                        await semaphore.Acquire(CancellationToken.None);
+                        acquired[v] = semaphore.IsHeld;
+                        await semaphore.Release();
+                    }));
+                }
+
+                await Task.WhenAny(Task.WhenAll(tasks), Task.Delay(Timeout.Infinite, cts.Token));
             }
 
             for (var i = 0; i < contenderPool; i++)
@@ -284,7 +305,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Semaphore_Destroy()
+        public async Task Semaphore_Destroy()
         {
             var c = new ConsulClient();
 
@@ -294,14 +315,14 @@ namespace Consul.Test
             var semaphore2 = c.Semaphore(keyName, 2);
             try
             {
-                semaphore1.Acquire(CancellationToken.None);
+                await semaphore1.Acquire(CancellationToken.None);
                 Assert.True(semaphore1.IsHeld);
-                semaphore2.Acquire(CancellationToken.None);
+                await semaphore2.Acquire(CancellationToken.None);
                 Assert.True(semaphore2.IsHeld);
 
                 try
                 {
-                    semaphore1.Destroy();
+                    await semaphore1.Destroy();
                     Assert.True(false);
                 }
                 catch (SemaphoreHeldException ex)
@@ -309,12 +330,12 @@ namespace Consul.Test
                     Assert.IsType<SemaphoreHeldException>(ex);
                 }
 
-                semaphore1.Release();
+                await semaphore1.Release();
                 Assert.False(semaphore1.IsHeld);
 
                 try
                 {
-                    semaphore1.Destroy();
+                    await semaphore1.Destroy();
                     Assert.True(false);
                 }
                 catch (SemaphoreInUseException ex)
@@ -322,16 +343,16 @@ namespace Consul.Test
                     Assert.IsType<SemaphoreInUseException>(ex);
                 }
 
-                semaphore2.Release();
+                await semaphore2.Release();
                 Assert.False(semaphore2.IsHeld);
-                semaphore1.Destroy();
-                semaphore2.Destroy();
+                await semaphore1.Destroy();
+                await semaphore2.Destroy();
             }
             finally
             {
                 try
                 {
-                    semaphore1.Release();
+                    await semaphore1.Release();
                 }
                 catch (SemaphoreNotHeldException ex)
                 {
@@ -339,7 +360,7 @@ namespace Consul.Test
                 }
                 try
                 {
-                    semaphore2.Release();
+                    await semaphore2.Release();
                 }
                 catch (SemaphoreNotHeldException ex)
                 {
@@ -349,7 +370,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Semaphore_ForceInvalidate()
+        public async Task Semaphore_ForceInvalidate()
         {
             var client = new ConsulClient();
 
@@ -359,7 +380,7 @@ namespace Consul.Test
 
             try
             {
-                semaphore.Acquire(CancellationToken.None);
+                await semaphore.Acquire(CancellationToken.None);
 
                 Assert.True(semaphore.IsHeld);
 
@@ -375,14 +396,14 @@ namespace Consul.Test
 
                 Task.WaitAny(new[] { checker }, 1000);
 
-                client.Session.Destroy(semaphore.LockSession);
+                await client.Session.Destroy(semaphore.LockSession);
             }
             finally
             {
                 try
                 {
-                    semaphore.Release();
-                    semaphore.Destroy();
+                    await semaphore.Release();
+                    await semaphore.Destroy();
                 }
                 catch (SemaphoreNotHeldException ex)
                 {
@@ -402,7 +423,7 @@ namespace Consul.Test
 
             try
             {
-                semaphore.Acquire(CancellationToken.None);
+                await semaphore.Acquire(CancellationToken.None);
 
                 Assert.True(semaphore.IsHeld);
 
@@ -425,7 +446,7 @@ namespace Consul.Test
             {
                 try
                 {
-                    semaphore.Release();
+                    await semaphore.Release();
                 }
                 catch (SemaphoreNotHeldException ex)
                 {
@@ -435,7 +456,7 @@ namespace Consul.Test
         }
 
         [Fact]
-        public void Semaphore_Conflict()
+        public async Task Semaphore_Conflict()
         {
             var client = new ConsulClient();
 
@@ -443,7 +464,7 @@ namespace Consul.Test
 
             var semaphoreLock = client.CreateLock(keyName + "/.lock");
 
-            semaphoreLock.Acquire(CancellationToken.None);
+            await semaphoreLock.Acquire(CancellationToken.None);
 
             Assert.True(semaphoreLock.IsHeld);
 
@@ -451,7 +472,7 @@ namespace Consul.Test
 
             try
             {
-                semaphore.Acquire(CancellationToken.None);
+                await semaphore.Acquire(CancellationToken.None);
             }
             catch (SemaphoreConflictException ex)
             {
@@ -460,18 +481,18 @@ namespace Consul.Test
 
             try
             {
-                semaphore.Destroy();
+                await semaphore.Destroy();
             }
             catch (SemaphoreConflictException ex)
             {
                 Assert.IsType<SemaphoreConflictException>(ex);
             }
 
-            semaphoreLock.Release();
+            await semaphoreLock.Release();
 
             Assert.False(semaphoreLock.IsHeld);
 
-            semaphoreLock.Destroy();
+            await semaphoreLock.Destroy();
         }
     }
 }
