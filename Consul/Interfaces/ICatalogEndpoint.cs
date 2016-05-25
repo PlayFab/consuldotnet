@@ -20,6 +20,9 @@ namespace Consul
         Task<QueryResult<CatalogService[]>> Service(string service);
         Task<QueryResult<CatalogService[]>> Service(string service, string tag);
         Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q);
+        Task<QueryResult<CatalogService[]>> Service(string service, CancellationToken ct);
+        Task<QueryResult<CatalogService[]>> Service(string service, string tag, CancellationToken ct);
+        Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q, CancellationToken ct);
         Task<QueryResult<Dictionary<string, string[]>>> Services();
         Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q);
         Task<QueryResult<Dictionary<string, string[]>>> Services(QueryOptions q, CancellationToken ct);
