@@ -198,7 +198,7 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public Task<QueryResult<CatalogService[]>> Service(string service)
         {
-            return Service(service, string.Empty, QueryOptions.Default);
+            return Service(service, string.Empty, QueryOptions.Default, CancellationToken.None);
         }
 
         /// <summary>
@@ -209,7 +209,30 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public Task<QueryResult<CatalogService[]>> Service(string service, string tag)
         {
-            return Service(service, tag, QueryOptions.Default);
+            return Service(service, tag, QueryOptions.Default, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A list of service instances</returns>
+        public Task<QueryResult<CatalogService[]>> Service(string service, CancellationToken ct)
+        {
+            return Service(service, string.Empty, QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="tag">A tag to filter on</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A list of service instances</returns>
+        public Task<QueryResult<CatalogService[]>> Service(string service, string tag, CancellationToken ct)
+        {
+            return Service(service, tag, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -221,12 +244,25 @@ namespace Consul
         /// <returns>A list of service instances</returns>
         public Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q)
         {
+            return Service(service, tag, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Service is used to query catalog entries for a given service
+        /// </summary>
+        /// <param name="service">The service ID</param>
+        /// <param name="tag">A tag to filter on</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A list of service instances</returns>
+        public Task<QueryResult<CatalogService[]>> Service(string service, string tag, QueryOptions q, CancellationToken ct)
+        {
             var req = _client.Get<CatalogService[]>(string.Format("/v1/catalog/service/{0}", service), q);
             if (!string.IsNullOrEmpty(tag))
             {
                 req.Params["tag"] = tag;
             }
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -236,7 +272,18 @@ namespace Consul
         /// <returns>The node information including a list of services</returns>
         public Task<QueryResult<CatalogNode>> Node(string node)
         {
-            return Node(node, QueryOptions.Default);
+            return Node(node, QueryOptions.Default, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Node is used to query for service information about a single node
+        /// </summary>
+        /// <param name="node">The node name</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>The node information including a list of services</returns>
+        public Task<QueryResult<CatalogNode>> Node(string node, CancellationToken ct)
+        {
+            return Node(node, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -247,7 +294,19 @@ namespace Consul
         /// <returns>The node information including a list of services</returns>
         public Task<QueryResult<CatalogNode>> Node(string node, QueryOptions q)
         {
-            return _client.Get<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute();
+            return Node(node, q, CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Node is used to query for service information about a single node
+        /// </summary>
+        /// <param name="node">The node name</param>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>The node information including a list of services</returns>
+        public Task<QueryResult<CatalogNode>> Node(string node, QueryOptions q, CancellationToken ct)
+        {
+            return _client.Get<CatalogNode>(string.Format("/v1/catalog/node/{0}", node), q).Execute(ct);
         }
     }
 
