@@ -11,6 +11,7 @@
     <AssemblyName>Consul</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -36,11 +37,11 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>..\assets\consuldotnet.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>$(ProjectDir)..\assets\consuldotnet.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>$(SolutionDir)packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="System" />
@@ -108,7 +109,7 @@
       <OutputFolder>$(ProjectDir)$(OutputPath)Standalone</OutputFolder>
       <FullOutputAssemblyPath>$(OutputFolder)\$(OutputFileName)</FullOutputAssemblyPath>
       <KeyFilePath>$(ProjectDir)$(AssemblyOriginatorKeyFile)</KeyFilePath>
-      <MergerEXEPath>$(ProjectDir)..\packages\ILRepack.2.0.10\tools\ILRepack.exe</MergerEXEPath>
+      <MergerEXEPath>$(SolutionDir)packages\ILRepack.2.0.10\tools\ILRepack.exe</MergerEXEPath>
       <MergerEXE Condition="('$(OS)' == 'Windows_NT')">$(MergerEXEPath)</MergerEXE>
       <MergerEXE Condition="('$(OS)' != 'Windows_NT')">mono $(MergerEXEPath)</MergerEXE>
       <MergerCommands>/keyfile:$(KeyFilePath) /parallel /internalize /out:$(FullOutputAssemblyPath) @(InputAssemblies->'%(FullPath)', ' ')</MergerCommands>
