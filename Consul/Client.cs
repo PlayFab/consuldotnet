@@ -44,6 +44,10 @@ namespace Consul
 
         internal event EventHandler Updated;
 
+        internal static Lazy<bool> _clientCertSupport = new Lazy<bool>(() => { return Type.GetType("Mono.Runtime") != null; });
+
+        internal bool ClientCertificateSupported { get { return _clientCertSupport.Value; } }
+
         internal bool DisableServerCertificateValidation
         {
             get
@@ -85,9 +89,13 @@ namespace Consul
         }
 
         /// <summary>
-        /// TLS Client Certificate used to secure a connection to a Consul agent.
+        /// TLS Client Certificate used to secure a connection to a Consul agent. Not supported on Mono.
         /// This is only needed if an authenticating service exists in front of Consul; Token is used for ACL authentication by Consul. This is not the same as RPC Encryption with TLS certificates.
         /// </summary>
+        /// <exception cref="PlatformNotSupportedException">Setting this property will throw a PlatformNotSupportedException on Mono</exception>
+        #if __MonoCS__
+        [Obsolete("Client Certificates are not implemented in Mono", true)]
+        #endif
         public X509Certificate2 ClientCertificate
         {
             internal get
@@ -96,6 +104,10 @@ namespace Consul
             }
             set
             {
+                if (!ClientCertificateSupported)
+                {
+                    throw new PlatformNotSupportedException("Client certificates are not supported on this platform");
+                }
                 _clientCertificate = value;
                 OnUpdated(new EventArgs());
             }
@@ -517,15 +529,18 @@ namespace Consul
             {
                 handler.Credentials = config.HttpAuth;
             }
-            if (config.ClientCertificate != null)
+            if (config.ClientCertificateSupported)
             {
-                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                handler.ClientCertificates.Add(config.ClientCertificate);
-            }
-            else
-            {
-                handler.ClientCertificateOptions = ClientCertificateOption.Manual;
-                handler.ClientCertificates.Clear();
+                if (config.ClientCertificate != null)
+                {
+                    handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                    handler.ClientCertificates.Add(config.ClientCertificate);
+                }
+                else
+                {
+                    handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+                    handler.ClientCertificates.Clear();
+                }
             }
             if (config.DisableServerCertificateValidation)
             {
