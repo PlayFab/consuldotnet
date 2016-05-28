@@ -22,7 +22,8 @@ namespace Consul.Test
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL", "1");
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL_VERIFY", "0");
 
-            var config = new ConsulClientConfiguration();
+            var client = new ConsulClient();
+            var config = client.Config;
 
             Assert.Equal(addr, string.Format("{0}:{1}", config.Address.Host, config.Address.Port));
             Assert.Equal(token, config.Token);
@@ -38,9 +39,7 @@ namespace Consul.Test
             Environment.SetEnvironmentVariable("CONSUL_HTTP_SSL_VERIFY", string.Empty);
             ServicePointManager.ServerCertificateValidationCallback = null;
 
-            var client = new ConsulClient(config);
-
-            Assert.True((client.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
+            Assert.True(client.HttpHandler.ServerCertificateValidationCallback(null, null, null,
                 SslPolicyErrors.RemoteCertificateChainErrors));
 
             Assert.NotNull(client);
@@ -72,13 +71,12 @@ namespace Consul.Test
         [Fact]
         public async Task Client_SetClientOptions()
         {
-            var config = new ConsulClientConfiguration()
+            var client = new ConsulClient((c) =>
             {
-                Datacenter = "foo",
-                WaitTime = new TimeSpan(0, 0, 100),
-                Token = "12345"
-            };
-            var client = new ConsulClient(config);
+                c.Datacenter = "foo";
+                c.WaitTime = new TimeSpan(0, 0, 100);
+                c.Token = "12345";
+            });
             var request = client.Get<KVPair>("/v1/kv/foo");
 
             await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
@@ -150,7 +148,7 @@ namespace Consul.Test
                 config.DisableServerCertificateValidation = true;
                 await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 1000 });
                 Assert.Equal<ulong>(1000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
-                Assert.True((client.Handler as WebRequestHandler).ServerCertificateValidationCallback(null, null, null,
+                Assert.True(client.HttpHandler.ServerCertificateValidationCallback(null, null, null,
                     SslPolicyErrors.RemoteCertificateChainErrors));
             }
 
@@ -159,12 +157,53 @@ namespace Consul.Test
                 config.DisableServerCertificateValidation = false;
                 await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 2000 });
                 Assert.Equal<ulong>(2000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
-                Assert.Null((client.Handler as WebRequestHandler).ServerCertificateValidationCallback);
+                Assert.Null(client.HttpHandler.ServerCertificateValidationCallback);
             }
 
             using (var client = new ConsulClient(config))
             {
                 await client.KV.Delete("kv/reuseconfig");
+            }
+        }
+
+        [Fact]
+        public void Client_Constructors()
+        {
+            using (var c = new ConsulClient())
+            {
+                Assert.NotNull(c.Config);
+                Assert.NotNull(c.HttpHandler);
+                Assert.NotNull(c.HttpClient);
+            }
+
+            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; }))
+            {
+                Assert.NotNull(c.Config);
+                Assert.NotNull(c.HttpHandler);
+                Assert.NotNull(c.HttpClient);
+                Assert.Equal("foo", c.Config.Datacenter);
+            }
+
+            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; },
+                (client) => { client.Timeout = TimeSpan.FromSeconds(30); }))
+            {
+                Assert.NotNull(c.Config);
+                Assert.NotNull(c.HttpHandler);
+                Assert.NotNull(c.HttpClient);
+                Assert.Equal("foo", c.Config.Datacenter);
+                Assert.Equal(TimeSpan.FromSeconds(30), c.HttpClient.Timeout);
+            }
+
+            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; },
+                (client) => { client.Timeout = TimeSpan.FromSeconds(30); },
+                (handler) => { handler.Proxy = new WebProxy("127.0.0.1", 8080); }))
+            {
+                Assert.NotNull(c.Config);
+                Assert.NotNull(c.HttpHandler);
+                Assert.NotNull(c.HttpClient);
+                Assert.Equal("foo", c.Config.Datacenter);
+                Assert.Equal(TimeSpan.FromSeconds(30), c.HttpClient.Timeout);
+                Assert.NotNull(c.HttpHandler.Proxy);
             }
         }
     }

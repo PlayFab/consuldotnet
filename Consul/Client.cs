@@ -426,28 +426,72 @@ namespace Consul
     {
         private object _lock = new object();
         private bool skipClientDispose;
-        internal HttpClient HttpClient { get; set; }
-        internal HttpMessageHandler Handler;
-        internal ConsulClientConfiguration Config { get; set; }
+        internal readonly HttpClient HttpClient;
+        internal readonly WebRequestHandler HttpHandler;
+        internal readonly ConsulClientConfiguration Config;
 
         internal readonly JsonSerializer serializer = new JsonSerializer();
 
+        #region New style config with Actions
         /// <summary>
-        /// Initializes a new Consul client with a default configuration.
+        /// Initializes a new Consul client with a default configuration that connects to 127.0.0.1:8500.
         /// </summary>
-        public ConsulClient() : this(new ConsulClientConfiguration()) { }
+        public ConsulClient() : this(null, null, null) { }
 
+        /// <summary>
+        /// Initializes a new Consul client with the ability to set portions of the configuration.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride) : this(configOverride, null, null) { }
+
+        /// <summary>
+        /// Initializes a new Consul client with the ability to set portions of the configuration and access the underlying HttpClient for modification.
+        /// The HttpClient is modified to set options like the request timeout and headers.
+        /// The Timeout property also applies to all long-poll requests and should be set to a value that will encompass all successful requests.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride) : this(configOverride, clientOverride, null) { }
+
+        /// <summary>
+        /// Initializes a new Consul client with the ability to set portions of the configuration and access the underlying HttpClient and WebRequestHandler for modification.
+        /// The HttpClient is modified to set options like the request timeout and headers.
+        /// The WebRequestHandler is modified to set options like Proxy and Credentials.
+        /// The Timeout property also applies to all long-poll requests and should be set to a value that will encompass all successful requests.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
+        /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
+        {
+            Config = new ConsulClientConfiguration();
+            HttpHandler = new WebRequestHandler();
+            ApplyConfig(Config);
+            if (configOverride != null) { configOverride(Config); }
+            if (handlerOverride != null) { handlerOverride(HttpHandler); }
+            HttpClient = new HttpClient(HttpHandler);
+            HttpClient.Timeout = TimeSpan.FromMinutes(15);
+            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+            if (clientOverride != null) { clientOverride(HttpClient); }
+        }
+
+        #endregion
+
+        #region Old style config
         /// <summary>
         /// Initializes a new Consul client with the configuration specified.
         /// </summary>
         /// <param name="config">A Consul client configuration</param>
+        [Obsolete("This constructor is no longer necessary due to the new Action based constructors and will be removed after 0.7.0 or when 0.8.0 is released." +
+            "Please use the ConsulClient(Action<ConsulClientConfiguration>) constructor to set configuration options.", false)]
         public ConsulClient(ConsulClientConfiguration config)
         {
             Config = config;
             config.Updated += HandleConfigUpdateEvent;
-            Handler = new WebRequestHandler();
+            HttpHandler = new WebRequestHandler();
             ApplyConfig(config);
-            HttpClient = new HttpClient(Handler);
+            HttpClient = new HttpClient(HttpHandler);
             HttpClient.Timeout = TimeSpan.FromMinutes(15);
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
@@ -459,6 +503,8 @@ namespace Consul
         /// </summary>
         /// <param name="config">A Consul client configuration</param>
         /// <param name="client">A custom HttpClient</param>
+        [Obsolete("This constructor is no longer necessary due to the new Action based constructors and will be removed after 0.7.0 or when 0.8.0 is released." +
+            "Please use one of the ConsulClient(Action<>) constructors instead to set internal options on the HttpClient/WebRequestHandler.", false)]
         public ConsulClient(ConsulClientConfiguration config, HttpClient client)
         {
             Config = config;
@@ -469,6 +515,7 @@ namespace Consul
                 throw new ArgumentException("HttpClient must accept the application/json content type", "client");
             }
         }
+        #endregion
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
@@ -484,9 +531,9 @@ namespace Consul
                     {
                         HttpClient.Dispose();
                     }
-                    if (Handler != null)
+                    if (HttpHandler != null)
                     {
-                        Handler.Dispose();
+                        HttpHandler.Dispose();
                     }
                 }
 
@@ -524,7 +571,7 @@ namespace Consul
         }
         void ApplyConfig(ConsulClientConfiguration config)
         {
-            var handler = (Handler as WebRequestHandler);
+            var handler = HttpHandler;
             if (config.HttpAuth != null)
             {
                 handler.Credentials = config.HttpAuth;
