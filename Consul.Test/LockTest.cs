@@ -88,24 +88,32 @@ namespace Consul.Test
 
             lockKey.Acquire(CancellationToken.None);
 
+            
             var contender = client.CreateLock(new LockOptions(keyName)
             {
                 LockTryOnce = true,
                 LockWaitTime = TimeSpan.FromMilliseconds(250)
             });
 
+            Assert.True(lockKey.IsHeld);
+            Assert.False(contender.IsHeld);
+
             Task.WaitAny(Task.Run(() =>
             {
-                Assert.Throws<LockMaxAttemptsReachedException>(() => 
-                contender.Acquire()
-                );
+                Assert.Throws<LockMaxAttemptsReachedException>(() => contender.Acquire());
             }),
             Task.Delay(2 * lockOptions.LockWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
             );
 
+            Assert.True(lockKey.IsHeld);
+            Assert.False(contender.IsHeld);
+
             lockKey.Release();
 
             contender.Acquire();
+            Assert.False(lockKey.IsHeld);
+            Assert.True(contender.IsHeld);
+
             contender.Release();
             contender.Destroy();
         }
