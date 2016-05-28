@@ -93,9 +93,9 @@ namespace Consul
         /// This is only needed if an authenticating service exists in front of Consul; Token is used for ACL authentication by Consul. This is not the same as RPC Encryption with TLS certificates.
         /// </summary>
         /// <exception cref="PlatformNotSupportedException">Setting this property will throw a PlatformNotSupportedException on Mono</exception>
-        #if __MonoCS__
+#if __MonoCS__
         [Obsolete("Client Certificates are not implemented in Mono", true)]
-        #endif
+#endif
         public X509Certificate2 ClientCertificate
         {
             internal get
@@ -529,6 +529,7 @@ namespace Consul
             {
                 handler.Credentials = config.HttpAuth;
             }
+#if !__MonoCS__
             if (config.ClientCertificateSupported)
             {
                 if (config.ClientCertificate != null)
@@ -542,6 +543,7 @@ namespace Consul
                     handler.ClientCertificates.Clear();
                 }
             }
+#endif
             if (config.DisableServerCertificateValidation)
             {
                 handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => true;
