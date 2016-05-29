@@ -134,6 +134,7 @@ namespace Consul.Test
             var semaphorekey = client.Semaphore(semaphoreOptions);
 
             semaphorekey.Acquire(CancellationToken.None);
+            Assert.True(semaphorekey.IsHeld);
 
             var another = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
@@ -142,6 +143,8 @@ namespace Consul.Test
             });
 
             another.Acquire();
+            Assert.True(another.IsHeld);
+            Assert.True(semaphorekey.IsHeld);
 
             var contender = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
@@ -157,6 +160,10 @@ namespace Consul.Test
             }),
             Task.Delay(2 * semaphoreOptions.SemaphoreWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
             );
+
+            Assert.False(contender.IsHeld);
+            Assert.True(another.IsHeld);
+            Assert.True(semaphorekey.IsHeld);
 
             semaphorekey.Release();
             another.Release();

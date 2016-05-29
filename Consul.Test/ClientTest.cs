@@ -169,6 +169,9 @@ namespace Consul.Test
         [Fact]
         public void Client_Constructors()
         {
+            Action<ConsulClientConfiguration> cfgAction2 = (cfg) => { cfg.Token = "yep"; };
+            Action<ConsulClientConfiguration> cfgAction = (cfg) => { cfg.Datacenter = "foo"; cfgAction2(cfg); };
+            
             using (var c = new ConsulClient())
             {
                 Assert.NotNull(c.Config);
@@ -176,7 +179,7 @@ namespace Consul.Test
                 Assert.NotNull(c.HttpClient);
             }
 
-            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; }))
+            using (var c = new ConsulClient(cfgAction))
             {
                 Assert.NotNull(c.Config);
                 Assert.NotNull(c.HttpHandler);
@@ -184,7 +187,7 @@ namespace Consul.Test
                 Assert.Equal("foo", c.Config.Datacenter);
             }
 
-            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; },
+            using (var c = new ConsulClient(cfgAction,
                 (client) => { client.Timeout = TimeSpan.FromSeconds(30); }))
             {
                 Assert.NotNull(c.Config);
@@ -194,7 +197,7 @@ namespace Consul.Test
                 Assert.Equal(TimeSpan.FromSeconds(30), c.HttpClient.Timeout);
             }
 
-            using (var c = new ConsulClient((cfg) => { cfg.Datacenter = "foo"; },
+            using (var c = new ConsulClient(cfgAction,
                 (client) => { client.Timeout = TimeSpan.FromSeconds(30); },
                 (handler) => { handler.Proxy = new WebProxy("127.0.0.1", 8080); }))
             {
