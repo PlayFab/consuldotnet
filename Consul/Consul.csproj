@@ -52,7 +52,7 @@
   <ItemGroup>
     <Compile Include="ACL.cs" />
     <Compile Include="Agent.cs" />
-    <Compile Include="AsyncLock.cs" />
+    <Compile Include="Utilities\AsyncLock.cs" />
     <Compile Include="Catalog.cs" />
     <Compile Include="Coordinate.cs" />
     <Compile Include="Event.cs" />
