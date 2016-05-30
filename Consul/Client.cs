@@ -44,7 +44,7 @@ namespace Consul
 
         internal event EventHandler Updated;
 
-        internal static Lazy<bool> _clientCertSupport = new Lazy<bool>(() => { return Type.GetType("Mono.Runtime") != null; });
+        internal static Lazy<bool> _clientCertSupport = new Lazy<bool>(() => { return Type.GetType("Mono.Runtime") == null; });
 
         internal bool ClientCertificateSupported { get { return _clientCertSupport.Value; } }
 
