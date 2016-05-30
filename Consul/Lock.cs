@@ -211,9 +211,9 @@ namespace Consul
         /// <param name="ct">The cancellation token to cancel lock acquisition</param>
         public async Task<CancellationToken> Acquire(CancellationToken ct)
         {
-            using(await _mutex.LockAsync().ConfigureAwait(false))
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (IsHeld)
                     {
@@ -338,28 +338,29 @@ namespace Consul
                     }
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
-                finally
+            }
+            finally
+            {
+                if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
-                    if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
+                    _cts.Cancel();
+                    if (_sessionRenewTask != null)
                     {
-                        _cts.Cancel();
-                        if (_sessionRenewTask != null)
+                        try
                         {
-                            try
-                            {
-                                await _sessionRenewTask.ConfigureAwait(false);
-                            }
-                            catch (AggregateException)
-                            {
-                                // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                            }
+                            await _sessionRenewTask.ConfigureAwait(false);
                         }
-                        else
+                        catch (AggregateException)
                         {
-                            await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
+                            // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                         }
-                        Opts.Session = null;
                     }
+                    else
+                    {
+                        await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
+                    }
+                    Opts.Session = null;
+
                 }
             }
         }
@@ -369,9 +370,9 @@ namespace Consul
         /// </summary>
         public async Task Release()
         {
-            using (await _mutex.LockAsync().ConfigureAwait(false))
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (!IsHeld)
                     {
@@ -386,22 +387,20 @@ namespace Consul
                     Opts.Session = null;
                     await _client.KV.Release(lockEnt).ConfigureAwait(false);
                 }
-                finally
+            }
+            finally
+            {
+                if (_sessionRenewTask != null)
                 {
-                    if (_sessionRenewTask != null)
+                    try
                     {
-                        if (_sessionRenewTask != null)
-                        {
-                            try
-                            {
-                                await _sessionRenewTask.ConfigureAwait(false);
-                            }
-                            catch (Exception)
-                            {
-                                // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                            }
-                        }
+                        await _sessionRenewTask.ConfigureAwait(false);
                     }
+                    catch (Exception)
+                    {
+                        // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
+                    }
+
                 }
             }
         }
@@ -741,6 +740,6 @@ namespace Consul
             {
                 await l.Release().ConfigureAwait(false);
             }
-        }    
+        }
     }
 }

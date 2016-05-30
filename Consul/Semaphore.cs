@@ -295,9 +295,9 @@ namespace Consul
         /// <param name="ct">The cancellation token to cancel semaphore acquisition</param>
         public async Task<CancellationToken> Acquire(CancellationToken ct)
         {
-            using (await _mutex.LockAsync().ConfigureAwait(false))
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (IsHeld)
                     {
@@ -408,29 +408,29 @@ namespace Consul
                     }
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
                 }
-                finally
+            }
+            finally
+            {
+                if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
-                    if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
+                    _cts.Cancel();
+                    await _client.KV.Delete(ContenderEntry(LockSession).Key).ConfigureAwait(false);
+                    if (_sessionRenewTask != null)
                     {
-                        _cts.Cancel();
-                        await _client.KV.Delete(ContenderEntry(LockSession).Key).ConfigureAwait(false);
-                        if (_sessionRenewTask != null)
+                        try
                         {
-                            try
-                            {
-                                await _sessionRenewTask.ConfigureAwait(false);
-                            }
-                            catch (Exception)
-                            {
-                                // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                            }
+                            await _sessionRenewTask.ConfigureAwait(false);
                         }
-                        else
+                        catch (Exception)
                         {
-                            await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
+                            // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                         }
-                        Opts.Session = null;
                     }
+                    else
+                    {
+                        await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
+                    }
+                    Opts.Session = null;
                 }
             }
         }
@@ -440,9 +440,9 @@ namespace Consul
         /// </summary>
         public async Task Release()
         {
-            using (await _mutex.LockAsync().ConfigureAwait(false))
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (!IsHeld)
                     {
@@ -487,18 +487,18 @@ namespace Consul
 
                     await _client.KV.Delete(contenderKey).ConfigureAwait(false);
                 }
-                finally
+            }
+            finally
+            {
+                if (_sessionRenewTask != null)
                 {
-                    if (_sessionRenewTask != null)
+                    try
                     {
-                        try
-                        {
-                            await _sessionRenewTask.ConfigureAwait(false);
-                        }
-                        catch (Exception)
-                        {
-                            // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                        }
+                        await _sessionRenewTask.ConfigureAwait(false);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                     }
                 }
             }
