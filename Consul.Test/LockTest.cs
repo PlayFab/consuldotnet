@@ -212,11 +212,12 @@ namespace Consul.Test
                 for (var i = 0; i < contenderPool; i++)
                 {
                     var v = i;
+                    acquired[v] = false;
                     tasks.Add(Task.Run(async () =>
                     {
                         var lockKey = client.CreateLock(keyName);
                         await lockKey.Acquire(CancellationToken.None);
-                        Assert.True(acquired.TryAdd(v, lockKey.IsHeld));
+                        acquired[v] = lockKey.IsHeld;
                         if (lockKey.IsHeld)
                         {
                             await Task.Delay(1000);
@@ -230,14 +231,7 @@ namespace Consul.Test
 
             for (var i = 0; i < contenderPool; i++)
             {
-                if (acquired[i])
-                {
-                    Assert.True(acquired[i]);
-                }
-                else
-                {
-                    Assert.True(false, "Contender " + i.ToString() + " did not acquire the lock");
-                }
+                Assert.True(acquired[i], "Contender " + i.ToString() + " did not acquire the lock");
             }
         }
         [Fact]
@@ -461,22 +455,22 @@ namespace Consul.Test
                 }
 
                 var lockCheck = new[]
-            {
-                Task.Run(() =>
                 {
-                    while (lock1.IsHeld)
+                    Task.Run(() =>
                     {
-                        Thread.Sleep(10);
-                    }
-                }),
-                Task.Run(() =>
-                {
-                    while (lock2.IsHeld)
+                        while (lock1.IsHeld)
+                        {
+                            Thread.Sleep(10);
+                        }
+                    }),
+                    Task.Run(() =>
                     {
-                        Thread.Sleep(10);
-                    }
-                })
-            };
+                        while (lock2.IsHeld)
+                        {
+                            Thread.Sleep(10);
+                        }
+                    })
+                };
 
                 Task.WaitAll(lockCheck, 1000);
 
