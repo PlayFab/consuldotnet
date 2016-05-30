@@ -25,9 +25,9 @@ namespace Consul
     {
         bool IsHeld { get; }
 
-        CancellationToken Acquire();
-        CancellationToken Acquire(CancellationToken ct);
-        void Destroy();
-        void Release();
+        Task<CancellationToken> Acquire();
+        Task<CancellationToken> Acquire(CancellationToken ct);
+        Task Destroy();
+        Task Release();
     }
 }
