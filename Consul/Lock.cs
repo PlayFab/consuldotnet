@@ -253,13 +253,19 @@ namespace Consul
                         WaitTime = Opts.LockWaitTime
                     };
 
-                    var attempts = 0;
+                    var attempts = 0; 
+                    var start = DateTime.UtcNow;
 
                     while (!ct.IsCancellationRequested)
                     {
                         if (attempts > 0 && Opts.LockTryOnce)
                         {
-                            throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
+                            var elapsed = DateTime.UtcNow.Subtract(start);
+                            if (elapsed > qOpts.WaitTime)
+                            {
+                                throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
+                            }
+                            qOpts.WaitTime -= elapsed;
                         }
 
                         attempts++;

@@ -13,6 +13,11 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-06-10
+* Correct the behavior of `LockTryOnce/SemaphoreTryOnce` so that it now
+  properly waits one multiple of the WaitTime before exiting in case of it
+  already being held.
+
 ## 2016-05-27
 * Disable Client Certificates on Mono since the certificate handler is
   not implemented at the Mono library level.

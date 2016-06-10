@@ -83,7 +83,7 @@ namespace Consul.Test
 
             Assert.Equal(Lock.DefaultLockWaitTime, lockOptions.LockWaitTime);
 
-            lockOptions.LockWaitTime = TimeSpan.FromMilliseconds(250);
+            lockOptions.LockWaitTime = TimeSpan.FromMilliseconds(1000);
 
             var lockKey = client.CreateLock(lockOptions);
 
@@ -93,20 +93,20 @@ namespace Consul.Test
             var contender = client.CreateLock(new LockOptions(keyName)
             {
                 LockTryOnce = true,
-                LockWaitTime = TimeSpan.FromMilliseconds(250)
+                LockWaitTime = TimeSpan.FromMilliseconds(1000)
             });
 
+            var stopwatch = Stopwatch.StartNew();
 
             Assert.True(lockKey.IsHeld);
             Assert.False(contender.IsHeld);
-            Task.WaitAny(Task.Run(async () =>
-            {
-                await Assert.ThrowsAsync<LockMaxAttemptsReachedException>(async () =>
-                    await contender.Acquire()
+            Task.WaitAny(
+                Task.Run(async () => { await Assert.ThrowsAsync<LockMaxAttemptsReachedException>(async () => await contender.Acquire()); }),
+                Task.Delay((int)(2 * lockOptions.LockWaitTime.TotalMilliseconds)).ContinueWith((t) => Assert.True(false, "Took too long"))
                 );
-            }),
-            Task.Delay(2 * lockOptions.LockWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
-            );
+
+            Assert.False(stopwatch.ElapsedMilliseconds < lockOptions.LockWaitTime.TotalMilliseconds);
+            Assert.False(contender.IsHeld, "Contender should have failed to acquire");
 
             Assert.True(lockKey.IsHeld);
             Assert.False(contender.IsHeld);

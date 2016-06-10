@@ -130,7 +130,7 @@ namespace Consul.Test
 
             Assert.Equal(Semaphore.DefaultSemaphoreWaitTime, semaphoreOptions.SemaphoreWaitTime);
 
-            semaphoreOptions.SemaphoreWaitTime = TimeSpan.FromMilliseconds(250);
+            semaphoreOptions.SemaphoreWaitTime = TimeSpan.FromMilliseconds(1000);
 
             var semaphorekey = client.Semaphore(semaphoreOptions);
 
@@ -140,7 +140,7 @@ namespace Consul.Test
             var another = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
                 SemaphoreTryOnce = true,
-                SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
+                SemaphoreWaitTime = TimeSpan.FromMilliseconds(1000)
             });
 
             await another.Acquire();
@@ -150,17 +150,19 @@ namespace Consul.Test
             var contender = client.Semaphore(new SemaphoreOptions(keyName, 2)
             {
                 SemaphoreTryOnce = true,
-                SemaphoreWaitTime = TimeSpan.FromMilliseconds(250)
+                SemaphoreWaitTime = TimeSpan.FromMilliseconds(1000)
             });
 
-            Task.WaitAny(Task.Run(async () =>
-            {
-                await Assert.ThrowsAsync<SemaphoreMaxAttemptsReachedException>(async () =>
-                    await contender.Acquire()
+
+            var stopwatch = Stopwatch.StartNew();
+            
+            Task.WaitAny(
+                Task.Run(async () => { await Assert.ThrowsAsync<SemaphoreMaxAttemptsReachedException>(async () => await contender.Acquire()); }),
+                Task.Delay((int)(2 * semaphoreOptions.SemaphoreWaitTime.TotalMilliseconds)).ContinueWith((t) => Assert.True(false, "Took too long"))
                 );
-            }),
-            Task.Delay(2 * semaphoreOptions.SemaphoreWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
-            );
+
+            Assert.False(contender.IsHeld, "Contender should have failed to acquire");
+            Assert.False(stopwatch.ElapsedMilliseconds < semaphoreOptions.SemaphoreWaitTime.TotalMilliseconds);
 
             Assert.False(contender.IsHeld);
             Assert.True(another.IsHeld);
@@ -206,7 +208,8 @@ namespace Consul.Test
             var semaphoreOptions = new SemaphoreOptions(keyName, 1)
             {
                 SessionName = "test_semaphoresession",
-                SessionTTL = TimeSpan.FromSeconds(10), MonitorRetries = 10
+                SessionTTL = TimeSpan.FromSeconds(10),
+                MonitorRetries = 10
             };
 
             var semaphore = client.Semaphore(semaphoreOptions);
