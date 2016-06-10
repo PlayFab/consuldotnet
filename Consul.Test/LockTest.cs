@@ -82,7 +82,7 @@ namespace Consul.Test
 
             Assert.Equal(Lock.DefaultLockWaitTime, lockOptions.LockWaitTime);
 
-            lockOptions.LockWaitTime = TimeSpan.FromMilliseconds(250);
+            lockOptions.LockWaitTime = TimeSpan.FromMilliseconds(1000);
 
             var lockKey = client.CreateLock(lockOptions);
 
@@ -91,21 +91,39 @@ namespace Consul.Test
             var contender = client.CreateLock(new LockOptions(keyName)
             {
                 LockTryOnce = true,
-                LockWaitTime = TimeSpan.FromMilliseconds(250)
+                LockWaitTime = TimeSpan.FromMilliseconds(1000)
             });
 
-            Task.WaitAny(Task.Run(() =>
-            {
-                Assert.Throws<LockMaxAttemptsReachedException>(() => 
-                contender.Acquire()
+            var stopwatch = Stopwatch.StartNew();
+
+            Exception didExcept = null;
+
+            Task.WaitAny(
+                Task.Run(() =>
+                {
+                    // Needed because async asserts don't work in sync methods!
+                    try
+                    {
+                        contender.Acquire();
+                    }
+                    catch (Exception e)
+                    {
+                        didExcept = e;
+                    }
+                }),
+                Task.Delay((int)(2 * lockOptions.LockWaitTime.TotalMilliseconds)).ContinueWith((t) => Assert.True(false, "Took too long"))
                 );
-            }),
-            Task.Delay(2 * lockOptions.LockWaitTime.Milliseconds).ContinueWith((t) => Assert.True(false, "Took too long"))
-            );
+
+
+            Assert.False(stopwatch.ElapsedMilliseconds < lockOptions.LockWaitTime.TotalMilliseconds);
+            Assert.False(contender.IsHeld, "Contender should have failed to acquire");
+            Assert.IsType<LockMaxAttemptsReachedException>(didExcept);
 
             lockKey.Release();
 
             contender.Acquire();
+            Assert.True(contender.IsHeld);
+
             contender.Release();
             contender.Destroy();
         }
