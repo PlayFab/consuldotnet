@@ -344,12 +344,18 @@ namespace Consul
                     };
 
                     var attempts = 0;
+                    var start = DateTime.UtcNow;
 
                     while (!ct.IsCancellationRequested)
                     {
                         if (attempts > 0 && Opts.SemaphoreTryOnce)
                         {
-                            throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
+                            var elapsed = DateTime.UtcNow.Subtract(start);
+                            if (elapsed > qOpts.WaitTime)
+                            {
+                                throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
+                            }
+                            qOpts.WaitTime -= elapsed;
                         }
 
                         attempts++;
