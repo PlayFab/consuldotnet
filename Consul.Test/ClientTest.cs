@@ -44,9 +44,8 @@ namespace Consul.Test
                 SslPolicyErrors.RemoteCertificateChainErrors));
             ServicePointManager.ServerCertificateValidationCallback = null;
 #else
-            //TODO: Figure out
-            //Assert.True((client.HttpHandler as HttpClientHandler).ServerCertificateValidationCallback(null, null, null,
-            //    SslPolicyErrors.RemoteCertificateChainErrors));
+            Assert.True((client.HttpHandler as HttpClientHandler).ServerCertificateCustomValidationCallback(null, null, null,
+                SslPolicyErrors.RemoteCertificateChainErrors));
 #endif
 
             Assert.NotNull(client);

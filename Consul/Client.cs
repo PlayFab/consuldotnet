@@ -623,7 +623,6 @@ namespace Consul
             }
 #endif
 #if !CORECLR
-            //TODO:  Need to figure this out
             if (config.DisableServerCertificateValidation)
             {
                 handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => { return true; };
@@ -631,6 +630,15 @@ namespace Consul
             else
             {
                 handler.ServerCertificateValidationCallback = null;
+            }
+#else
+            if (config.DisableServerCertificateValidation)
+            {
+                handler.ServerCertificateCustomValidationCallback += (certSender, cert, chain, sslPolicyErrors) => { return true; };
+            }
+            else
+            {
+                handler.ServerCertificateCustomValidationCallback = null;
             }
 #endif
         }
