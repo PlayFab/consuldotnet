@@ -43,10 +43,6 @@ before_build:
 build_script:
 - dotnet --verbose build Consul --configuration Release
 - dotnet --verbose pack Consul --configuration Release
-#build:
-#  publish_nuget: true
-#  publish_nuget_symbols: true
-#  verbosity: minimal
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
@@ -73,7 +69,7 @@ after_test:
     Get-Job | Receive-Job
 
 artifacts:
-- path: '*.nupkg'
+- path: '**\*.nupkg'
 deploy:
 - provider: NuGet
   api_key:
