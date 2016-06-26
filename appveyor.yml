@@ -13,21 +13,22 @@ assembly_info:
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:
   CONSUL_VERSION: 0.6.4
+  CLI_VERSION: Latest
 install:
+- cinst: 7zip.commandline
+- ps: mkdir -Force c:\consul_install | Out-Null
 - ps: >-
-    $consul_version = '0.6.4'
-    
-    choco install 7zip.commandline
-
-    $consul_zip = "consul_$($consul_version)_windows_386.zip"
-
-    if (!(test-path "c:\consul_install")) {mkdir c:\consul_install}
-
-    write-output "Downloading https://releases.hashicorp.com/consul/$consul_version/$consul_zip"
-
-    if (!(test-path "c:\consul_install\$consul_zip")) {(new-object net.webclient).downloadfile("https://releases.hashicorp.com/consul/$consul_version/$consul_zip", "c:\consul_install\$consul_zip")}
-
+    $consul_zip = "consul_$($env:CONSUL_VERSION)_windows_386.zip"
+    $consul_url = "https://releases.hashicorp.com/consul/$($env:CONSUL_VERSION)/$consul_zip"
+    write-output "Downloading $consul_url"
+    if (!(test-path "c:\consul_install\$consul_zip")) {Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
+- ps: mkdir -Force "C:\consul\scripts\obtain\" | Out-Null
+- ps: Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/install.ps1" -OutFile "C:\consul\scripts\obtain\install.ps1"
+- ps: $env:DOTNET_INSTALL_DIR = "C:\dotnetcli"
+- ps: '& C:\consul\scripts\obtain\install.ps1 -Channel "preview" -version "$env:CLI_VERSION" -InstallDir "$env:DOTNET_INSTALL_DIR" -NoPath'
+# add dotnet to PATH
+- ps: $env:Path = "$env:DOTNET_INSTALL_DIR;$env:Path"
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
@@ -35,11 +36,15 @@ cache:
 nuget:
   disable_publish_on_pr: true
 before_build:
-- nuget restore
-build:
-  publish_nuget: true
-  publish_nuget_symbols: true
-  verbosity: minimal
+- dotnet --info
+- dotnet restore
+build_script:
+- dotnet --verbose build
+- dotnet --verbose pack Consul --configuration Release
+#build:
+#  publish_nuget: true
+#  publish_nuget_symbols: true
+#  verbosity: minimal
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
@@ -56,6 +61,8 @@ before_test:
     } until (![string]::IsNullOrEmpty($result))
 
     Receive-Job $consulJob
+test_script:
+- dotnet test Consul.Test
 after_test:
 - ps: >-
     Get-Job | Stop-Job
