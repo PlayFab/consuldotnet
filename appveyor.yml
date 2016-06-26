@@ -39,7 +39,7 @@ before_build:
 - dotnet --info
 - dotnet restore
 build_script:
-- dotnet --verbose build
+- dotnet --verbose build Consul --configuration Release
 - dotnet --verbose pack Consul --configuration Release
 #build:
 #  publish_nuget: true
