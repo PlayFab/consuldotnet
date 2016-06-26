@@ -194,3 +194,5 @@ consul-data/
 consul*.exe
 NuGet.exe
 *.nupkg
+
+.vs
