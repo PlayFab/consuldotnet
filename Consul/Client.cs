@@ -432,12 +432,16 @@ namespace Consul
         private object _lock = new object();
         private bool skipClientDispose;
         internal readonly HttpClient HttpClient;
+#if CORECLR
+        internal readonly HttpClientHandler HttpHandler;
+#else
         internal readonly WebRequestHandler HttpHandler;
+#endif
         internal readonly ConsulClientConfiguration Config;
 
         internal readonly JsonSerializer serializer = new JsonSerializer();
 
-        #region New style config with Actions
+#region New style config with Actions
         /// <summary>
         /// Initializes a new Consul client with a default configuration that connects to 127.0.0.1:8500.
         /// </summary>
@@ -467,9 +471,11 @@ namespace Consul
         /// <param name="configOverride">The Action to modify the default configuration with</param>
         /// <param name="clientOverride">The Action to modify the HttpClient with</param>
         /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
+#if !CORECLR
         public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
         {
             Config = new ConsulClientConfiguration();
+
             HttpHandler = new WebRequestHandler();
             ApplyConfig(Config);
             if (configOverride != null) { configOverride(Config); }
@@ -480,10 +486,26 @@ namespace Consul
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
             if (clientOverride != null) { clientOverride(HttpClient); }
         }
+#else
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
+        {
+            Config = new ConsulClientConfiguration();
 
-        #endregion
+            HttpHandler = new HttpClientHandler();
+            ApplyConfig(Config);
+            if (configOverride != null) { configOverride(Config); }
+            if (handlerOverride != null) { handlerOverride(HttpHandler); }
+            HttpClient = new HttpClient(HttpHandler);
+            HttpClient.Timeout = TimeSpan.FromMinutes(15);
+            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+            if (clientOverride != null) { clientOverride(HttpClient); }
+        }
+#endif
 
-        #region Old style config
+#endregion
+
+#region Old style config
         /// <summary>
         /// Initializes a new Consul client with the configuration specified.
         /// </summary>
@@ -494,7 +516,11 @@ namespace Consul
         {
             Config = config;
             config.Updated += HandleConfigUpdateEvent;
+#if !CORECLR
             HttpHandler = new WebRequestHandler();
+#else
+            HttpHandler = new HttpClientHandler();
+#endif
             ApplyConfig(config);
             HttpClient = new HttpClient(HttpHandler);
             HttpClient.Timeout = TimeSpan.FromMinutes(15);
@@ -520,9 +546,9 @@ namespace Consul
                 throw new ArgumentException("HttpClient must accept the application/json content type", "client");
             }
         }
-        #endregion
+#endregion
 
-        #region IDisposable Support
+#region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -567,7 +593,7 @@ namespace Consul
                 throw new ObjectDisposedException(typeof(ConsulClient).FullName.ToString());
             }
         }
-        #endregion
+#endregion
 
         void HandleConfigUpdateEvent(object sender, EventArgs e)
         {
@@ -596,14 +622,17 @@ namespace Consul
                 }
             }
 #endif
+#if !CORECLR
+            //TODO:  Need to figure this out
             if (config.DisableServerCertificateValidation)
             {
-                handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => true;
+                handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => { return true; };
             }
             else
             {
                 handler.ServerCertificateValidationCallback = null;
             }
+#endif
         }
 
         internal GetRequest<T> Get<T>(string path, QueryOptions opts = null)

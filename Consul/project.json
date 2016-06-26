@@ -1,0 +1,34 @@
+{
+  "version": "0.6.4.7-alpha",
+  "dependencies": {},
+  "frameworks": {
+    "netstandard1.3": {
+      "imports": "dnxcore50",
+      "dependencies": {
+        "Newtonsoft.Json": "9.0.1-beta1",
+        "System.Collections": "4.0.11",
+        "System.Linq": "4.1.0",
+        "System.Runtime": "4.1.0",
+        "System.Threading": "4.0.11",
+        "System.Net.Http": "4.1.0",
+        "System.Security.Cryptography.X509Certificates": "4.1.0",
+        "System.Net.Http.WinHttpHandler": "4.0.0",
+        "System.Text.RegularExpressions": "4.1.0",
+        "System.Threading.Thread": "4.0.0"
+      },
+      "buildOptions": {
+        "define": ["CORECLR"]
+      }
+    },
+    "net451": {
+      "frameworkAssemblies": {
+        "System.Net.Http": "",
+        "System.Net.Http.WebRequest": ""
+      },
+      "dependencies": {
+        "Newtonsoft.Json": "8.0.3"
+      }
+    }
+
+  }
+}

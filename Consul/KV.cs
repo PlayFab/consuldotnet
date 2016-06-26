@@ -60,16 +60,20 @@ namespace Consul
         }
     }
 
+#if !CORECLR
     [Serializable]
+#endif
     public class InvalidKeyPairException : Exception
     {
         public InvalidKeyPairException() { }
         public InvalidKeyPairException(string message) : base(message) { }
         public InvalidKeyPairException(string message, System.Exception inner) : base(message, inner) { }
+#if !CORECLR
         protected InvalidKeyPairException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context)
         { }
+#endif
     }
 
     /// <summary>
