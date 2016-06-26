@@ -24,7 +24,7 @@ install:
     if (!(test-path "c:\consul_install\$consul_zip")) {Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
 - ps: mkdir -Force "C:\consul\scripts\obtain\" | Out-Null
-- ps: Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/install.ps1" -OutFile "C:\consul\scripts\obtain\install.ps1"
+- ps: Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/dotnet-install.ps1" -OutFile "C:\consul\scripts\obtain\install.ps1"
 - ps: $env:DOTNET_INSTALL_DIR = "C:\dotnetcli"
 - ps: '& C:\consul\scripts\obtain\install.ps1 -Channel "preview" -version "$env:CLI_VERSION" -InstallDir "$env:DOTNET_INSTALL_DIR" -NoPath'
 # add dotnet to PATH
