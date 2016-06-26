@@ -69,22 +69,12 @@ namespace Consul
             return objectType == typeof(SessionBehavior);
         }
     }
-
-
-#if !CORECLR
-    [Serializable]
-#endif
+    
     public class SessionExpiredException : Exception
     {
         public SessionExpiredException() { }
         public SessionExpiredException(string message) : base(message) { }
         public SessionExpiredException(string message, Exception inner) : base(message, inner) { }
-#if !CORECLR
-        protected SessionExpiredException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context)
-        { }
-#endif
     }
 
     public class SessionEntry

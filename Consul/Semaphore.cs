@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,10 +26,6 @@ using Newtonsoft.Json;
 
 namespace Consul
 {
-
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreLimitConflictException : Exception
     {
         public int RemoteLimit { get; private set; }
@@ -53,19 +48,8 @@ namespace Consul
             RemoteLimit = remoteLimit;
             LocalLimit = localLimit;
         }
-#if !CORECLR
-        protected SemaphoreLimitConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
-#endif
     }
 
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreHeldException : Exception
     {
         public SemaphoreHeldException()
@@ -81,19 +65,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-#if !CORECLR
-        protected SemaphoreHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
-#endif
     }
 
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreNotHeldException : Exception
     {
         public SemaphoreNotHeldException()
@@ -109,20 +82,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-#if !CORECLR
-        protected SemaphoreNotHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
-#endif
     }
 
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreInUseException : Exception
     {
         public SemaphoreInUseException()
@@ -138,20 +99,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-#if !CORECLR
-        protected SemaphoreInUseException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
-#endif
     }
 
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreConflictException : Exception
     {
         public SemaphoreConflictException()
@@ -167,31 +116,13 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-#if !CORECLR
-        protected SemaphoreConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
-#endif
     }
 
-#if !CORECLR
-    [Serializable]
-#endif
     public class SemaphoreMaxAttemptsReachedException : Exception
     {
         public SemaphoreMaxAttemptsReachedException() { }
         public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
         public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
-#if !CORECLR
-        protected SemaphoreMaxAttemptsReachedException(
-          SerializationInfo info,
-          StreamingContext context) : base(info, context)
-        { }
-#endif
     }
 
     /// <summary>

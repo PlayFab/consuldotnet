@@ -22,13 +22,7 @@
         "portable-net45+win8"
       ],
       "buildOptions": {
-        "define": [ "CORECLR" ],
-        "compile": {
-          "excludeFiles": [
-            "LockTest.cs",
-            "SemaphoreTest.cs"
-          ]
-        }
+        "define": [ "CORECLR" ]
       }
     },
     "net451": {
