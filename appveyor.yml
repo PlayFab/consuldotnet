@@ -17,7 +17,7 @@ environment:
 install:
 - cinst: 7zip.commandline
 - ps: mkdir -Force c:\consul_install | Out-Null
-- ps: >-
+- ps: |-
     $consul_zip = "consul_$($env:CONSUL_VERSION)_windows_386.zip"
     $consul_url = "https://releases.hashicorp.com/consul/$($env:CONSUL_VERSION)/$consul_zip"
     write-output "Downloading $consul_url"
