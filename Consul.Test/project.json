@@ -15,13 +15,18 @@
           "version": "1.0.0-rc2-004459-00"
         },
         "System.Net.Requests": "4.0.11-rc2-24027"
-
       },
       "imports": [
         "dnxcore50",
         "portable-net45+win8"
       ],
       "buildOptions": {
+        "compile": {
+          "excludeFiles": [
+            "LockTest.cs",
+            "SemaphoreTest.cs"
+          ]
+        },
         "define": [ "CORECLR" ]
       }
     },
@@ -34,8 +39,6 @@
       },
       "dependencies": {
         "Microsoft.NETCore.Platforms": "1.0.1-rc2-24027"
-       
-
       }
     }
   }
