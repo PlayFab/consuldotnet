@@ -195,4 +195,6 @@ consul*.exe
 NuGet.exe
 *.nupkg
 
+# Net Core files
 .vs
+project.lock.json

@@ -23,12 +23,6 @@ install:
     write-output "Downloading $consul_url"
     if (!(test-path "c:\consul_install\$consul_zip")) {Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
-#- ps: mkdir -Force "C:\consul\scripts\obtain\" | Out-Null
-#- ps: Invoke-WebRequest "https://raw.githubusercontent.com/dotnet/cli/rel/1.0.0/scripts/obtain/dotnet-install.ps1" -OutFile "C:\consul\scripts\obtain\install.ps1"
-#- ps: $env:DOTNET_INSTALL_DIR = "C:\dotnetcli"
-#- ps: '& C:\consul\scripts\obtain\install.ps1 -Channel "preview" -version "$env:CLI_VERSION" -InstallDir "$env:DOTNET_INSTALL_DIR" -NoPath'
-## add dotnet to PATH
-#- ps: $env:Path = "$env:DOTNET_INSTALL_DIR;$env:Path"
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
@@ -63,11 +57,8 @@ test_script:
 - dotnet --verbose build Consul.Test --configuration Release
 - dotnet --verbose test Consul.Test --configuration Release
 after_test:
-- ps: >-
-    Get-Job | Stop-Job
-
-    Get-Job | Receive-Job
-
+- ps: Get-Job | Stop-Job
+- ps: Get-Job | Receive-Job
 artifacts:
 - path: '**\*.nupkg'
 deploy:
