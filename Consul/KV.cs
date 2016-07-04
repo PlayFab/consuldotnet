@@ -27,6 +27,10 @@ namespace Consul
     /// <summary>
     /// KVPair is used to represent a single K/V entry
     /// </summary>
+
+#if !NET451
+    [JsonConverter(typeof(KVPairConverter))]
+#endif
     public class KVPair
     {
         public string Key { get; set; }
@@ -34,8 +38,8 @@ namespace Consul
         public ulong CreateIndex { get; set; }
         public ulong ModifyIndex { get; set; }
         public ulong LockIndex { get; set; }
-
         public ulong Flags { get; set; }
+
         public byte[] Value { get; set; }
         public string Session { get; set; }
 
@@ -43,6 +47,8 @@ namespace Consul
         {
             Key = key;
         }
+
+        internal KVPair() { }
         internal void Validate()
         {
             ValidatePath(Key);

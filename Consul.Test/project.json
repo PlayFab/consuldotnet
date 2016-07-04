@@ -23,8 +23,6 @@
       "buildOptions": {
         "compile": {
           "excludeFiles": [
-            "LockTest.cs",
-            "SemaphoreTest.cs"
           ]
         },
         "define": [ "CORECLR" ]
