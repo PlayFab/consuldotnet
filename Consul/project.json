@@ -28,13 +28,12 @@
       "dependencies": {
         "Newtonsoft.Json": {
           "version": "9.0.1",
-          "options": "dev"
-        },
-        "ILRepack": {
-          "version": "2.0.10",
-          "options": "dev"
+          "type": "build"
         }
       }
     }
+  },
+  "tools": {
+    "ILRepack": "2.0.10"
   }
 }
