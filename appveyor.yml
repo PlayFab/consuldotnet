@@ -38,6 +38,7 @@ before_build:
 - dotnet restore
 build_script:
 - dotnet --verbose build Consul --configuration Release
+- dotnet --verbose build Consul.Test --configuration Release
 - cmd: |-
     move %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451 %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
     cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
@@ -62,7 +63,6 @@ before_test:
 
     Receive-Job $consulJob
 test_script:
-- dotnet --verbose build Consul.Test --configuration Release
 - dotnet --verbose test Consul.Test --configuration Release
 after_test:
 - ps: Get-Job | Stop-Job
