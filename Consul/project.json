@@ -17,7 +17,9 @@
         "System.Threading.Thread": "4.0.0"
       },
       "buildOptions": {
-        "define": [ "CORECLR" ]
+        "define": [ "CORECLR" ],
+        "keyFile": "../assets/consuldotnet.snk",
+        "publicSign": true
       }
     },
     "net451": {
@@ -30,6 +32,10 @@
           "version": "9.0.1",
           "type": "build"
         }
+      },
+      "buildOptions": {
+        "keyFile": "../assets/consuldotnet.snk",
+        "publicSign": true
       }
     }
   },
