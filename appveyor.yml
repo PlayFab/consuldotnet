@@ -20,8 +20,10 @@ install:
 - ps: |-
     $consul_zip = "consul_$($env:CONSUL_VERSION)_windows_386.zip"
     $consul_url = "https://releases.hashicorp.com/consul/$($env:CONSUL_VERSION)/$consul_zip"
-    write-output "Downloading $consul_url"
-    if (!(test-path "c:\consul_install\$consul_zip")) {Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"}
+    if (!(test-path "c:\consul_install\$consul_zip")) {
+      write-output "Downloading $consul_url"
+      Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"
+    } else {write-output "Using cached $consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
 cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
@@ -41,7 +43,7 @@ build_script:
     cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
     %USERPROFILE%\.nuget\packages\ILRepack\2.0.10\tools\ILRepack.exe /keyfile:%APPVEYOR_BUILD_FOLDER%\assets\consuldotnet.snk /parallel /internalize /out:%APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451\Consul.dll Consul.dll Newtonsoft.Json.dll
     cd %APPVEYOR_BUILD_FOLDER%
-    rm /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
+    del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
 - dotnet --verbose pack Consul --configuration Release
 before_test:
 - ps: >-
