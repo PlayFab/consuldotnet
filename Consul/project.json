@@ -1,6 +1,6 @@
 {
   "version": "0.6.4.7-alpha",
-  "dependencies": { },
+  "dependencies": {},
   "frameworks": {
     "netstandard1.3": {
       "imports": "dnxcore50",
@@ -14,11 +14,7 @@
         "System.Security.Cryptography.X509Certificates": "4.1.0",
         "System.Net.Http.WinHttpHandler": "4.0.0",
         "System.Text.RegularExpressions": "4.1.0",
-        "System.Threading.Thread": "4.0.0",
-        "ILRepack": {
-          "version": "2.0.10",
-          "options": "dev"
-        }
+        "System.Threading.Thread": "4.0.0"
       },
       "buildOptions": {
         "define": [ "CORECLR" ]
@@ -30,7 +26,10 @@
         "System.Net.Http.WebRequest": ""
       },
       "dependencies": {
-        "Newtonsoft.Json": "9.0.1",
+        "Newtonsoft.Json": {
+          "version": "9.0.1",
+          "options": "dev"
+        },
         "ILRepack": {
           "version": "2.0.10",
           "options": "dev"
