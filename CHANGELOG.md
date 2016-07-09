@@ -1,6 +1,15 @@
 # Changelog
 
-## BREAKING CHANGES FOR 0.6.x
+## Major Changes between 0.6.4.7 and 0.6.4.8-alpha1
+* The method of configuring the ConsulClient has been reworked. It now
+  uses `Action`s to configure the options inside itself - e.g.
+  `var client = new ConsulClient((cfg) => { cfg.Datacenter = "us-west-2"; }`
+  See the file `Consul.Test/ClientTest.cs` and the test method
+  `Client_Constructors()` for more examples. The old method will work
+  but has been made Obsolete.
+* The `ExecuteAbortableLocked` method has been removed.
+
+## Major Changes between 0.5.0 and 0.6.0
 * ___THE ENTIRE CLIENT HAS BEEN REWRITTEN TO BE ASYNC___. This means
   that any sync calls will need to be reworked to either call the Async
   API with `GetAwaiter().GetResult()` or, better yet, the calling method
@@ -12,6 +21,15 @@
   named `Address`.
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
+
+## 2016-07-07
+* Add .NET Core port and build process thanks to work by @akatz0813.
+* Converted all Locks and Semaphores to be totally `async` thanks to
+  work by @mjgoethe.
+* Entirely removed the method `ExecuteAbortableLocked` and all
+  functionality around aborting a thread based on a Consul lock.
+* Reworked configuration of the `ConsulClient` to use `Action<T>` to
+  configure options.
 
 ## 2016-06-10
 * Correct the behavior of `LockTryOnce/SemaphoreTryOnce` so that it now
