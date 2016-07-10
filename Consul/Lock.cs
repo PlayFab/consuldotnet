@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 
 namespace Consul
 {
-    [Serializable]
     public class LockHeldException : Exception
     {
         public LockHeldException()
@@ -21,16 +20,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected LockHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class LockNotHeldException : Exception
     {
         public LockNotHeldException()
@@ -46,16 +37,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected LockNotHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class LockInUseException : Exception
     {
         public LockInUseException()
@@ -71,16 +54,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected LockInUseException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class LockConflictException : Exception
     {
         public LockConflictException()
@@ -96,26 +71,13 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected LockConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-
-    [Serializable]
     public class LockMaxAttemptsReachedException : Exception
     {
         public LockMaxAttemptsReachedException() { }
         public LockMaxAttemptsReachedException(string message) : base(message) { }
         public LockMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
-        protected LockMaxAttemptsReachedException(
-          SerializationInfo info,
-          StreamingContext context) : base(info, context)
-        { }
     }
 
     /// <summary>

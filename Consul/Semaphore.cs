@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +26,6 @@ using Newtonsoft.Json;
 
 namespace Consul
 {
-    [Serializable]
     public class SemaphoreLimitConflictException : Exception
     {
         public int RemoteLimit { get; private set; }
@@ -50,16 +48,8 @@ namespace Consul
             RemoteLimit = remoteLimit;
             LocalLimit = localLimit;
         }
-
-        protected SemaphoreLimitConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreHeldException : Exception
     {
         public SemaphoreHeldException()
@@ -75,16 +65,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreNotHeldException : Exception
     {
         public SemaphoreNotHeldException()
@@ -100,16 +82,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreNotHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreInUseException : Exception
     {
         public SemaphoreInUseException()
@@ -125,16 +99,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreInUseException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreConflictException : Exception
     {
         public SemaphoreConflictException()
@@ -150,25 +116,13 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreMaxAttemptsReachedException : Exception
     {
         public SemaphoreMaxAttemptsReachedException() { }
         public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
         public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
-        protected SemaphoreMaxAttemptsReachedException(
-          SerializationInfo info,
-          StreamingContext context) : base(info, context)
-        { }
     }
 
     /// <summary>
@@ -335,7 +289,7 @@ namespace Consul
                     var contender = (await _client.KV.Acquire(ContenderEntry(LockSession)).ConfigureAwait(false)).Response;
                     if (!contender)
                     {
-                        throw new ApplicationException("Failed to make contender entry");
+                        throw new KeyNotFoundException("Failed to make contender entry");
                     }
 
                     var qOpts = new QueryOptions()
@@ -367,7 +321,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            throw new ApplicationException("Failed to read prefix", ex);
+                            throw new KeyNotFoundException("Failed to read prefix", ex);
                         }
 
                         var lockPair = FindLock(pairs.Response);
@@ -529,7 +483,7 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ApplicationException("failed to read prefix", ex);
+                    throw new KeyNotFoundException("failed to read prefix", ex);
                 }
 
                 var lockPair = FindLock(pairs.Response);
