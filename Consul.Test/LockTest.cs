@@ -112,11 +112,23 @@ namespace Consul.Test
             Assert.False(contender.IsHeld);
 
             await lockKey.Release();
-
-            await contender.Acquire();
-
             Assert.False(lockKey.IsHeld);
-            Assert.True(contender.IsHeld);
+            Assert.False(contender.IsHeld);
+
+            while (contender.IsHeld == false)
+            {
+                try
+                {
+                    await contender.Acquire();
+                    Assert.False(lockKey.IsHeld);
+                    Assert.True(contender.IsHeld);
+                }
+                catch (LockMaxAttemptsReachedException)
+                {
+                    // Ignore because lock delay might be in effect.
+                }
+            }
+
             await contender.Release();
             await contender.Destroy();
         }
