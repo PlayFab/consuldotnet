@@ -70,7 +70,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            var node = await client.Catalog.Node(client.Agent.NodeName);
+            var node = await client.Catalog.Node(await client.Agent.GetNodeName());
 
             Assert.NotEqual((ulong)0, node.LastIndex);
             Assert.NotNull(node.Response.Services);
