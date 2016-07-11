@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Security;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -65,7 +66,7 @@ namespace Consul.Test
             };
             var request = client.Get<KVPair>("/v1/kv/foo", opts);
 
-            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute(CancellationToken.None));
 
             Assert.Equal("foo", request.Params["dc"]);
             Assert.True(request.Params.ContainsKey("consistent"));
@@ -85,7 +86,7 @@ namespace Consul.Test
             });
             var request = client.Get<KVPair>("/v1/kv/foo");
 
-            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute(CancellationToken.None));
 
             Assert.Equal("foo", request.Params["dc"]);
             Assert.Equal("1m40s", request.Params["wait"]);
@@ -104,7 +105,7 @@ namespace Consul.Test
 
             var request = client.Put("/v1/kv/foo", new KVPair("kv/foo"), opts);
 
-            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute());
+            await Assert.ThrowsAsync<ConsulRequestException>(async () => await request.Execute(CancellationToken.None));
 
             Assert.Equal("foo", request.Params["dc"]);
             Assert.Equal("12345", request.Params["token"]);
@@ -141,7 +142,7 @@ namespace Consul.Test
 
             var request = client.Put("/v1/kv/foo", new KVPair("kv/foo"), opts);
 
-            await Assert.ThrowsAsync<ObjectDisposedException>(() => request.Execute());
+            await Assert.ThrowsAsync<ObjectDisposedException>(() => request.Execute(CancellationToken.None));
         }
 
         [Fact]

@@ -766,7 +766,6 @@ namespace Consul
             Options = options ?? QueryOptions.Default;
         }
 
-        public Task<QueryResult<T>> Execute() { return Execute(CancellationToken.None); }
         public async Task<QueryResult<T>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -899,8 +898,7 @@ namespace Consul
             }
             Options = options ?? WriteOptions.Default;
         }
-
-        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
+        
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -969,7 +967,6 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1038,7 +1035,6 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1105,8 +1101,7 @@ namespace Consul
             _body = body;
             Options = options ?? WriteOptions.Default;
         }
-
-        public Task<WriteResult> Execute() { return Execute(CancellationToken.None); }
+        
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1184,8 +1179,7 @@ namespace Consul
             _body = body;
             Options = options ?? WriteOptions.Default;
         }
-
-        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
+        
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1274,7 +1268,6 @@ namespace Consul
             Options = options ?? WriteOptions.Default;
         }
 
-        public Task<WriteResult<TOut>> Execute() { return Execute(CancellationToken.None); }
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();

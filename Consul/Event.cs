@@ -54,9 +54,9 @@ namespace Consul
             _client = c;
         }
 
-        public Task<WriteResult<string>> Fire(UserEvent ue)
+        public Task<WriteResult<string>> Fire(UserEvent ue, CancellationToken ct = default(CancellationToken))
         {
-            return Fire(ue, WriteOptions.Default);
+            return Fire(ue, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace Consul
         /// <param name="ue">A User Event definition</param>
         /// <param name="q">Customized write options</param>
         /// <returns></returns>
-        public async Task<WriteResult<string>> Fire(UserEvent ue, WriteOptions q)
+        public async Task<WriteResult<string>> Fire(UserEvent ue, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             var req = _client.Put<byte[], EventCreationResult>(string.Format("/v1/event/fire/{0}", ue.Name), ue.Payload, q);
             if (!string.IsNullOrEmpty(ue.NodeFilter))
@@ -80,7 +80,7 @@ namespace Consul
             {
                 req.Params["tag"] = ue.TagFilter;
             }
-            var res = await req.Execute().ConfigureAwait(false);
+            var res = await req.Execute(ct).ConfigureAwait(false);
             return new WriteResult<string>(res, res.Response.ID);
         }
 
@@ -88,9 +88,9 @@ namespace Consul
         /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
         /// </summary>
         /// <returns>An array of events</returns>
-        public Task<QueryResult<UserEvent[]>> List()
+        public Task<QueryResult<UserEvent[]>> List(CancellationToken ct = default(CancellationToken))
         {
-            return List(string.Empty, QueryOptions.Default);
+            return List(string.Empty, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -98,20 +98,9 @@ namespace Consul
         /// </summary>
         /// <param name="name">The name of the event to filter for</param>
         /// <returns>An array of events</returns>
-        public Task<QueryResult<UserEvent[]>> List(string name)
+        public Task<QueryResult<UserEvent[]>> List(string name, CancellationToken ct = default(CancellationToken))
         {
-            return List(name, QueryOptions.Default, CancellationToken.None);
-        }
-
-        /// <summary>
-        /// List is used to get the most recent events an agent has received. This list can be optionally filtered by the name. This endpoint supports quasi-blocking queries. The index is not monotonic, nor does it provide provide LastContact or KnownLeader.
-        /// </summary>
-        /// <param name="name">The name of the event to filter for</param>
-        /// <param name="q">Customized query options</param>
-        /// <returns>An array of events</returns>
-        public Task<QueryResult<UserEvent[]>> List(string name, QueryOptions q)
-        {
-            return List(name, q, CancellationToken.None);
+            return List(name, QueryOptions.Default, ct);
         }
 
         /// <summary>

@@ -16,13 +16,14 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Consul
 {
     public interface IStatusEndpoint
     {
-        Task<string> Leader();
-        Task<string[]> Peers();
+        Task<string> Leader(CancellationToken ct = default(CancellationToken));
+        Task<string[]> Peers(CancellationToken ct = default(CancellationToken));
     }
 }

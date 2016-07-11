@@ -23,8 +23,7 @@ namespace Consul
 {
     public interface IRawEndpoint
     {
-        Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q);
-        Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct);
-        Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q);
+        Task<QueryResult<dynamic>> Query(string endpoint, QueryOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult<dynamic>> Write(string endpoint, object obj, WriteOptions q, CancellationToken ct = default(CancellationToken));
     }
 }
