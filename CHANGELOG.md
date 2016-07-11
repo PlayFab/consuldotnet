@@ -22,6 +22,13 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-07-10
+* Add an optional CancellationToken parameter to every method that ends up
+  doing an HTTP request. Some of these can create an unstable Consul state
+  (e.g.  allowing the release of a distribted Semaphore to be canceled) but in
+  many cases they should only be used if the call can possibly fail and a
+  secondary timeout is needed.
+
 ## 2016-07-07
 * Add .NET Core port and build process thanks to work by @akatz0813.
 * Converted all Locks and Semaphores to be totally `async` thanks to

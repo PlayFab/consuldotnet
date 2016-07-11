@@ -65,7 +65,7 @@ namespace Consul
             }
         }
     }
-    
+
     public class InvalidKeyPairException : Exception
     {
         public InvalidKeyPairException() { }
@@ -90,9 +90,9 @@ namespace Consul
         /// </summary>p.Validate();
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
-        public Task<WriteResult<bool>> Acquire(KVPair p)
+        public Task<WriteResult<bool>> Acquire(KVPair p, CancellationToken ct = default(CancellationToken))
         {
-            return Acquire(p, WriteOptions.Default);
+            return Acquire(p, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -101,7 +101,7 @@ namespace Consul
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the acquisition attempt succeeded</returns>
-        public Task<WriteResult<bool>> Acquire(KVPair p, WriteOptions q)
+        public Task<WriteResult<bool>> Acquire(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
             var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
@@ -110,7 +110,7 @@ namespace Consul
                 req.Params["flags"] = p.Flags.ToString();
             }
             req.Params["acquire"] = p.Session;
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -118,9 +118,9 @@ namespace Consul
         /// </summary>
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the write attempt succeeded</returns>
-        public Task<WriteResult<bool>> CAS(KVPair p)
+        public Task<WriteResult<bool>> CAS(KVPair p, CancellationToken ct = default(CancellationToken))
         {
-            return CAS(p, WriteOptions.Default);
+            return CAS(p, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -129,7 +129,7 @@ namespace Consul
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the write attempt succeeded</returns>
-        public Task<WriteResult<bool>> CAS(KVPair p, WriteOptions q)
+        public Task<WriteResult<bool>> CAS(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
             var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
@@ -138,7 +138,7 @@ namespace Consul
                 req.Params["flags"] = p.Flags.ToString();
             }
             req.Params["cas"] = p.ModifyIndex.ToString();
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -146,9 +146,9 @@ namespace Consul
         /// </summary>
         /// <param name="key">The key name to delete</param>
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
-        public Task<WriteResult<bool>> Delete(string key)
+        public Task<WriteResult<bool>> Delete(string key, CancellationToken ct = default(CancellationToken))
         {
-            return Delete(key, WriteOptions.Default);
+            return Delete(key, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -157,10 +157,10 @@ namespace Consul
         /// <param name="key">The key name to delete</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
-        public Task<WriteResult<bool>> Delete(string key, WriteOptions q)
+        public Task<WriteResult<bool>> Delete(string key, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(key);
-            return _client.Delete<bool>(string.Format("/v1/kv/{0}", key), q).Execute();
+            return _client.Delete<bool>(string.Format("/v1/kv/{0}", key), q).Execute(ct);
         }
 
         /// <summary>
@@ -168,9 +168,9 @@ namespace Consul
         /// </summary>
         /// <param name="p">The key/value pair to delete</param>
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
-        public Task<WriteResult<bool>> DeleteCAS(KVPair p)
+        public Task<WriteResult<bool>> DeleteCAS(KVPair p, CancellationToken ct = default(CancellationToken))
         {
-            return DeleteCAS(p, WriteOptions.Default);
+            return DeleteCAS(p, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -179,12 +179,12 @@ namespace Consul
         /// <param name="p">The key/value pair to delete</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the delete attempt succeeded</returns>
-        public Task<WriteResult<bool>> DeleteCAS(KVPair p, WriteOptions q)
+        public Task<WriteResult<bool>> DeleteCAS(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
             var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", p.Key), q);
             req.Params.Add("cas", p.ModifyIndex.ToString());
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -192,9 +192,9 @@ namespace Consul
         /// </summary>
         /// <param name="prefix">The key prefix to delete from</param>
         /// <returns>A write result indicating if the recursive delete attempt succeeded</returns>
-        public Task<WriteResult<bool>> DeleteTree(string prefix)
+        public Task<WriteResult<bool>> DeleteTree(string prefix, CancellationToken ct = default(CancellationToken))
         {
-            return DeleteTree(prefix, WriteOptions.Default);
+            return DeleteTree(prefix, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -203,12 +203,12 @@ namespace Consul
         /// <param name="prefix">The key prefix to delete from</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the recursiv edelete attempt succeeded</returns>
-        public Task<WriteResult<bool>> DeleteTree(string prefix, WriteOptions q)
+        public Task<WriteResult<bool>> DeleteTree(string prefix, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(prefix);
             var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params.Add("recurse", string.Empty);
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -216,20 +216,9 @@ namespace Consul
         /// </summary>
         /// <param name="key">The key name</param>
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
-        public Task<QueryResult<KVPair>> Get(string key)
+        public Task<QueryResult<KVPair>> Get(string key, CancellationToken ct = default(CancellationToken))
         {
-            return Get(key, QueryOptions.Default, CancellationToken.None);
-        }
-
-        /// <summary>
-        /// Get is used to lookup a single key
-        /// </summary>
-        /// <param name="key">The key name</param>
-        /// <param name="q">Customized query options</param>
-        /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
-        public Task<QueryResult<KVPair>> Get(string key, QueryOptions q)
-        {
-            return Get(key, q, CancellationToken.None);
+            return Get(key, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -239,7 +228,7 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
-        public async Task<QueryResult<KVPair>> Get(string key, QueryOptions q, CancellationToken ct)
+        public async Task<QueryResult<KVPair>> Get(string key, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
             var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
             var res = await req.Execute(ct).ConfigureAwait(false);
@@ -251,9 +240,9 @@ namespace Consul
         /// </summary>
         /// <param name="prefix">The key prefix to filter on</param>
         /// <returns>A query result containing a list of key names</returns>
-        public Task<QueryResult<string[]>> Keys(string prefix)
+        public Task<QueryResult<string[]>> Keys(string prefix, CancellationToken ct = default(CancellationToken))
         {
-            return Keys(prefix, string.Empty, QueryOptions.Default, CancellationToken.None);
+            return Keys(prefix, string.Empty, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -262,21 +251,9 @@ namespace Consul
         /// <param name="prefix">The key prefix to filter on</param>
         /// <param name="separator">The terminating suffix of the filter - e.g. a separator of "/" and a prefix of "/web/" will match "/web/foo" and "/web/foo/" but not "/web/foo/baz"</param>
         /// <returns>A query result containing a list of key names</returns>
-        public Task<QueryResult<string[]>> Keys(string prefix, string separator)
+        public Task<QueryResult<string[]>> Keys(string prefix, string separator, CancellationToken ct = default(CancellationToken))
         {
-            return Keys(prefix, separator, QueryOptions.Default, CancellationToken.None);
-        }
-
-        /// <summary>
-        /// Keys is used to list all the keys under a prefix. Optionally, a separator can be used to limit the responses.
-        /// </summary>
-        /// <param name="prefix">The key prefix to filter on</param>
-        /// <param name="separator">The terminating suffix of the filter - e.g. a separator of "/" and a prefix of "/web/" will match "/web/foo" and "/web/foo/" but not "/web/foo/baz"</param>
-        /// <param name="q">Customized query options</param>
-        /// <returns>A query result containing a list of key names</returns>
-        public Task<QueryResult<string[]>> Keys(string prefix, string separator, QueryOptions q)
-        {
-            return Keys(prefix, separator, q, CancellationToken.None);
+            return Keys(prefix, separator, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -287,7 +264,7 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A query result containing a list of key names</returns>
-        public Task<QueryResult<string[]>> Keys(string prefix, string separator, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<string[]>> Keys(string prefix, string separator, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
             var req = _client.Get<string[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["keys"] = string.Empty;
@@ -303,20 +280,9 @@ namespace Consul
         /// </summary>
         /// <param name="prefix">The prefix to search under. Does not have to be a full path - e.g. a prefix of "ab" will find keys "abcd" and "ab11" but not "acdc"</param>
         /// <returns>A query result containing the keys matching the prefix</returns>
-        public Task<QueryResult<KVPair[]>> List(string prefix)
+        public Task<QueryResult<KVPair[]>> List(string prefix, CancellationToken ct = default(CancellationToken))
         {
-            return List(prefix, QueryOptions.Default, CancellationToken.None);
-        }
-
-        /// <summary>
-        /// List is used to lookup all keys under a prefix
-        /// </summary>
-        /// <param name="prefix">The prefix to search under. Does not have to be a full path - e.g. a prefix of "ab" will find keys "abcd" and "ab11" but not "acdc"</param>
-        /// <param name="q">Customized query options</param>
-        /// <returns>A query result containing the keys matching the prefix</returns>
-        public Task<QueryResult<KVPair[]>> List(string prefix, QueryOptions q)
-        {
-            return List(prefix, q, CancellationToken.None);
+            return List(prefix, QueryOptions.Default, ct);
         }
 
         /// <summary>
@@ -326,7 +292,7 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns></returns>
-        public Task<QueryResult<KVPair[]>> List(string prefix, QueryOptions q, CancellationToken ct)
+        public Task<QueryResult<KVPair[]>> List(string prefix, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
             var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
             req.Params["recurse"] = string.Empty;
@@ -338,9 +304,9 @@ namespace Consul
         /// </summary>
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the write attempt succeeded</returns>
-        public Task<WriteResult<bool>> Put(KVPair p)
+        public Task<WriteResult<bool>> Put(KVPair p, CancellationToken ct = default(CancellationToken))
         {
-            return Put(p, WriteOptions.Default);
+            return Put(p, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -349,7 +315,7 @@ namespace Consul
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the write attempt succeeded</returns>
-        public Task<WriteResult<bool>> Put(KVPair p, WriteOptions q)
+        public Task<WriteResult<bool>> Put(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
             var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
@@ -357,7 +323,7 @@ namespace Consul
             {
                 req.Params["flags"] = p.Flags.ToString();
             }
-            return req.Execute();
+            return req.Execute(ct);
         }
 
         /// <summary>
@@ -365,9 +331,9 @@ namespace Consul
         /// </summary>
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <returns>A write result indicating if the release attempt succeeded</returns>
-        public Task<WriteResult<bool>> Release(KVPair p)
+        public Task<WriteResult<bool>> Release(KVPair p, CancellationToken ct = default(CancellationToken))
         {
-            return Release(p, WriteOptions.Default);
+            return Release(p, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -376,7 +342,7 @@ namespace Consul
         /// <param name="p">The key/value pair to store in Consul</param>
         /// <param name="q">Customized write options</param>
         /// <returns>A write result indicating if the release attempt succeeded</returns>
-        public Task<WriteResult<bool>> Release(KVPair p, WriteOptions q)
+        public Task<WriteResult<bool>> Release(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
             var req = _client.Put<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
@@ -385,7 +351,7 @@ namespace Consul
                 req.Params["flags"] = p.Flags.ToString();
             }
             req.Params["release"] = p.Session;
-            return req.Execute();
+            return req.Execute(ct);
         }
     }
 

@@ -215,7 +215,7 @@ namespace Consul
                         WaitTime = Opts.LockWaitTime
                     };
 
-                    var attempts = 0; 
+                    var attempts = 0;
                     var start = DateTime.UtcNow;
 
                     while (!ct.IsCancellationRequested)
@@ -336,7 +336,7 @@ namespace Consul
         /// <summary>
         /// Unlock released the lock. It is an error to call this if the lock is not currently held.
         /// </summary>
-        public async Task Release()
+        public async Task Release(CancellationToken ct = default(CancellationToken))
         {
             try
             {
@@ -353,7 +353,7 @@ namespace Consul
                     var lockEnt = LockEntry(Opts.Session);
 
                     Opts.Session = null;
-                    await _client.KV.Release(lockEnt).ConfigureAwait(false);
+                    await _client.KV.Release(lockEnt, ct).ConfigureAwait(false);
                 }
             }
             finally
@@ -376,7 +376,7 @@ namespace Consul
         /// <summary>
         /// Destroy is used to cleanup the lock entry. It is not necessary to invoke. It will fail if the lock is in use.
         /// </summary>
-        public async Task Destroy()
+        public async Task Destroy(CancellationToken ct = default(CancellationToken))
         {
             using (await _mutex.LockAsync().ConfigureAwait(false))
             {
@@ -385,7 +385,7 @@ namespace Consul
                     throw new LockHeldException();
                 }
 
-                var pair = (await _client.KV.Get(Opts.Key).ConfigureAwait(false)).Response;
+                var pair = (await _client.KV.Get(Opts.Key, ct).ConfigureAwait(false)).Response;
 
                 if (pair == null)
                 {
@@ -402,7 +402,7 @@ namespace Consul
                     throw new LockInUseException();
                 }
 
-                var didRemove = (await _client.KV.DeleteCAS(pair).ConfigureAwait(false)).Response;
+                var didRemove = (await _client.KV.DeleteCAS(pair, ct).ConfigureAwait(false)).Response;
 
                 if (!didRemove)
                 {
@@ -569,26 +569,12 @@ namespace Consul
         }
 
         /// <summary>
-        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
-        /// </summary>
-        /// <param name="key"></param>
-        /// <returns></returns>
-        public Task<IDistributedLock> AcquireLock(string key)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException("key");
-            }
-            return AcquireLock(new LockOptions(key), CancellationToken.None);
-        }
-
-        /// <summary>
-        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
+        /// AcquireLock creates a lock that is already acquired when this call returns.
         /// </summary>
         /// <param name="key"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public Task<IDistributedLock> AcquireLock(string key, CancellationToken ct)
+        public Task<IDistributedLock> AcquireLock(string key, CancellationToken ct = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(key))
             {
@@ -597,25 +583,13 @@ namespace Consul
             return AcquireLock(new LockOptions(key), ct);
         }
 
-
         /// <summary>
-        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
+        /// AcquireLock creates a lock that is already acquired when this call returns.
         /// </summary>
         /// <param name="opts"></param>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public Task<IDistributedLock> AcquireLock(LockOptions opts)
-        {
-            return AcquireLock(opts, CancellationToken.None);
-        }
-
-        /// <summary>
-        /// AcquireLock creates a lock that is already pre-acquired and implements IDisposable to be used in a "using" block
-        /// </summary>
-        /// <param name="opts"></param>
-        /// <param name="ct"></param>
-        /// <returns></returns>
-        public async Task<IDistributedLock> AcquireLock(LockOptions opts, CancellationToken ct)
+        public async Task<IDistributedLock> AcquireLock(LockOptions opts, CancellationToken ct = default(CancellationToken))
         {
             if (opts == null)
             {
@@ -633,13 +607,13 @@ namespace Consul
         /// <param name="key"></param>
         /// <param name="action"></param>
         /// <returns></returns>
-        public Task ExecuteLocked(string key, Action action)
+        public Task ExecuteLocked(string key, Action action, CancellationToken ct = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(key))
             {
                 throw new ArgumentNullException("key");
             }
-            return ExecuteLocked(new LockOptions(key), CancellationToken.None, action);
+            return ExecuteLocked(new LockOptions(key), action, ct);
         }
 
         /// <summary>
@@ -648,42 +622,7 @@ namespace Consul
         /// <param name="opts"></param>
         /// <param name="action"></param>
         /// <returns></returns>
-        public Task ExecuteLocked(LockOptions opts, Action action)
-        {
-            if (opts == null)
-            {
-                throw new ArgumentNullException("opts");
-            }
-            return ExecuteLocked(opts, CancellationToken.None, action);
-        }
-        /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="ct"></param>
-        /// <param name="action"></param>
-        /// <returns></returns>
-        public Task ExecuteLocked(string key, CancellationToken ct, Action action)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException("key");
-            }
-            if (action == null)
-            {
-                throw new ArgumentNullException("action");
-            }
-            return ExecuteLocked(new LockOptions(key), ct, action);
-        }
-
-        /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
-        /// </summary>
-        /// <param name="opts"></param>
-        /// <param name="ct"></param>
-        /// <param name="action"></param>
-        /// <returns></returns>
-        public async Task ExecuteLocked(LockOptions opts, CancellationToken ct, Action action)
+        public async Task ExecuteLocked(LockOptions opts, Action action, CancellationToken ct = default(CancellationToken))
         {
             if (opts == null)
             {
@@ -708,6 +647,44 @@ namespace Consul
             {
                 await l.Release().ConfigureAwait(false);
             }
+
+        }
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(string, Action, CancellationToken)")]
+        public Task ExecuteLocked(string key, CancellationToken ct, Action action)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                throw new ArgumentNullException("key");
+            }
+            if (action == null)
+            {
+                throw new ArgumentNullException("action");
+            }
+            return ExecuteLocked(new LockOptions(key), action, ct);
+        }
+
+        /// <summary>
+        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="ct"></param>
+        /// <param name="action"></param>
+        /// <returns></returns>
+        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(LockOptions, Action, CancellationToken)")]
+        public Task ExecuteLocked(LockOptions opts, CancellationToken ct, Action action)
+        {
+            if (opts == null)
+            {
+                throw new ArgumentNullException("opts");
+            }
+            return ExecuteLocked(opts, action, ct);
         }
     }
 }

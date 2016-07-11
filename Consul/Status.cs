@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Consul
@@ -33,9 +34,9 @@ namespace Consul
         /// Leader is used to query for a known leader
         /// </summary>
         /// <returns>A write result containing the leader node name</returns>
-        public async Task<string> Leader()
+        public async Task<string> Leader(CancellationToken ct = default(CancellationToken))
         {
-            var res = await _client.Get<string>("/v1/status/leader").Execute().ConfigureAwait(false);
+            var res = await _client.Get<string>("/v1/status/leader").Execute(ct).ConfigureAwait(false);
             return res.Response;
         }
 
@@ -43,9 +44,9 @@ namespace Consul
         /// Peers is used to query for a known raft peers
         /// </summary>
         /// <returns>A write result containing the list of Raft peers</returns>
-        public async Task<string[]> Peers()
+        public async Task<string[]> Peers(CancellationToken ct = default(CancellationToken))
         {
-            var res = await _client.Get<string[]>("/v1/status/peers").Execute().ConfigureAwait(false);
+            var res = await _client.Get<string[]>("/v1/status/peers").Execute(ct).ConfigureAwait(false);
             return res.Response;
         }
     }
