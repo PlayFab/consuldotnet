@@ -91,7 +91,9 @@ namespace Consul
         public static readonly TimeSpan DefaultLockWaitTime = TimeSpan.FromSeconds(15);
 
         /// <summary>
-        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting to do the lock again. This is so that once a lock-delay is in effect, we do not hot loop retrying the acquisition.
+        /// DefaultLockRetryTime is how long we wait after a failed lock acquisition before attempting
+        /// to do the lock again. This is so that once a lock-delay is in effect, we do not hot loop
+        /// retrying the acquisition.
         /// </summary>
         public static readonly TimeSpan DefaultLockRetryTime = TimeSpan.FromSeconds(5);
 
@@ -142,7 +144,6 @@ namespace Consul
                 }
             }
         }
-
 
         internal Lock(ConsulClient c)
         {
@@ -300,8 +301,9 @@ namespace Consul
                             continue;
                         }
 
-                        // If the session is null and the lock failed to acquire, then it means a lock-delay is in effect and a timed wait must be used to avoid a hot loop.
-                        try { await Task.Delay(DefaultLockRetryTime, ct).ConfigureAwait(false); }
+                        // If the session is null and the lock failed to acquire, then it means
+                        // a lock-delay is in effect and a timed wait must be used to avoid a hot loop.
+                        try { await Task.Delay(Opts.LockRetryTime, ct).ConfigureAwait(false); }
                         catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
                     }
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
@@ -526,6 +528,7 @@ namespace Consul
         public int MonitorRetries { get; set; }
         public TimeSpan MonitorRetryTime { get; set; }
         public TimeSpan LockWaitTime { get; set; }
+        public TimeSpan LockRetryTime { get; set; }
         public bool LockTryOnce { get; set; }
 
         public LockOptions(string key)
@@ -535,6 +538,7 @@ namespace Consul
             SessionTTL = DefaultLockSessionTTL;
             MonitorRetryTime = Lock.DefaultMonitorRetryTime;
             LockWaitTime = Lock.DefaultLockWaitTime;
+            LockRetryTime = Lock.DefaultLockRetryTime;
         }
     }
 
