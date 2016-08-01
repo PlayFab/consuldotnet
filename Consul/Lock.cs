@@ -515,6 +515,8 @@ namespace Consul
         /// </summary>
         private const string DefaultLockSessionName = "Consul API Lock";
 
+        private const int MonitorRetryTimeMinValueMilliseconds = 500;
+
         /// <summary>
         /// DefaultLockSessionTTL is the default session TTL if no Session is provided when creating a new Lock. This is used because we do not have another other check to depend upon.
         /// </summary>
@@ -526,7 +528,22 @@ namespace Consul
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
         public int MonitorRetries { get; set; }
-        public TimeSpan MonitorRetryTime { get; set; }
+
+        private TimeSpan _monitorRetryTime;
+        public TimeSpan MonitorRetryTime
+        {
+            get { return _monitorRetryTime; }
+            set
+            {
+                if (value < TimeSpan.FromMilliseconds(MonitorRetryTimeMinValueMilliseconds))
+                {
+                    throw new ArgumentException($"For performance reasons, the value should be greater than {MonitorRetryTimeMinValueMilliseconds} ms. ", nameof(MonitorRetryTime));
+                }
+
+                _monitorRetryTime = value;
+            }
+        }
+
         public TimeSpan LockWaitTime { get; set; }
         public TimeSpan LockRetryTime { get; set; }
         public bool LockTryOnce { get; set; }
