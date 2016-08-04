@@ -515,12 +515,14 @@ namespace Consul
         /// </summary>
         private const string DefaultLockSessionName = "Consul API Lock";
 
-        private const int MonitorRetryTimeMinValueMilliseconds = 500;
+        private static readonly TimeSpan LockRetryTimeMin = TimeSpan.FromMilliseconds(500);
 
         /// <summary>
         /// DefaultLockSessionTTL is the default session TTL if no Session is provided when creating a new Lock. This is used because we do not have another other check to depend upon.
         /// </summary>
-        private readonly TimeSpan DefaultLockSessionTTL = TimeSpan.FromSeconds(15);
+        private static readonly TimeSpan DefaultLockSessionTTL = TimeSpan.FromSeconds(15);
+
+        private TimeSpan _lockRetryTime;
 
         public string Key { get; set; }
         public byte[] Value { get; set; }
@@ -528,24 +530,21 @@ namespace Consul
         public string SessionName { get; set; }
         public TimeSpan SessionTTL { get; set; }
         public int MonitorRetries { get; set; }
-
-        private TimeSpan _monitorRetryTime;
-        public TimeSpan MonitorRetryTime
+        public TimeSpan LockRetryTime
         {
-            get { return _monitorRetryTime; }
+            get { return _lockRetryTime; }
             set
             {
-                if (value < TimeSpan.FromMilliseconds(MonitorRetryTimeMinValueMilliseconds))
+                if (value < LockRetryTimeMin)
                 {
-                    throw new ArgumentException($"For performance reasons, the value should be greater than {MonitorRetryTimeMinValueMilliseconds} ms. ", nameof(MonitorRetryTime));
+                    throw new ArgumentOutOfRangeException(nameof(LockRetryTime), $"The retry time must be greater than {LockRetryTimeMin.ToGoDuration()}.");
                 }
 
-                _monitorRetryTime = value;
+                _lockRetryTime = value;
             }
         }
-
         public TimeSpan LockWaitTime { get; set; }
-        public TimeSpan LockRetryTime { get; set; }
+        public TimeSpan MonitorRetryTime { get; set; }
         public bool LockTryOnce { get; set; }
 
         public LockOptions(string key)
@@ -570,7 +569,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(key))
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
             return CreateLock(new LockOptions(key));
         }
@@ -584,7 +583,7 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             return new Lock(this) { Opts = opts };
         }
@@ -599,7 +598,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(key))
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
             return AcquireLock(new LockOptions(key), ct);
         }
@@ -614,7 +613,7 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
 
             var l = CreateLock(opts);
@@ -632,7 +631,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(key))
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
             return ExecuteLocked(new LockOptions(key), action, ct);
         }
@@ -647,11 +646,11 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             if (action == null)
             {
-                throw new ArgumentNullException("action");
+                throw new ArgumentNullException(nameof(action));
             }
 
             var l = await AcquireLock(opts, ct).ConfigureAwait(false);
@@ -682,11 +681,11 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(key))
             {
-                throw new ArgumentNullException("key");
+                throw new ArgumentNullException(nameof(key));
             }
             if (action == null)
             {
-                throw new ArgumentNullException("action");
+                throw new ArgumentNullException(nameof(action));
             }
             return ExecuteLocked(new LockOptions(key), action, ct);
         }
@@ -703,7 +702,7 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             return ExecuteLocked(opts, action, ct);
         }

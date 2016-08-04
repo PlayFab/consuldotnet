@@ -149,7 +149,7 @@ namespace Consul
                     }
                     else
                     {
-                        throw new ArgumentOutOfRangeException("value", "Semaphore limit must be greater than 0");
+                        throw new ArgumentOutOfRangeException(nameof(Limit), "Semaphore limit must be greater than 0");
                     }
                 }
             }
@@ -717,7 +717,7 @@ namespace Consul
                 }
                 else
                 {
-                    throw new ArgumentException("Semaphore prefix cannot be null or empty", "value");
+                    throw new ArgumentException("Semaphore prefix cannot be null or empty", nameof(Prefix));
                 }
             }
         }
@@ -735,7 +735,7 @@ namespace Consul
                 }
                 else
                 {
-                    throw new ArgumentOutOfRangeException("value", "Semaphore limit must be greater than 0");
+                    throw new ArgumentOutOfRangeException(nameof(Limit), "Semaphore limit must be greater than 0");
                 }
             }
         }
@@ -773,7 +773,7 @@ namespace Consul
         {
             if (prefix == null)
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
             return Semaphore(new SemaphoreOptions(prefix, limit));
         }
@@ -789,7 +789,7 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             return new Semaphore(this) { Opts = opts };
         }
@@ -797,11 +797,11 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(prefix))
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
             if (limit <= 0)
             {
-                throw new ArgumentNullException("limit");
+                throw new ArgumentNullException(nameof(limit));
             }
             return AcquireSemaphore(new SemaphoreOptions(prefix, limit), ct);
         }
@@ -809,7 +809,7 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
 
             var semaphore = Semaphore(opts);
@@ -821,11 +821,11 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(prefix))
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
             if (limit <= 0)
             {
-                throw new ArgumentNullException("limit");
+                throw new ArgumentNullException(nameof(limit));
             }
             return ExecuteInSemaphore(new SemaphoreOptions(prefix, limit), a, ct);
         }
@@ -834,11 +834,11 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             if (a == null)
             {
-                throw new ArgumentNullException("a");
+                throw new ArgumentNullException(nameof(a));
             }
 
             var semaphore = await AcquireSemaphore(opts, ct).ConfigureAwait(false);

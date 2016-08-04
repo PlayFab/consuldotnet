@@ -22,6 +22,9 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-08-03
+* Added the ability to set `LockOpts.LockRetryTime`. Thanks @pfrejlich!
+
 ## 2016-07-10
 * Add an optional CancellationToken parameter to every method that ends up
   doing an HTTP request. Some of these can create an unstable Consul state

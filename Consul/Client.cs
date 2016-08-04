@@ -543,7 +543,7 @@ namespace Consul
             skipClientDispose = true;
             if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
             {
-                throw new ArgumentException("HttpClient must accept the application/json content type", "client");
+                throw new ArgumentException("HttpClient must accept the application/json content type",  nameof(client));
             }
         }
 #endregion
@@ -761,7 +761,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             Options = options ?? QueryOptions.Default;
         }
@@ -894,7 +894,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             Options = options ?? WriteOptions.Default;
         }
@@ -962,7 +962,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             Options = options ?? WriteOptions.Default;
         }
@@ -1030,7 +1030,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             Options = options ?? WriteOptions.Default;
         }
@@ -1096,7 +1096,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             _body = body;
             Options = options ?? WriteOptions.Default;
@@ -1174,7 +1174,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             _body = body;
             Options = options ?? WriteOptions.Default;
@@ -1262,7 +1262,7 @@ namespace Consul
         {
             if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentException(url);
+                throw new ArgumentException(nameof(url));
             }
             _body = body;
             Options = options ?? WriteOptions.Default;

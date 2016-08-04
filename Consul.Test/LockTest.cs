@@ -72,6 +72,15 @@ namespace Consul.Test
         }
 
         [Fact]
+        public void Lock_RetryRange()
+        {
+            Assert.Throws(typeof(ArgumentOutOfRangeException), () => new LockOptions("test/lock/retryrange")
+            {
+                LockRetryTime = TimeSpan.Zero
+            });
+        }
+
+        [Fact]
         public async Task Lock_OneShot()
         {
             var client = new ConsulClient();
@@ -412,16 +421,16 @@ namespace Consul.Test
             {
                 client.ExecuteLocked(keyName, () =>
                 {
-                    // Only executes if the lock is held
-                    Assert.True(true);
+                // Only executes if the lock is held
+                Assert.True(true);
                 });
             }),
             Task.Run(() =>
             {
                 client.ExecuteLocked(keyName, () =>
                 {
-                    // Only executes if the lock is held
-                    Assert.True(true);
+                // Only executes if the lock is held
+                Assert.True(true);
                 });
             }));
         }

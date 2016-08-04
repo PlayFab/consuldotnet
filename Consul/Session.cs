@@ -168,7 +168,7 @@ namespace Consul
             {
                 if (q == null)
                 {
-                    throw new ArgumentNullException("q");
+                    throw new ArgumentNullException(nameof(q));
                 }
                 var waitDuration = (int)(initialTTL.TotalMilliseconds / 2);
                 var lastRenewTime = DateTime.Now;
