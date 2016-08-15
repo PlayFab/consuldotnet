@@ -5,5 +5,7 @@
     "bootstrap": true,
     "acl_datacenter": "dc1",
     "acl_master_token": "yep",
-    "acl_default_policy": "allow"
+    "acl_default_policy": "allow",
+    "leave_on_terminate": true,
+    "telemetry": { "disable_hostname": true }
 }

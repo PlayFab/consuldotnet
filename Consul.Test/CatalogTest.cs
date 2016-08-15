@@ -74,6 +74,9 @@ namespace Consul.Test
 
             Assert.NotEqual((ulong)0, node.LastIndex);
             Assert.NotNull(node.Response.Services);
+            Assert.Equal("127.0.0.1", node.Response.Node.Address);
+            Assert.True(node.Response.Node.TaggedAddresses.Count > 0);
+            Assert.True(node.Response.Node.TaggedAddresses.ContainsKey("wan"));
         }
 
         [Fact]
