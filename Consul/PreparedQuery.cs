@@ -56,6 +56,14 @@ namespace Consul
         public string Service { get; set; }
 
         /// <summary>
+        /// Near allows baking in the name of a node to automatically distance-
+        /// sort from. The magic "_agent" value is supported, which sorts near
+        /// the agent which initiated the request by default.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string Near { get; set; }
+
+        /// <summary>
         /// Failover controls what we do if there are no healthy nodes in the local datacenter.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
