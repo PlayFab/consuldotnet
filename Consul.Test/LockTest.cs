@@ -150,15 +150,13 @@ namespace Consul.Test
             var sessionId = await client.Session.Create(new SessionEntry { Behavior = SessionBehavior.Delete });
 
             var l = await client.AcquireLock(new LockOptions(keyName) { Session = sessionId.Response }, CancellationToken.None);
-            try
-            {
-                Assert.True(l.IsHeld);
-                await client.Session.Destroy(sessionId.Response);
-            }
-            finally
-            {
-                await l.Release();
-            }
+
+            Assert.True(l.IsHeld);
+            await client.Session.Destroy(sessionId.Response);
+
+            await Task.Delay(TimeSpan.FromSeconds(1));
+
+            Assert.False(l.IsHeld);
             Assert.Null((await client.KV.Get(keyName)).Response);
         }
 
@@ -421,16 +419,16 @@ namespace Consul.Test
             {
                 client.ExecuteLocked(keyName, () =>
                 {
-                // Only executes if the lock is held
-                Assert.True(true);
+                    // Only executes if the lock is held
+                    Assert.True(true);
                 });
             }),
             Task.Run(() =>
             {
                 client.ExecuteLocked(keyName, () =>
                 {
-                // Only executes if the lock is held
-                Assert.True(true);
+                    // Only executes if the lock is held
+                    Assert.True(true);
                 });
             }));
         }

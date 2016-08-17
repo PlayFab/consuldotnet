@@ -5,7 +5,7 @@
     "xunit": "2.1.0",
     "dotnet-test-xunit": "1.0.0-rc2-build10025",
     "Xunit.SkippableFact": "1.2.14",
-    "Consul": "0.7.0.0-alpha1"
+    "Consul": "0.7.0.0-rc1"
   },
   "frameworks": {
     "netcoreapp1.0": {
