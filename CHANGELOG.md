@@ -1,6 +1,6 @@
 # Changelog
 
-## Major Changes between 0.6.4.7 and 0.6.4.8-alpha1
+## Major Changes between 0.6.4.7 and 0.7.0
 * The method of configuring the ConsulClient has been reworked. It now
   uses `Action`s to configure the options inside itself - e.g.
   `var client = new ConsulClient((cfg) => { cfg.Datacenter = "us-west-2"; }`
@@ -8,6 +8,9 @@
   `Client_Constructors()` for more examples. The old method will work
   but has been made Obsolete.
 * The `ExecuteAbortableLocked` method has been removed.
+* Requests to use the `X-Consul-Token` header instead of the `?token=`
+  query parameter. This may break use of ACLs with very old Consuls (<
+  0.6.0). Please file an issue if this breaks for you.
 
 ## Major Changes between 0.5.0 and 0.6.0
 * ___THE ENTIRE CLIENT HAS BEEN REWRITTEN TO BE ASYNC___. This means
@@ -21,6 +24,20 @@
   named `Address`.
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
+
+## 2016-08-17
+* Ported in changes from the Consul Go API for 0.7.0. Most of these
+  require 0.7.0 servers/agents. The changes are:
+  * Atomic transactions for the KV store
+  * Only retry locks/semaphores on Consul errors, not on all errors
+  * Add the `Near` property to Prepared Queries
+  * Add Query Templates to Prepared Queries, with regex filtering
+  * Change all requests to use the `X-Consul-Token` header instead of
+    the `?token=` query parameter.
+  * Add the ability to deregister a service that has been critical for
+    an arbitrary period of time.
+  * Signal WAN address translation and add the ability to look up
+    the WAN and LAN addresses if address translation is being used.
 
 ## 2016-08-03
 * Added the ability to set `LockOpts.LockRetryTime`. Thanks @pfrejlich!
