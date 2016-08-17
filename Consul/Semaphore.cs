@@ -562,7 +562,7 @@ namespace Consul
                                 return;
                             }
                         }
-                        catch (Exception)
+                        catch (ConsulRequestException)
                         {
                             if (_retries > 0)
                             {
@@ -571,6 +571,10 @@ namespace Consul
                                 opts.WaitIndex = 0;
                                 continue;
                             }
+                            throw;
+                        }
+                        catch (Exception)
+                        {
                             throw;
                         }
                     }

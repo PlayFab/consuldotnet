@@ -77,6 +77,14 @@ namespace Consul
         public SessionExpiredException(string message, Exception inner) : base(message, inner) { }
     }
 
+
+    public class SessionCreationException : Exception
+    {
+        public SessionCreationException() { }
+        public SessionCreationException(string message) : base(message) { }
+        public SessionCreationException(string message, Exception inner) : base(message, inner) { }
+    }
+
     public class SessionEntry
     {
         public ulong CreateIndex { get; set; }

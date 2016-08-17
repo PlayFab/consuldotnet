@@ -18,9 +18,10 @@ namespace Consul
     /// </summary>
     public class ConsulRequestException : Exception
     {
+        public HttpStatusCode StatusCode { get; set; }
         public ConsulRequestException() { }
-        public ConsulRequestException(string message) : base(message) { }
-        public ConsulRequestException(string message, Exception inner) : base(message, inner) { }
+        public ConsulRequestException(string message, HttpStatusCode statusCode) : base(message) { StatusCode = statusCode; }
+        public ConsulRequestException(string message, HttpStatusCode statusCode, Exception inner) : base(message, inner) { StatusCode = statusCode; }
     }
 
     /// <summary>
@@ -441,7 +442,7 @@ namespace Consul
 
         internal readonly JsonSerializer serializer = new JsonSerializer();
 
-#region New style config with Actions
+        #region New style config with Actions
         /// <summary>
         /// Initializes a new Consul client with a default configuration that connects to 127.0.0.1:8500.
         /// </summary>
@@ -503,9 +504,9 @@ namespace Consul
         }
 #endif
 
-#endregion
+        #endregion
 
-#region Old style config
+        #region Old style config
         /// <summary>
         /// Initializes a new Consul client with the configuration specified.
         /// </summary>
@@ -543,12 +544,12 @@ namespace Consul
             skipClientDispose = true;
             if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
             {
-                throw new ArgumentException("HttpClient must accept the application/json content type",  nameof(client));
+                throw new ArgumentException("HttpClient must accept the application/json content type", nameof(client));
             }
         }
-#endregion
+        #endregion
 
-#region IDisposable Support
+        #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -593,7 +594,7 @@ namespace Consul
                 throw new ObjectDisposedException(typeof(ConsulClient).FullName.ToString());
             }
         }
-#endregion
+        #endregion
 
         void HandleConfigUpdateEvent(object sender, EventArgs e)
         {
@@ -784,12 +785,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -856,7 +857,7 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ConsulRequestException("Failed to parse X-Consul-Index", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-Index", res.StatusCode, ex);
                 }
             }
 
@@ -868,7 +869,7 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ConsulRequestException("Failed to parse X-Consul-LastContact", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-LastContact", res.StatusCode, ex);
                 }
             }
 
@@ -880,7 +881,7 @@ namespace Consul
                 }
                 catch (Exception ex)
                 {
-                    throw new ConsulRequestException("Failed to parse X-Consul-KnownLeader", ex);
+                    throw new ConsulRequestException("Failed to parse X-Consul-KnownLeader", res.StatusCode, ex);
                 }
             }
         }
@@ -898,7 +899,7 @@ namespace Consul
             }
             Options = options ?? WriteOptions.Default;
         }
-        
+
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -916,12 +917,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -984,12 +985,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -1052,12 +1053,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -1101,7 +1102,7 @@ namespace Consul
             _body = body;
             Options = options ?? WriteOptions.Default;
         }
-        
+
         public async Task<WriteResult> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1130,12 +1131,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -1179,7 +1180,7 @@ namespace Consul
             _body = body;
             Options = options ?? WriteOptions.Default;
         }
-        
+
         public async Task<WriteResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
@@ -1212,12 +1213,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 
@@ -1300,12 +1301,12 @@ namespace Consul
                 if (ResponseStream == null)
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
-                        response.StatusCode));
+                        response.StatusCode), response.StatusCode);
                 }
                 using (var sr = new StreamReader(ResponseStream))
                 {
                     throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
-                        response.StatusCode, sr.ReadToEnd()));
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
                 }
             }
 

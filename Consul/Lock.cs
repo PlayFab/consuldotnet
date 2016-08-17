@@ -194,17 +194,10 @@ namespace Consul
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
-                        try
-                        {
-                            Opts.Session = await CreateSession().ConfigureAwait(false);
-                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
-                                WriteOptions.Default, _cts.Token);
-                            LockSession = Opts.Session;
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new ConsulRequestException("Failed to create session", ex);
-                        }
+                        Opts.Session = await CreateSession().ConfigureAwait(false);
+                        _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
+                            WriteOptions.Default, _cts.Token);
+                        LockSession = Opts.Session;
                     }
                     else
                     {
@@ -234,14 +227,8 @@ namespace Consul
                         attempts++;
 
                         QueryResult<KVPair> pair;
-                        try
-                        {
-                            pair = await _client.KV.Get(Opts.Key, qOpts).ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            throw new ConsulRequestException("Failed to read lock key", ex);
-                        }
+
+                        pair = await _client.KV.Get(Opts.Key, qOpts).ConfigureAwait(false);
 
                         if (pair.Response != null)
                         {
@@ -454,7 +441,7 @@ namespace Consul
                                 return;
                             }
                         }
-                        catch (Exception)
+                        catch (ConsulRequestException)
                         {
                             if (_retries > 0)
                             {
@@ -465,8 +452,11 @@ namespace Consul
                             }
                             throw;
                         }
+                        catch (Exception)
+                        {
+                            throw;
+                        }
                     }
-
                 }
                 finally
                 {
