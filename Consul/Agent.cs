@@ -336,6 +336,10 @@ namespace Consul
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         [JsonConverter(typeof(CheckStatusConverter))]
         public CheckStatus Status { get; set; }
+
+        [JsonConverter(typeof(DurationTimespanConverter))]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? DeregisterCriticalServiceAfter { get; set; }
     }
 
     /// <summary>

@@ -376,7 +376,8 @@ namespace Consul.Test
             {
                 Name = "redischeck",
                 ServiceID = "redis",
-                TTL = TimeSpan.FromSeconds(15)
+                TTL = TimeSpan.FromSeconds(15),
+                DeregisterCriticalServiceAfter = TimeSpan.FromMinutes(90)
             };
             await client.Agent.CheckRegister(reg);
 

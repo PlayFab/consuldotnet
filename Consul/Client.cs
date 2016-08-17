@@ -372,6 +372,11 @@ namespace Consul
         /// </summary>
         public bool KnownLeader { get; set; }
 
+        /// <summary>
+        /// Is address translation enabled for HTTP responses on this agent
+        /// </summary>
+        public bool AddressTranslationEnabled { get; set; }
+
         public QueryResult() { }
         public QueryResult(QueryResult other) : base(other)
         {
@@ -876,6 +881,18 @@ namespace Consul
                 catch (Exception ex)
                 {
                     throw new ConsulRequestException("Failed to parse X-Consul-KnownLeader", res.StatusCode, ex);
+                }
+            }
+
+            if (headers.Contains("X-Consul-Translate-Addresses"))
+            {
+                try
+                {
+                    meta.AddressTranslationEnabled = bool.Parse(headers.GetValues("X-Consul-Translate-Addresses").First());
+                }
+                catch (Exception ex)
+                {
+                    throw new ConsulRequestException("Failed to parse X-Consul-Translate-Addresses", res.StatusCode, ex);
                 }
             }
         }
