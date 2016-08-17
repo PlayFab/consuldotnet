@@ -60,7 +60,6 @@ namespace Consul.Test
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
             var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
-
             var cloneRequest = await client.ACL.Clone(ConsulRoot);
             var aclID = cloneRequest.Response;
 
