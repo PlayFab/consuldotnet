@@ -16,6 +16,7 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -44,5 +45,7 @@ namespace Consul
         Task<WriteResult<bool>> Put(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken));
         Task<WriteResult<bool>> Release(KVPair p, CancellationToken ct = default(CancellationToken));
         Task<WriteResult<bool>> Release(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, WriteOptions q, CancellationToken ct = default(CancellationToken));
     }
 }

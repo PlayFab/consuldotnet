@@ -21,6 +21,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace Consul
 {
@@ -66,11 +67,175 @@ namespace Consul
         }
     }
 
+    [JsonConverter(typeof(KVTxnVerbTypeConverter))]
+    public class KVTxnVerb : IEquatable<KVTxnVerb>
+    {
+        private static readonly KVTxnVerb kvSetOp = new KVTxnVerb() { Operation = "set" };
+        private static readonly KVTxnVerb kvDeleteOp = new KVTxnVerb() { Operation = "delete" };
+        private static readonly KVTxnVerb kvDeleteCASOp = new KVTxnVerb() { Operation = "delete-cas" };
+        private static readonly KVTxnVerb kvDeleteTreeOp = new KVTxnVerb() { Operation = "delete-tree" };
+        private static readonly KVTxnVerb kvCASOp = new KVTxnVerb() { Operation = "cas" };
+        private static readonly KVTxnVerb kvLockOp = new KVTxnVerb() { Operation = "lock" };
+        private static readonly KVTxnVerb kvUnlockOp = new KVTxnVerb() { Operation = "unlock" };
+        private static readonly KVTxnVerb kvGetOp = new KVTxnVerb() { Operation = "get" };
+        private static readonly KVTxnVerb kvGetTreeOp = new KVTxnVerb() { Operation = "get-tree" };
+        private static readonly KVTxnVerb kvCheckSessionOp = new KVTxnVerb() { Operation = "check-session" };
+        private static readonly KVTxnVerb kvCheckIndexOp = new KVTxnVerb() { Operation = "check-index" };
+
+        public static KVTxnVerb Set { get { return kvSetOp; } }
+        public static KVTxnVerb Delete { get { return kvDeleteOp; } }
+        public static KVTxnVerb DeleteCAS { get { return kvDeleteCASOp; } }
+        public static KVTxnVerb DeleteTree { get { return kvDeleteTreeOp; } }
+        public static KVTxnVerb CAS { get { return kvCASOp; } }
+        public static KVTxnVerb Lock { get { return kvLockOp; } }
+        public static KVTxnVerb Unlock { get { return kvUnlockOp; } }
+        public static KVTxnVerb Get { get { return kvGetOp; } }
+        public static KVTxnVerb GetTree { get { return kvGetTreeOp; } }
+        public static KVTxnVerb CheckSession { get { return kvCheckSessionOp; } }
+        public static KVTxnVerb CheckIndex { get { return kvCheckIndexOp; } }
+
+        public string Operation { get; private set; }
+
+        public bool Equals(KVTxnVerb other)
+        {
+            return Operation == other.Operation;
+        }
+
+        public override bool Equals(object other)
+        {
+            // other could be a reference type, the is operator will return false if null
+            return other is KVTxnVerb && Equals(other as KVTxnVerb);
+        }
+
+        public override int GetHashCode()
+        {
+            return Operation.GetHashCode();
+        }
+    }
+
+    public class KVTxnVerbTypeConverter : JsonConverter
+    {
+        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+        {
+            serializer.Serialize(writer, ((KVTxnVerb)value).Operation);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
+            JsonSerializer serializer)
+        {
+            var status = (string)serializer.Deserialize(reader, typeof(string));
+            switch (status)
+            {
+                case "set":
+                    return KVTxnVerb.Set;
+                case "delete":
+                    return KVTxnVerb.Delete;
+                case "delete-cas":
+                    return KVTxnVerb.DeleteCAS;
+                case "delete-tree":
+                    return KVTxnVerb.DeleteTree;
+                case "cas":
+                    return KVTxnVerb.CAS;
+                case "lock":
+                    return KVTxnVerb.Lock;
+                case "unlock":
+                    return KVTxnVerb.Unlock;
+                case "get":
+                    return KVTxnVerb.Get;
+                case "get-tree":
+                    return KVTxnVerb.GetTree;
+                case "check-session":
+                    return KVTxnVerb.CheckSession;
+                case "check-index":
+                    return KVTxnVerb.CheckIndex;
+                default:
+                    throw new ArgumentException("Invalid KVTxnOpType value during deserialization");
+            }
+        }
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(KVTxnVerb);
+        }
+    }
+
+    /// <summary>
+    /// KVTxnOp defines a single operation inside a transaction.
+    /// </summary>
+    public class KVTxnOp
+    {
+        public KVTxnVerb Verb { get; set; }
+        public string Key { get; set; }
+        public byte[] Value { get; set; }
+        public ulong Flags { get; set; }
+        public ulong Index { get; set; }
+        public string Session { get; set; }
+        public KVTxnOp(string key, KVTxnVerb verb)
+        {
+            Key = key;
+            Verb = verb;
+        }
+    }
+
+    /// <summary>
+    /// KVTxnResponse  is used to return the results of a transaction.
+    /// </summary>
+    public class KVTxnResponse
+    {
+        [JsonIgnore]
+        public bool Success { get; internal set; }
+        [JsonProperty]
+        public List<TxnError> Errors { get; internal set; }
+        [JsonProperty]
+        public List<KVPair> Results { get; internal set; }
+
+        public KVTxnResponse()
+        {
+            Results = new List<KVPair>();
+            Errors = new List<TxnError>();
+        }
+
+        internal KVTxnResponse(TxnResponse txnRes)
+        {
+            if (txnRes == null)
+            {
+                Results = new List<KVPair>(0);
+                Errors = new List<TxnError>(0);
+                return;
+            }
+
+            if (txnRes.Results == null)
+            {
+                Results = new List<KVPair>(0);
+            }
+            else
+            {
+                Results = new List<KVPair>(txnRes.Results.Count);
+                foreach (var txnResult in txnRes.Results)
+                {
+                    Results.Add(txnResult.KV);
+                }
+            }
+
+            if (txnRes.Errors == null)
+            {
+                Errors = new List<TxnError>(0);
+            }
+            else
+            {
+                Errors = txnRes.Errors;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Indicates that the key pair data is invalid
+    /// </summary>
     public class InvalidKeyPairException : Exception
     {
         public InvalidKeyPairException() { }
         public InvalidKeyPairException(string message) : base(message) { }
-        public InvalidKeyPairException(string message, System.Exception inner) : base(message, inner) { }
+        public InvalidKeyPairException(string message, Exception inner) : base(message, inner) { }
     }
 
     /// <summary>
@@ -352,6 +517,30 @@ namespace Consul
             }
             req.Params["release"] = p.Session;
             return req.Execute(ct);
+        }
+
+        public Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, CancellationToken ct = default(CancellationToken))
+        {
+            return Txn(txn, WriteOptions.Default, ct);
+        }
+
+        public async Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var txnOps = new List<TxnOp>(txn.Count);
+
+            foreach (var kvTxnOp in txn)
+            {
+                txnOps.Add(new TxnOp() { KV = kvTxnOp });
+            }
+
+            var req = _client.Put<List<TxnOp>, TxnResponse>("/v1/txn", txnOps, q);
+            var txnRes = await req.Execute(ct);
+
+            var res = new WriteResult<KVTxnResponse>(txnRes, new KVTxnResponse(txnRes.Response));
+
+            res.Response.Success = txnRes.StatusCode == System.Net.HttpStatusCode.OK;
+
+            return res;
         }
     }
 

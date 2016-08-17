@@ -1208,7 +1208,9 @@ namespace Consul
 
             ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
-            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode && (
+                (response.StatusCode != HttpStatusCode.NotFound && typeof(TOut) != typeof(TxnResponse)) ||
+                (response.StatusCode != HttpStatusCode.Conflict && typeof(TOut) == typeof(TxnResponse))))
             {
                 if (ResponseStream == null)
                 {
@@ -1222,7 +1224,9 @@ namespace Consul
                 }
             }
 
-            if (response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode ||
+                // Special case for KV txn operations
+                (response.StatusCode == HttpStatusCode.Conflict && typeof(TOut) == typeof(TxnResponse)))
             {
                 result.Response = Deserialize<TOut>(ResponseStream);
             }

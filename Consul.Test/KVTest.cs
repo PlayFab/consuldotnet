@@ -18,6 +18,7 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
@@ -406,6 +407,93 @@ namespace Consul.Test
 
             var deleteRequest = await client.KV.Delete(key);
             Assert.True(deleteRequest.Response);
+        }
+
+        [Fact]
+        public async Task KV_Txn()
+        {
+
+
+            using (var client = new ConsulClient())
+            {
+                string id = string.Empty;
+
+                try
+                {
+                    id = (await client.Session.CreateNoChecks()).Response;
+
+                    var keyName = GenerateTestKeyName();
+                    var keyValue = Encoding.UTF8.GetBytes("test");
+
+                    var txn = new List<KVTxnOp> {
+                        new KVTxnOp(keyName, KVTxnVerb.Lock) { Value = keyValue },
+                        new KVTxnOp(keyName, KVTxnVerb.Get)
+                    };
+
+                    var result = await client.KV.Txn(txn);
+
+                    Assert.False(result.Response.Success, "transaction should have failed");
+                    Assert.Equal(2, result.Response.Errors.Count);
+                    Assert.Equal(0, result.Response.Results.Count);
+
+                    Assert.Equal(0, result.Response.Errors[0].OpIndex);
+                    Assert.Contains("missing session", result.Response.Errors[0].What);
+                    Assert.Contains("doesn't exist", result.Response.Errors[1].What);
+
+                    // Now poke in a real session and try again.
+                    txn[0].Session = id;
+
+                    result = await client.KV.Txn(txn);
+
+                    Assert.True(result.Response.Success, "transaction failure");
+                    Assert.Equal(0, result.Response.Errors.Count);
+                    Assert.Equal(2, result.Response.Results.Count);
+
+
+                    for (int i = 0; i < result.Response.Results.Count; i++)
+                    {
+                        byte[] expected = null;
+                        if (i == 1) { expected = keyValue; }
+
+                        var item = result.Response.Results[i];
+
+                        Assert.Equal(keyName, item.Key);
+                        Assert.Equal(expected, item.Value);
+                        Assert.Equal(1ul, item.LockIndex);
+                        Assert.Equal(id, item.Session);
+                    }
+
+                    // Run a read-only transaction.
+                    txn = new List<KVTxnOp> {
+                        new KVTxnOp(keyName, KVTxnVerb.Get)
+                    };
+
+                    result = await client.KV.Txn(txn);
+
+                    Assert.True(result.Response.Success, "transaction failure");
+                    Assert.Equal(0, result.Response.Errors.Count);
+                    Assert.Equal(1, result.Response.Results.Count);
+
+                    var getResult = result.Response.Results[0];
+
+                    Assert.Equal(keyName, getResult.Key);
+                    Assert.Equal(keyValue, getResult.Value);
+                    Assert.Equal(1ul, getResult.LockIndex);
+                    Assert.Equal(id, getResult.Session);
+
+                    // Sanity check using the regular GET API.
+                    var pair = await client.KV.Get(keyName);
+
+                    Assert.NotNull(pair.Response);
+                    Assert.Equal(1ul, pair.Response.LockIndex);
+                    Assert.Equal(id, pair.Response.Session);
+                    Assert.NotEqual(0ul, pair.LastIndex);
+                }
+                finally
+                {
+                    await client.Session.Destroy(id);
+                }
+            }
         }
     }
 }
