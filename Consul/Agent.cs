@@ -119,7 +119,6 @@ namespace Consul
         private static readonly CheckStatus warning = new CheckStatus() { Status = "warning" };
         private static readonly CheckStatus critical = new CheckStatus() { Status = "critical" };
         private static readonly CheckStatus any = new CheckStatus() { Status = "any" };
-        private static readonly CheckStatus unknown = new CheckStatus() { Status = "unknown" };
 
         public string Status { get; private set; }
 
@@ -142,12 +141,7 @@ namespace Consul
         {
             get { return any; }
         }
-
-        public static CheckStatus Unknown
-        {
-            get { return unknown; }
-        }
-
+        
         public bool Equals(CheckStatus other)
         {
             return other != null && ReferenceEquals(this, other);
