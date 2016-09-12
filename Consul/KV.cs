@@ -519,11 +519,78 @@ namespace Consul
             return req.Execute(ct);
         }
 
+        /// <summary>
+        ///  Txn is used to apply multiple KV operations in a single, atomic transaction.
+        /// </summary>
+        /// <remarks>
+        /// Transactions are defined as a
+        /// list of operations to perform, using the KVOp constants and KVTxnOp structure
+        /// to define operations. If any operation fails, none of the changes are applied
+        /// to the state store. Note that this hides the internal raw transaction interface
+        /// and munges the input and output types into KV-specific ones for ease of use.
+        /// If there are more non-KV operations in the future we may break out a new
+        /// transaction API client, but it will be easy to keep this KV-specific variant
+        /// supported.
+        /// 
+        /// Even though this is generally a write operation, we take a QueryOptions input
+        /// and return a QueryMeta output. If the transaction contains only read ops, then
+        /// Consul will fast-path it to a different endpoint internally which supports
+        /// consistency controls, but not blocking. If there are write operations then
+        /// the request will always be routed through raft and any consistency settings
+        /// will be ignored.
+        /// 
+        /// // If there is a problem making the transaction request then an error will be
+        /// returned. Otherwise, the ok value will be true if the transaction succeeded
+        /// or false if it was rolled back. The response is a structured return value which
+        /// will have the outcome of the transaction. Its Results member will have entries
+        /// for each operation. Deleted keys will have a nil entry in the, and to save
+        /// space, the Value of each key in the Results will be nil unless the operation
+        /// is a KVGet. If the transaction was rolled back, the Errors member will have
+        /// entries referencing the index of the operation that failed along with an error
+        /// message.
+        /// </remarks>
+        /// <param name="txn">The constructed transaction</param>
+        /// <param name="ct">A CancellationToken to prematurely end the request</param>
+        /// <returns>The transaction response</returns>
         public Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, CancellationToken ct = default(CancellationToken))
         {
             return Txn(txn, WriteOptions.Default, ct);
         }
 
+        /// <summary>
+        ///  Txn is used to apply multiple KV operations in a single, atomic transaction.
+        /// </summary>
+        /// <remarks>
+        /// Transactions are defined as a
+        /// list of operations to perform, using the KVOp constants and KVTxnOp structure
+        /// to define operations. If any operation fails, none of the changes are applied
+        /// to the state store. Note that this hides the internal raw transaction interface
+        /// and munges the input and output types into KV-specific ones for ease of use.
+        /// If there are more non-KV operations in the future we may break out a new
+        /// transaction API client, but it will be easy to keep this KV-specific variant
+        /// supported.
+        /// 
+        /// Even though this is generally a write operation, we take a QueryOptions input
+        /// and return a QueryMeta output. If the transaction contains only read ops, then
+        /// Consul will fast-path it to a different endpoint internally which supports
+        /// consistency controls, but not blocking. If there are write operations then
+        /// the request will always be routed through raft and any consistency settings
+        /// will be ignored.
+        /// 
+        /// // If there is a problem making the transaction request then an error will be
+        /// returned. Otherwise, the ok value will be true if the transaction succeeded
+        /// or false if it was rolled back. The response is a structured return value which
+        /// will have the outcome of the transaction. Its Results member will have entries
+        /// for each operation. Deleted keys will have a nil entry in the, and to save
+        /// space, the Value of each key in the Results will be nil unless the operation
+        /// is a KVGet. If the transaction was rolled back, the Errors member will have
+        /// entries referencing the index of the operation that failed along with an error
+        /// message.
+        /// </remarks>
+        /// <param name="txn">The constructed transaction</param>
+        /// <param name="q">Customized write options</param>
+        /// <param name="ct">A CancellationToken to prematurely end the request</param>
+        /// <returns>The transaction response</returns>
         public async Task<WriteResult<KVTxnResponse>> Txn(List<KVTxnOp> txn, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             var txnOps = new List<TxnOp>(txn.Count);

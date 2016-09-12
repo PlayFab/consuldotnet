@@ -659,6 +659,11 @@ namespace Consul
             return new DeleteRequest<T>(this, path, opts ?? WriteOptions.Default);
         }
 
+        internal DeleteRequest Delete(string path, WriteOptions opts = null)
+        {
+            return new DeleteRequest(this, path, opts ?? WriteOptions.Default);
+        }
+
         internal EmptyPutRequest<TOut> EmptyPut<TOut>(string path, WriteOptions opts = null)
         {
             return new EmptyPutRequest<TOut>(this, path, opts ?? WriteOptions.Default);
@@ -950,6 +955,75 @@ namespace Consul
             if (response.IsSuccessStatusCode)
             {
                 result.Response = Deserialize<TOut>(ResponseStream);
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        protected override void ApplyOptions(ConsulClientConfiguration clientConfig)
+        {
+            if (Options == WriteOptions.Default)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Options.Datacenter))
+            {
+                Params["dc"] = Options.Datacenter;
+            }
+        }
+
+        protected override void ApplyHeaders(HttpRequestMessage message, ConsulClientConfiguration clientConfig)
+        {
+            if (!string.IsNullOrEmpty(Options.Token))
+            {
+                message.Headers.Add("X-Consul-Token", Options.Token);
+            }
+        }
+    }
+    
+    public class DeleteRequest : ConsulRequest
+    {
+        public WriteOptions Options { get; set; }
+
+        public DeleteRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Delete)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException(nameof(url));
+            }
+            Options = options ?? WriteOptions.Default;
+        }
+
+        public async Task<WriteResult> Execute(CancellationToken ct)
+        {
+            Client.CheckDisposed();
+            timer.Start();
+            var result = new WriteResult();
+
+            var message = new HttpRequestMessage(HttpMethod.Delete, BuildConsulUri(Endpoint, Params));
+            ApplyHeaders(message, Client.Config);
+            var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
+
+            result.StatusCode = response.StatusCode;
+
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                if (ResponseStream == null)
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                        response.StatusCode), response.StatusCode);
+                }
+                using (var sr = new StreamReader(ResponseStream))
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
+                }
             }
 
             result.RequestTime = timer.Elapsed;

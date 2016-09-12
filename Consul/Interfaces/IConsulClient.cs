@@ -31,5 +31,6 @@ namespace Consul
         IDistributedSemaphore Semaphore(string prefix, int limit);
         ISessionEndpoint Session { get; }
         IStatusEndpoint Status { get; }
+        IOperatorEndpoint Operator { get; }
     }
 }
