@@ -2,8 +2,8 @@
 
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/PlayFab/consuldotnet?branch=master&svg=true)](https://ci.appveyor.com/project/highlyunavailable/consuldotnet)
 
-* Consul API: [v0.6.4](https://github.com/hashicorp/consul/tree/v0.6.4/api)
-* .NET version: >= 4.5
+* Consul API: [v0.7.0](https://github.com/hashicorp/consul/tree/v0.7.0/api)
+* .NET: >= 4.5 - .NET Core: >= 1.0.0
 
 Consul.NET is a .NET port of the Go Consul API, but reworked to use .NET
 idioms such as Tasks/CancellationTokens instead of Goroutines/Channels.
@@ -11,13 +11,6 @@ The majority of the calls directly track the [HTTP
 API](https://www.consul.io/docs/agent/http.html), but this API does have
 additional functionality that is provided in the Go API, like Locks and
 Semaphores.
-
-## ⚠️WARNING⚠️
-
-If you are upgrading from Consul.NET 0.5.x or below, the entire API has
-been re-written to be `async` as of 0.6.0. See the
-[Changelog](https://github.com/PlayFab/consuldotnet/blob/master/CHANGELOG.md)
-for more information.
 
 ## Example
 
@@ -170,13 +163,10 @@ Semaphore is used to implement a distributed semaphore using the Consul
 KV primitives. It is an implementaiton of the [Consul Semaphore
 ](https://www.consul.io/docs/guides/semaphore.html) guide.
 
-## Using with Mono/DNXCore
+## Using with .NET Core and Mono
 
-This package should work correctly with Mono. It compiles and runs with
-Mono 4.2.3, but if you have any issues using the Nuget package or
-compiling this code with Mono, please file a Github issue with details
-of the problem.
-
-This package is not usable on DNXCore due to a problem with [large
-integer support](https://github.com/JamesNK/Newtonsoft.Json/issues/838)
-in Json.NET. It should work fine on DNX451 targets though.
+Both .NET 4.5+ and .NET Core 1.0+ are fully supported. Mono is supported on a
+best-effort basis. It should compile and run happily on Mono but this is not as
+heavily tested as Microsoft .NET stacks. If you have any issues using the Nuget
+package or compiling this code with .NET, .NET Core, or Mono, please file a
+Github issue with details of the problem.

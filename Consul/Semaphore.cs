@@ -19,7 +19,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +26,6 @@ using Newtonsoft.Json;
 
 namespace Consul
 {
-    [Serializable]
     public class SemaphoreLimitConflictException : Exception
     {
         public int RemoteLimit { get; private set; }
@@ -50,16 +48,8 @@ namespace Consul
             RemoteLimit = remoteLimit;
             LocalLimit = localLimit;
         }
-
-        protected SemaphoreLimitConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreHeldException : Exception
     {
         public SemaphoreHeldException()
@@ -75,16 +65,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreNotHeldException : Exception
     {
         public SemaphoreNotHeldException()
@@ -100,16 +82,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreNotHeldException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreInUseException : Exception
     {
         public SemaphoreInUseException()
@@ -125,16 +99,8 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreInUseException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreConflictException : Exception
     {
         public SemaphoreConflictException()
@@ -150,25 +116,13 @@ namespace Consul
             : base(message, inner)
         {
         }
-
-        protected SemaphoreConflictException(
-            SerializationInfo info,
-            StreamingContext context)
-            : base(info, context)
-        {
-        }
     }
 
-    [Serializable]
     public class SemaphoreMaxAttemptsReachedException : Exception
     {
         public SemaphoreMaxAttemptsReachedException() { }
         public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
         public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
-        protected SemaphoreMaxAttemptsReachedException(
-          SerializationInfo info,
-          StreamingContext context) : base(info, context)
-        { }
     }
 
     /// <summary>
@@ -195,7 +149,7 @@ namespace Consul
                     }
                     else
                     {
-                        throw new ArgumentOutOfRangeException("value", "Semaphore limit must be greater than 0");
+                        throw new ArgumentOutOfRangeException(nameof(Limit), "Semaphore limit must be greater than 0");
                     }
                 }
             }
@@ -237,7 +191,7 @@ namespace Consul
         /// </summary>
         private const ulong SemaphoreFlagValue = 0xe0f69a2baa414de0;
 
-        private readonly object _lock = new object();
+        private readonly AsyncLock _mutex = new AsyncLock();
         private readonly object _heldLock = new object();
         private bool _isheld;
         private int _retries;
@@ -280,7 +234,7 @@ namespace Consul
         /// It is NOT safe to assume that the slot is held until Release() unless the Session is specifically created without any associated health checks.
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the session being lost.
         /// </summary>
-        public CancellationToken Acquire()
+        public Task<CancellationToken> Acquire()
         {
             return Acquire(CancellationToken.None);
         }
@@ -293,11 +247,11 @@ namespace Consul
         /// By default Consul sessions prefer liveness over safety and an application must be able to handle the session being lost.
         /// </summary>
         /// <param name="ct">The cancellation token to cancel semaphore acquisition</param>
-        public CancellationToken Acquire(CancellationToken ct)
+        public async Task<CancellationToken> Acquire(CancellationToken ct)
         {
-            lock (_lock)
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (IsHeld)
                     {
@@ -318,7 +272,7 @@ namespace Consul
                     {
                         try
                         {
-                            Opts.Session = CreateSession().GetAwaiter().GetResult();
+                            Opts.Session = await CreateSession().ConfigureAwait(false);
                             _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Default, _cts.Token);
                             LockSession = Opts.Session;
                         }
@@ -332,10 +286,10 @@ namespace Consul
                         LockSession = Opts.Session;
                     }
 
-                    var contender = _client.KV.Acquire(ContenderEntry(LockSession)).GetAwaiter().GetResult().Response;
+                    var contender = (await _client.KV.Acquire(ContenderEntry(LockSession)).ConfigureAwait(false)).Response;
                     if (!contender)
                     {
-                        throw new ApplicationException("Failed to make contender entry");
+                        throw new KeyNotFoundException("Failed to make contender entry");
                     }
 
                     var qOpts = new QueryOptions()
@@ -363,11 +317,11 @@ namespace Consul
                         QueryResult<KVPair[]> pairs;
                         try
                         {
-                            pairs = _client.KV.List(Opts.Prefix, qOpts).GetAwaiter().GetResult();
+                            pairs = await _client.KV.List(Opts.Prefix, qOpts).ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
-                            throw new ApplicationException("Failed to read prefix", ex);
+                            throw new KeyNotFoundException("Failed to read prefix", ex);
                         }
 
                         var lockPair = FindLock(pairs.Response);
@@ -403,7 +357,7 @@ namespace Consul
                         }
 
                         // Handle the case of not getting the lock
-                        if (!_client.KV.CAS(newLock).GetAwaiter().GetResult().Response)
+                        if (!(await _client.KV.CAS(newLock).ConfigureAwait(false)).Response)
                         {
                             continue;
                         }
@@ -414,29 +368,29 @@ namespace Consul
                     }
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
                 }
-                finally
+            }
+            finally
+            {
+                if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
-                    if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
+                    _cts.Cancel();
+                    await _client.KV.Delete(ContenderEntry(LockSession).Key).ConfigureAwait(false);
+                    if (_sessionRenewTask != null)
                     {
-                        _cts.Cancel();
-                        _client.KV.Delete(ContenderEntry(LockSession).Key).GetAwaiter().GetResult();
-                        if (_sessionRenewTask != null)
+                        try
                         {
-                            try
-                            {
-                                _sessionRenewTask.Wait();
-                            }
-                            catch (AggregateException)
-                            {
-                                // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                            }
+                            await _sessionRenewTask.ConfigureAwait(false);
                         }
-                        else
+                        catch (Exception)
                         {
-                            _client.Session.Destroy(Opts.Session).Wait();
+                            // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                         }
-                        Opts.Session = null;
                     }
+                    else
+                    {
+                        await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
+                    }
+                    Opts.Session = null;
                 }
             }
         }
@@ -444,11 +398,11 @@ namespace Consul
         /// <summary>
         /// Release is used to voluntarily give up our semaphore slot. It is an error to call this if the semaphore has not been acquired.
         /// </summary>
-        public void Release()
+        public async Task Release(CancellationToken ct = default(CancellationToken))
         {
-            lock (_lock)
+            try
             {
-                try
+                using (await _mutex.LockAsync().ConfigureAwait(false))
                 {
                     if (!IsHeld)
                     {
@@ -467,7 +421,7 @@ namespace Consul
 
                     while (!didSet)
                     {
-                        var pair = _client.KV.Get(key).GetAwaiter().GetResult();
+                        var pair = await _client.KV.Get(key, ct).ConfigureAwait(false);
 
                         if (pair.Response == null)
                         {
@@ -481,7 +435,7 @@ namespace Consul
                             semaphoreLock.Holders.Remove(lockSession);
                             var newLock = EncodeLock(semaphoreLock, pair.Response.ModifyIndex);
 
-                            didSet = _client.KV.CAS(newLock).GetAwaiter().GetResult().Response;
+                            didSet = (await _client.KV.CAS(newLock, ct).ConfigureAwait(false)).Response;
                         }
                         else
                         {
@@ -491,20 +445,20 @@ namespace Consul
 
                     var contenderKey = string.Join("/", Opts.Prefix, lockSession);
 
-                    _client.KV.Delete(contenderKey).Wait();
+                    await _client.KV.Delete(contenderKey, ct).ConfigureAwait(false);
                 }
-                finally
+            }
+            finally
+            {
+                if (_sessionRenewTask != null)
                 {
-                    if (_sessionRenewTask != null)
+                    try
                     {
-                        try
-                        {
-                            _sessionRenewTask.Wait();
-                        }
-                        catch (AggregateException)
-                        {
-                            // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
-                        }
+                        await _sessionRenewTask.ConfigureAwait(false);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                     }
                 }
             }
@@ -513,9 +467,9 @@ namespace Consul
         /// <summary>
         /// Destroy is used to cleanup the semaphore entry. It is not necessary to invoke. It will fail if the semaphore is in use.
         /// </summary>
-        public void Destroy()
+        public async Task Destroy(CancellationToken ct = default(CancellationToken))
         {
-            lock (_lock)
+            using (await _mutex.LockAsync().ConfigureAwait(false))
             {
                 if (IsHeld)
                 {
@@ -525,11 +479,11 @@ namespace Consul
                 QueryResult<KVPair[]> pairs;
                 try
                 {
-                    pairs = _client.KV.List(Opts.Prefix).GetAwaiter().GetResult();
+                    pairs = await _client.KV.List(Opts.Prefix, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    throw new ApplicationException("failed to read prefix", ex);
+                    throw new KeyNotFoundException("failed to read prefix", ex);
                 }
 
                 var lockPair = FindLock(pairs.Response);
@@ -552,7 +506,7 @@ namespace Consul
                     throw new SemaphoreInUseException();
                 }
 
-                var didRemove = _client.KV.DeleteCAS(lockPair).GetAwaiter().GetResult().Response;
+                var didRemove = (await _client.KV.DeleteCAS(lockPair, ct).ConfigureAwait(false)).Response;
 
                 if (!didRemove)
                 {
@@ -608,7 +562,7 @@ namespace Consul
                                 return;
                             }
                         }
-                        catch (Exception)
+                        catch (ConsulRequestException)
                         {
                             if (_retries > 0)
                             {
@@ -617,6 +571,10 @@ namespace Consul
                                 opts.WaitIndex = 0;
                                 continue;
                             }
+                            throw;
+                        }
+                        catch (Exception)
+                        {
                             throw;
                         }
                     }
@@ -735,25 +693,6 @@ namespace Consul
         }
     }
 
-    public class AutoSemaphore : Semaphore, IDisposable, IDisposableSemaphore
-    {
-        public CancellationToken CancellationToken { get; private set; }
-        internal AutoSemaphore(ConsulClient c, SemaphoreOptions opts)
-            : base(c)
-        {
-            Opts = opts;
-            CancellationToken = Acquire();
-        }
-
-        public void Dispose()
-        {
-            if (IsHeld)
-            {
-                Release();
-            }
-        }
-    }
-
     /// <summary>
     /// SemaphoreOptions is used to parameterize the Semaphore
     /// </summary>
@@ -782,7 +721,7 @@ namespace Consul
                 }
                 else
                 {
-                    throw new ArgumentException("Semaphore prefix cannot be null or empty", "value");
+                    throw new ArgumentException("Semaphore prefix cannot be null or empty", nameof(Prefix));
                 }
             }
         }
@@ -800,7 +739,7 @@ namespace Consul
                 }
                 else
                 {
-                    throw new ArgumentOutOfRangeException("value", "Semaphore limit must be greater than 0");
+                    throw new ArgumentOutOfRangeException(nameof(Limit), "Semaphore limit must be greater than 0");
                 }
             }
         }
@@ -838,7 +777,7 @@ namespace Consul
         {
             if (prefix == null)
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
             return Semaphore(new SemaphoreOptions(prefix, limit));
         }
@@ -854,51 +793,71 @@ namespace Consul
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             return new Semaphore(this) { Opts = opts };
         }
-        public IDisposableSemaphore AcquireSemaphore(string prefix, int limit)
+        public Task<IDistributedSemaphore> AcquireSemaphore(string prefix, int limit, CancellationToken ct = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(prefix))
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
-            return AcquireSemaphore(new SemaphoreOptions(prefix, limit));
+            if (limit <= 0)
+            {
+                throw new ArgumentNullException(nameof(limit));
+            }
+            return AcquireSemaphore(new SemaphoreOptions(prefix, limit), ct);
         }
-        public IDisposableSemaphore AcquireSemaphore(SemaphoreOptions opts)
+        public async Task<IDistributedSemaphore> AcquireSemaphore(SemaphoreOptions opts, CancellationToken ct = default(CancellationToken))
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
-            return new AutoSemaphore(this, opts);
+
+            var semaphore = Semaphore(opts);
+            await semaphore.Acquire(ct).ConfigureAwait(false);
+            return semaphore;
         }
 
-        public void ExecuteInSemaphore(string prefix, int limit, Action a)
+        public Task ExecuteInSemaphore(string prefix, int limit, Action a, CancellationToken ct = default(CancellationToken))
         {
             if (string.IsNullOrEmpty(prefix))
             {
-                throw new ArgumentNullException("prefix");
+                throw new ArgumentNullException(nameof(prefix));
             }
-            ExecuteInSemaphore(new SemaphoreOptions(prefix, limit), a);
+            if (limit <= 0)
+            {
+                throw new ArgumentNullException(nameof(limit));
+            }
+            return ExecuteInSemaphore(new SemaphoreOptions(prefix, limit), a, ct);
         }
-        public void ExecuteInSemaphore(SemaphoreOptions opts, Action a)
+
+        public async Task ExecuteInSemaphore(SemaphoreOptions opts, Action a, CancellationToken ct = default(CancellationToken))
         {
             if (opts == null)
             {
-                throw new ArgumentNullException("opts");
+                throw new ArgumentNullException(nameof(opts));
             }
             if (a == null)
             {
-                throw new ArgumentNullException("a");
+                throw new ArgumentNullException(nameof(a));
             }
-            using (var l = new AutoSemaphore(this, opts))
+
+            var semaphore = await AcquireSemaphore(opts, ct).ConfigureAwait(false);
+
+            try
             {
-                if (l.IsHeld)
+                if (!semaphore.IsHeld)
                 {
-                    a();
+                    throw new LockNotHeldException("Could not obtain the lock");
                 }
+                a();
+            }
+            finally
+            {
+                await semaphore.Release(ct).ConfigureAwait(false);
             }
         }
     }

@@ -31,7 +31,7 @@ namespace Consul.Test
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
-            var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
+            var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
             var aclEntry = new ACLEntry()
             {
                 Name = "API Test",
@@ -59,8 +59,7 @@ namespace Consul.Test
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
-            var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
-
+            var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
             var cloneRequest = await client.ACL.Clone(ConsulRoot);
             var aclID = cloneRequest.Response;
 
@@ -84,7 +83,7 @@ namespace Consul.Test
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
-            var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
+            var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
 
             var aclEntry = await client.ACL.Info(ConsulRoot);
 
@@ -99,7 +98,7 @@ namespace Consul.Test
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
 
-            var client = new ConsulClient(new ConsulClientConfiguration() { Token = ConsulRoot });
+            var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
 
             var aclList = await client.ACL.List();
 
