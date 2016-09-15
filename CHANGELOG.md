@@ -38,6 +38,7 @@
     an arbitrary period of time.
   * Signal WAN address translation and add the ability to look up
     the WAN and LAN addresses if address translation is being used.
+  * Added Operator API to allow Raft editing.
 
 ## 2016-08-03
 * Added the ability to set `LockOpts.LockRetryTime`. Thanks @pfrejlich!
