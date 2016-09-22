@@ -20,6 +20,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -29,11 +30,12 @@ namespace Consul.Test
 {
     public class KVTest
     {
-        private static readonly Random Random = new Random((int)DateTime.Now.Ticks);
+        private static readonly Random Random = new Random();
 
         internal static string GenerateTestKeyName()
         {
             var keyChars = new char[16];
+
             for (var i = 0; i < keyChars.Length; i++)
             {
                 keyChars[i] = Convert.ToChar(Random.Next(65, 91));
@@ -210,7 +212,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            var key = GenerateTestKeyName()+"watchget";
+            var key = GenerateTestKeyName();
 
             var value = Encoding.UTF8.GetBytes("test");
 
@@ -226,7 +228,7 @@ namespace Consul.Test
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Task.Run(async () =>
             {
-                Task.Delay(1100).Wait();
+                await Task.Delay(100);
                 var p = new KVPair(key) { Flags = 42, Value = value };
                 var putResponse = await client.KV.Put(p);
                 Assert.True(putResponse.Response);
