@@ -265,19 +265,18 @@ namespace Consul
                         _cts = new CancellationTokenSource();
                     }
                     _cts = new CancellationTokenSource();
-                    LockSession = Opts.Session;
 
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
                         try
                         {
-                            Opts.Session = await CreateSession().ConfigureAwait(false);
-                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session, WriteOptions.Default, _cts.Token);
-                            LockSession = Opts.Session;
+                            LockSession = await CreateSession().ConfigureAwait(false);
+                            _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, LockSession, WriteOptions.Default, _cts.Token);
                         }
                         catch (Exception ex)
                         {
+                            _cts.Cancel();
                             throw new InvalidOperationException("Failed to create session", ex);
                         }
                     }
@@ -289,6 +288,7 @@ namespace Consul
                     var contender = (await _client.KV.Acquire(ContenderEntry(LockSession)).ConfigureAwait(false)).Response;
                     if (!contender)
                     {
+                        _cts.Cancel();
                         throw new KeyNotFoundException("Failed to make contender entry");
                     }
 
@@ -307,6 +307,7 @@ namespace Consul
                             var elapsed = DateTime.UtcNow.Subtract(start);
                             if (elapsed > qOpts.WaitTime)
                             {
+                                _cts.Cancel();
                                 throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
                             }
                             qOpts.WaitTime -= elapsed;
@@ -321,18 +322,21 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
+                            _cts.Cancel();
                             throw new KeyNotFoundException("Failed to read prefix", ex);
                         }
 
                         var lockPair = FindLock(pairs.Response);
                         if (lockPair.Flags != SemaphoreFlagValue)
                         {
+                            _cts.Cancel();
                             throw new SemaphoreConflictException();
                         }
 
                         var semaphoreLock = DecodeLock(lockPair);
                         if (semaphoreLock.Limit != Opts.Limit)
                         {
+                            _cts.Cancel();
                             throw new SemaphoreLimitConflictException(
                                 string.Format("Semaphore limit conflict (lock: {0}, local: {1})", semaphoreLock.Limit,
                                     Opts.Limit),
@@ -366,6 +370,7 @@ namespace Consul
                         MonitorLock(LockSession);
                         return _cts.Token;
                     }
+                    _cts.Cancel();
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
                 }
             }
@@ -386,11 +391,6 @@ namespace Consul
                             // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                         }
                     }
-                    else
-                    {
-                        await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
-                    }
-                    Opts.Session = null;
                 }
             }
         }

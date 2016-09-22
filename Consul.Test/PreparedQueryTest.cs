@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -64,15 +65,17 @@ namespace Consul.Test
             var results = (await client.PreparedQuery.Execute(id)).Response;
 
             Assert.NotNull(results);
-            Assert.True(results.Nodes.Length == 1);
-            Assert.Equal(results.Nodes[0].Node.Name, "foobar");
+            var nodes = results.Nodes.Where(n => n.Node.Name == "foobar").ToArray();
+            Assert.True(nodes.Length == 1);
+            Assert.Equal(nodes[0].Node.Name, "foobar");
 
             results = null;
             results = (await client.PreparedQuery.Execute("my-query")).Response;
 
             Assert.NotNull(results);
-            Assert.True(results.Nodes.Length == 1);
-            Assert.Equal(results.Nodes[0].Node.Name, "foobar");
+            nodes = results.Nodes.Where(n => n.Node.Name == "foobar").ToArray();
+            Assert.True(nodes.Length == 1);
+            Assert.Equal(nodes[0].Node.Name, "foobar");
 
             await client.PreparedQuery.Delete(id);
 

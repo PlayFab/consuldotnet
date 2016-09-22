@@ -210,7 +210,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            var key = GenerateTestKeyName();
+            var key = GenerateTestKeyName()+"watchget";
 
             var value = Encoding.UTF8.GetBytes("test");
 

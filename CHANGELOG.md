@@ -25,6 +25,10 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-09-21
+* Fixed a variety of bugs that could cause sessions to be destroyed if provided
+  to a Lock or Semaphore via a `LockOptions` or `SemaphoreOptions` object.
+
 ## 2016-08-17
 * Ported in changes from the Consul Go API for 0.7.0. Most of these
   require 0.7.0 servers/agents. The changes are:
