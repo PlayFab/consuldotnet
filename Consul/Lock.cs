@@ -194,10 +194,9 @@ namespace Consul
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
-                        Opts.Session = await CreateSession().ConfigureAwait(false);
-                        _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, Opts.Session,
+                        LockSession = await CreateSession().ConfigureAwait(false);
+                        _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, LockSession,
                             WriteOptions.Default, _cts.Token);
-                        LockSession = Opts.Session;
                     }
                     else
                     {
@@ -219,6 +218,7 @@ namespace Consul
                             var elapsed = DateTime.UtcNow.Subtract(start);
                             if (elapsed > qOpts.WaitTime)
                             {
+                                _cts.Cancel();
                                 throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
                             }
                             qOpts.WaitTime -= elapsed;
@@ -234,6 +234,7 @@ namespace Consul
                         {
                             if (pair.Response.Flags != LockFlagValue)
                             {
+                                _cts.Cancel();
                                 throw new LockConflictException();
                             }
 
@@ -259,7 +260,7 @@ namespace Consul
                         }
 
                         // If the code executes this far, no other session has the lock, so try to lock it
-                        var kvPair = LockEntry(Opts.Session);
+                        var kvPair = LockEntry(LockSession);
                         var locked = (await _client.KV.Acquire(kvPair).ConfigureAwait(false)).Response;
 
                         // KV acquisition succeeded, so the session now holds the lock
@@ -293,6 +294,7 @@ namespace Consul
                         try { await Task.Delay(Opts.LockRetryTime, ct).ConfigureAwait(false); }
                         catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
                     }
+                    _cts.Cancel();
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
             }
@@ -312,12 +314,6 @@ namespace Consul
                             // Ignore AggregateExceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                         }
                     }
-                    else
-                    {
-                        await _client.Session.Destroy(Opts.Session).ConfigureAwait(false);
-                    }
-                    Opts.Session = null;
-
                 }
             }
         }
@@ -339,9 +335,8 @@ namespace Consul
 
                     _cts.Cancel();
 
-                    var lockEnt = LockEntry(Opts.Session);
+                    var lockEnt = LockEntry(LockSession);
 
-                    Opts.Session = null;
                     await _client.KV.Release(lockEnt, ct).ConfigureAwait(false);
                 }
             }
@@ -357,7 +352,6 @@ namespace Consul
                     {
                         // Ignore Exceptions from the tasks during Release, since if the Renew task died, the developer will be Super Confused if they see the exception during Release.
                     }
-
                 }
             }
         }
@@ -422,7 +416,7 @@ namespace Consul
                                 _retries = Opts.MonitorRetries;
 
                                 // Lock is no longer held! Shut down everything.
-                                if (pair.Response.Session != Opts.Session)
+                                if (pair.Response.Session != LockSession)
                                 {
                                     IsHeld = false;
                                     _cts.Cancel();
