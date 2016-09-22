@@ -16,12 +16,12 @@ namespace Consul.Test
             var registration = new CatalogRegistration()
             {
                 Datacenter = "dc1",
-                Node = "foobar",
+                Node = "foobaz",
                 Address = "192.168.10.10",
                 Service = new AgentService()
                 {
-                    ID = "redis1",
-                    Service = "redis",
+                    ID = "sql1",
+                    Service = "sql",
                     Tags = new[] { "master", "v1" },
                     Port = 8000
                 }
@@ -29,11 +29,11 @@ namespace Consul.Test
 
             await client.Catalog.Register(registration);
 
-            Assert.NotNull((await client.Catalog.Node("foobar")).Response);
+            Assert.NotNull((await client.Catalog.Node("foobaz")).Response);
 
             var mgmtquerytoken = new QueryOptions() { Token = "yep" };
 
-            var def = new PreparedQueryDefinition { Service = new ServiceQuery() { Service = "redis" } };
+            var def = new PreparedQueryDefinition { Service = new ServiceQuery() { Service = "sql" } };
 
             var id = (await client.PreparedQuery.Create(def)).Response;
             def.ID = id;
@@ -65,17 +65,17 @@ namespace Consul.Test
             var results = (await client.PreparedQuery.Execute(id)).Response;
 
             Assert.NotNull(results);
-            var nodes = results.Nodes.Where(n => n.Node.Name == "foobar").ToArray();
+            var nodes = results.Nodes.Where(n => n.Node.Name == "foobaz").ToArray();
             Assert.True(nodes.Length == 1);
-            Assert.Equal(nodes[0].Node.Name, "foobar");
+            Assert.Equal(nodes[0].Node.Name, "foobaz");
 
             results = null;
             results = (await client.PreparedQuery.Execute("my-query")).Response;
 
             Assert.NotNull(results);
-            nodes = results.Nodes.Where(n => n.Node.Name == "foobar").ToArray();
+            nodes = results.Nodes.Where(n => n.Node.Name == "foobaz").ToArray();
             Assert.True(nodes.Length == 1);
-            Assert.Equal(nodes[0].Node.Name, "foobar");
+            Assert.Equal(results.Nodes[0].Node.Name, "foobaz");
 
             await client.PreparedQuery.Delete(id);
 
