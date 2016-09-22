@@ -236,7 +236,12 @@ namespace Consul.Test
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             var getRequest2 = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex });
-            var res = getRequest2.Response;
+            KVPair res = null;
+            while (getRequest2.Response == null)
+            {
+                getRequest2 = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest2.LastIndex });
+            }
+            res = getRequest2.Response;
 
             Assert.NotNull(res);
             Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
