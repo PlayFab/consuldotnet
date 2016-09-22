@@ -236,7 +236,12 @@ namespace Consul.Test
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             var getRequest2 = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex });
-            var res = getRequest2.Response;
+            KVPair res = null;
+            while (getRequest2.Response == null)
+            {
+                getRequest2 = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest2.LastIndex });
+            }
+            res = getRequest2.Response;
 
             Assert.NotNull(res);
             Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, res.Value));
@@ -292,7 +297,7 @@ namespace Consul.Test
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             Task.Run(async () =>
             {
-                Thread.Sleep(100);
+                await Task.Delay(100);
                 var p = new KVPair(prefix) { Flags = 42, Value = value };
                 var putRes = await client.KV.Put(p);
                 Assert.True(putRes.Response);
@@ -300,6 +305,12 @@ namespace Consul.Test
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
             var pairs2 = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex });
+
+            while (pairs2.Response == null)
+            {
+                pairs2 = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs2.LastIndex });
+            }
+
             Assert.NotNull(pairs2.Response);
             Assert.Equal(pairs2.Response.Length, 1);
             Assert.True(StructuralComparisons.StructuralEqualityComparer.Equals(value, pairs2.Response[0].Value));
