@@ -1,5 +1,5 @@
 {
-  "version": "0.7.0.1",
+  "version": "0.7.0.2",
   "dependencies": {},
   "frameworks": {
     "netstandard1.3": {
@@ -22,7 +22,7 @@
         "publicSign": true
       }
     },
-    "net451": {
+    "net45": {
       "frameworkAssemblies": {
         "System.Net.Http": "",
         "System.Net.Http.WebRequest": ""

@@ -29,7 +29,7 @@ namespace Consul
     /// KVPair is used to represent a single K/V entry
     /// </summary>
 
-#if !NET451
+#if !NET45
     [JsonConverter(typeof(KVPairConverter))]
 #endif
     public class KVPair
