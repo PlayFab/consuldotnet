@@ -25,6 +25,9 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-10-10
+* Revert inadvertent upgrade to .NET 4.5.1.
+
 ## 2016-09-21
 * Fixed a variety of bugs that could cause sessions to be destroyed if provided
   to a Lock or Semaphore via a `LockOptions` or `SemaphoreOptions` object.
