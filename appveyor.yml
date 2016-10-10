@@ -39,11 +39,11 @@ before_build:
 build_script:
 - dotnet --verbose build Consul --configuration Release
 - cmd: |-
-    move %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451 %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
-    cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
-    %USERPROFILE%\.nuget\packages\ILRepack\2.0.10\tools\ILRepack.exe /keyfile:%APPVEYOR_BUILD_FOLDER%\assets\consuldotnet.snk /parallel /internalize /out:%APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451\Consul.dll Consul.dll Newtonsoft.Json.dll
+    move %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45 %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
+    cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
+    %USERPROFILE%\.nuget\packages\ILRepack\2.0.10\tools\ILRepack.exe /keyfile:%APPVEYOR_BUILD_FOLDER%\assets\consuldotnet.snk /parallel /internalize /out:%APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45\Consul.dll Consul.dll Newtonsoft.Json.dll
     cd %APPVEYOR_BUILD_FOLDER%
-    del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net451unmerged
+    del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
 - dotnet --verbose pack Consul --configuration Release
 before_test:
 - ps: >-
