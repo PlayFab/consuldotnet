@@ -475,18 +475,18 @@ namespace Consul.Test
 
                 var lockCheck = new[]
                 {
-                    Task.Run(() =>
+                    Task.Run(async () =>
                     {
                         while (lock1.IsHeld)
                         {
-                            Thread.Sleep(10);
+                            await Task.Delay(10);
                         }
                     }),
-                    Task.Run(() =>
+                    Task.Run(async () =>
                     {
                         while (lock2.IsHeld)
                         {
-                            Thread.Sleep(10);
+                            await Task.Delay(10);
                         }
                     })
                 };
