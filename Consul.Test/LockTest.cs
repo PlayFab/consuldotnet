@@ -493,12 +493,12 @@ namespace Consul.Test
 
                 Task.WaitAll(lockCheck, 1000);
 
-                Assert.False(lock1.IsHeld);
-                Assert.False(lock2.IsHeld);
+                Assert.False(lock1.IsHeld, "Lock 1 still held");
+                Assert.False(lock2.IsHeld, "Lock 2 still held");
             }
             finally
             {
-                Assert.True((await client.Session.Destroy(sessionId)).Response);
+                Assert.True((await client.Session.Destroy(sessionId)).Response, "Failed to destroy session");
             }
         }
 
