@@ -10,28 +10,56 @@ using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+#if !(CORECLR || PORTABLE || PORTABLE40)
+using System.Security.Permissions;
+using System.Runtime.Serialization;
+#endif
 
 namespace Consul
 {
     /// <summary>
     /// Represents errors that occur while sending data to or fetching data from the Consul agent.
     /// </summary>
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class ConsulRequestException : Exception
     {
         public HttpStatusCode StatusCode { get; set; }
         public ConsulRequestException() { }
         public ConsulRequestException(string message, HttpStatusCode statusCode) : base(message) { StatusCode = statusCode; }
         public ConsulRequestException(string message, HttpStatusCode statusCode, Exception inner) : base(message, inner) { StatusCode = statusCode; }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected ConsulRequestException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+
+            info.AddValue("StatusCode", StatusCode);
+        }
+#endif
     }
 
     /// <summary>
     /// Represents errors that occur during initalization of the Consul client's configuration.
     /// </summary>
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class ConsulConfigurationException : Exception
     {
         public ConsulConfigurationException() { }
         public ConsulConfigurationException(string message) : base(message) { }
         public ConsulConfigurationException(string message, Exception inner) : base(message, inner) { }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected ConsulConfigurationException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
+#endif
     }
 
     /// <summary>
@@ -196,7 +224,9 @@ namespace Consul
                 {
                     if (verifySsl == "0" || bool.Parse(verifySsl))
                     {
+#pragma warning disable CS0618 // Type or member is obsolete
                         DisableServerCertificateValidation = true;
+#pragma warning restore CS0618 // Type or member is obsolete
                     }
                 }
                 catch (Exception ex)
@@ -236,11 +266,7 @@ namespace Consul
             EventHandler handler = Updated;
 
             // Event will be null if there are no subscribers
-            if (handler != null)
-            {
-                // Use the () operator to raise the event.
-                handler(this, e);
-            }
+            handler?.Invoke(this, e);
         }
     }
 
@@ -484,8 +510,7 @@ namespace Consul
 #endif
         {
             Config = new ConsulClientConfiguration();
-            if (configOverride != null) { configOverride(Config); }
-
+            configOverride?.Invoke(Config);
 #if !CORECLR
             HttpHandler = new WebRequestHandler();
 #else
@@ -493,11 +518,12 @@ namespace Consul
 #endif
             HttpClient = new HttpClient(HttpHandler);
             ApplyConfig(Config);
-            if (handlerOverride != null) { handlerOverride(HttpHandler); }
+            handlerOverride?.Invoke(HttpHandler);
             HttpClient.Timeout = TimeSpan.FromMinutes(15);
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
-            if (clientOverride != null) { clientOverride(HttpClient); }
+            clientOverride?.Invoke(HttpClient);
+            InitializeEndpoints();
         }
 
         #endregion
@@ -523,6 +549,7 @@ namespace Consul
             HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
             ApplyConfig(config);
+            InitializeEndpoints();
         }
 
         /// <summary>
@@ -542,8 +569,25 @@ namespace Consul
             {
                 throw new ArgumentException("HttpClient must accept the application/json content type", nameof(client));
             }
+            InitializeEndpoints();
         }
         #endregion
+
+        private void InitializeEndpoints()
+        {
+            _acl = new Lazy<ACL>(() => new ACL(this));
+            _agent = new Lazy<Agent>(() => new Agent(this));
+            _catalog = new Lazy<Catalog>(() => new Catalog(this));
+            _coordinate = new Lazy<Coordinate>(() => new Coordinate(this));
+            _event = new Lazy<Event>(() => new Event(this));
+            _health = new Lazy<Health>(() => new Health(this));
+            _kv = new Lazy<KV>(() => new KV(this));
+            _operator = new Lazy<Operator>(() => new Operator(this));
+            _preparedquery = new Lazy<PreparedQuery>(() => new PreparedQuery(this));
+            _raw = new Lazy<Raw>(() => new Raw(this));
+            _session = new Lazy<Session>(() => new Session(this));
+            _status = new Lazy<Status>(() => new Status(this));
+        }
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
@@ -607,10 +651,14 @@ namespace Consul
 #if !__MonoCS__
             if (config.ClientCertificateSupported)
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 if (config.ClientCertificate != null)
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     handler.ClientCertificateOptions = ClientCertificateOption.Manual;
+#pragma warning disable CS0618 // Type or member is obsolete
                     handler.ClientCertificates.Add(config.ClientCertificate);
+#pragma warning restore CS0618 // Type or member is obsolete
                 }
                 else
                 {
@@ -620,7 +668,9 @@ namespace Consul
             }
 #endif
 #if !CORECLR
+#pragma warning disable CS0618 // Type or member is obsolete
             if (config.DisableServerCertificateValidation)
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 handler.ServerCertificateValidationCallback += (certSender, cert, chain, sslPolicyErrors) => { return true; };
             }
@@ -629,7 +679,9 @@ namespace Consul
                 handler.ServerCertificateValidationCallback = null;
             }
 #else
+#pragma warning disable CS0618 // Type or member is obsolete
             if (config.DisableServerCertificateValidation)
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 handler.ServerCertificateCustomValidationCallback += (certSender, cert, chain, sslPolicyErrors) => { return true; };
             }
@@ -984,7 +1036,7 @@ namespace Consul
             }
         }
     }
-    
+
     public class DeleteRequest : ConsulRequest
     {
         public WriteOptions Options { get; set; }
@@ -1287,8 +1339,6 @@ namespace Consul
         public WriteOptions Options { get; set; }
         private TIn _body;
 
-        private readonly bool UseRawRequestBody = typeof(TIn) == typeof(byte[]);
-
         public PutRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Put)
         {
             if (string.IsNullOrEmpty(url))
@@ -1307,11 +1357,12 @@ namespace Consul
 
             HttpContent content = null;
 
-            if (UseRawRequestBody)
+            if (typeof(TIn) == typeof(byte[]))
             {
-                if (_body != null)
+                var bodyBytes = (_body as byte[]);
+                if (bodyBytes != null)
                 {
-                    content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+                    content = new ByteArrayContent(bodyBytes);
                 }
                 // If body is null and should be a byte array, then just don't send anything.
             }
@@ -1386,8 +1437,6 @@ namespace Consul
         public WriteOptions Options { get; set; }
         private TIn _body;
 
-        private readonly bool UseRawRequestBody = typeof(TIn) == typeof(byte[]);
-
         public PostRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Post)
         {
             if (string.IsNullOrEmpty(url))
@@ -1406,11 +1455,12 @@ namespace Consul
 
             HttpContent content = null;
 
-            if (UseRawRequestBody)
+            if (typeof(TIn) == typeof(byte[]))
             {
-                if (_body != null)
+                var bodyBytes = (_body as byte[]);
+                if (bodyBytes != null)
                 {
-                    content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+                    content = new ByteArrayContent(bodyBytes);
                 }
                 // If body is null and should be a byte array, then just don't send anything.
             }

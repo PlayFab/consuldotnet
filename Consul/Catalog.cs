@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -114,7 +115,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> Deregister(CatalogDeregistration reg, CancellationToken ct = default(CancellationToken))
         {
-            return Deregister(reg, WriteOptions.Default,ct);
+            return Deregister(reg, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -132,7 +133,7 @@ namespace Consul
         /// Datacenters is used to query for all the known datacenters
         /// </summary>
         /// <returns>A list of datacenter names</returns>
-        public Task<QueryResult<string[]>> Datacenters( CancellationToken ct = default(CancellationToken))
+        public Task<QueryResult<string[]>> Datacenters(CancellationToken ct = default(CancellationToken))
         {
             return _client.Get<string[]>("/v1/catalog/datacenters").Execute(ct);
         }
@@ -141,7 +142,7 @@ namespace Consul
         /// Nodes is used to query all the known nodes
         /// </summary>
         /// <returns>A list of all nodes</returns>
-        public Task<QueryResult<Node[]>> Nodes( CancellationToken ct = default(CancellationToken))
+        public Task<QueryResult<Node[]>> Nodes(CancellationToken ct = default(CancellationToken))
         {
             return Nodes(QueryOptions.Default, ct);
         }
@@ -152,7 +153,7 @@ namespace Consul
         /// <param name="q">Customized query options</param>
         /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
         /// <returns>A list of all nodes</returns>
-        public Task<QueryResult<Node[]>> Nodes(QueryOptions q,CancellationToken ct = default(CancellationToken))
+        public Task<QueryResult<Node[]>> Nodes(QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
             return _client.Get<Node[]>("/v1/catalog/nodes", q).Execute(ct);
         }
@@ -161,7 +162,7 @@ namespace Consul
         /// Services is used to query for all known services
         /// </summary>
         /// <returns>A list of all services</returns>
-        public Task<QueryResult<Dictionary<string, string[]>>> Services( CancellationToken ct = default(CancellationToken))
+        public Task<QueryResult<Dictionary<string, string[]>>> Services(CancellationToken ct = default(CancellationToken))
         {
             return Services(QueryOptions.Default, ct);
         }
@@ -244,27 +245,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Catalog _catalog;
+        private Lazy<Catalog> _catalog;
 
         /// <summary>
         /// Catalog returns a handle to the catalog endpoints
         /// </summary>
         public ICatalogEndpoint Catalog
         {
-            get
-            {
-                if (_catalog == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_catalog == null)
-                        {
-                            _catalog = new Catalog(this);
-                        }
-                    }
-                }
-                return _catalog;
-            }
+            get { return _catalog.Value; }
         }
     }
 }

@@ -81,6 +81,48 @@ namespace Consul.Test
         }
 
         [Fact]
+        public void Lock_MultithreadedRelease()
+        {
+            const int numTasks = 100000;
+            using (var client = new ConsulClient())
+            {
+                const string keyName = "test/lock/acquirerelease";
+                var lockKey = client.CreateLock(keyName);
+                Task[] tasks = new Task[numTasks];
+
+                for (int i = 0; i < numTasks; i++)
+                {
+                    tasks[i] = lockKey.Acquire(CancellationToken.None);
+                }
+
+                try
+                {
+                    Task.WaitAll(tasks);
+                }
+                catch (AggregateException e)
+                {
+                    Assert.Equal(numTasks - 1, e.InnerExceptions.Count);
+                }
+
+                Assert.True(lockKey.IsHeld);
+
+                for (int i = 0; i < numTasks; i++)
+                {
+                    tasks[i] = lockKey.Release(CancellationToken.None);
+                }
+
+                try
+                {
+                    Task.WaitAll(tasks);
+                }
+                catch (AggregateException e)
+                {
+                    Assert.Equal(numTasks - 1, e.InnerExceptions.Count);
+                }
+            }
+        }
+
+        [Fact]
         public async Task Lock_OneShot()
         {
             var client = new ConsulClient();
@@ -461,11 +503,9 @@ namespace Consul.Test
                     Assert.True(lock1.IsHeld);
                     if (lock1.IsHeld)
                     {
-                        Task.WaitAny(new[] { Task.Run(() =>
-                    {
-                        lock2.Acquire(CancellationToken.None);
-                        Assert.True(lock2.IsHeld);
-                    }) }, 1000);
+                        Assert.NotEqual(WaitHandle.WaitTimeout, Task.WaitAny(new[] {
+                            Task.Run(() => { lock2.Acquire(CancellationToken.None); Assert.True(lock2.IsHeld); }) },
+                            1000));
                     }
                 }
                 finally
@@ -475,23 +515,17 @@ namespace Consul.Test
 
                 var lockCheck = new[]
                 {
-                    Task.Run(async () =>
+                    Task.Run(() =>
                     {
-                        while (lock1.IsHeld)
-                        {
-                            await Task.Delay(10);
-                        }
+                        while (lock1.IsHeld) { }
                     }),
-                    Task.Run(async () =>
+                    Task.Run(() =>
                     {
-                        while (lock2.IsHeld)
-                        {
-                            await Task.Delay(10);
-                        }
+                        while (lock2.IsHeld) { }
                     })
                 };
 
-                Task.WaitAll(lockCheck, 1000);
+                Assert.True(Task.WaitAll(lockCheck, 1000));
 
                 Assert.False(lock1.IsHeld, "Lock 1 still held");
                 Assert.False(lock2.IsHeld, "Lock 2 still held");

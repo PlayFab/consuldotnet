@@ -141,7 +141,7 @@ namespace Consul
         {
             get { return any; }
         }
-        
+
         public bool Equals(CheckStatus other)
         {
             return other != null && ReferenceEquals(this, other);
@@ -604,27 +604,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Agent _agent;
+        private Lazy<Agent> _agent;
 
         /// <summary>
         /// Agent returns a handle to the agent endpoints
         /// </summary>
         public IAgentEndpoint Agent
         {
-            get
-            {
-                if (_agent == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_agent == null)
-                        {
-                            _agent = new Agent(this);
-                        }
-                    }
-                }
-                return _agent;
-            }
+            get { return _agent.Value; }
         }
     }
 }

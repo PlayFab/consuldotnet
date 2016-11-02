@@ -53,27 +53,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Status _status;
+        private Lazy<Status> _status;
 
         /// <summary>
         /// Status returns a handle to the status endpoint
         /// </summary>
         public IStatusEndpoint Status
         {
-            get
-            {
-                if (_status == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_status == null)
-                        {
-                            _status = new Status(this);
-                        }
-                    }
-                }
-                return _status;
-            }
+            get { return _status.Value; }
         }
     }
 }

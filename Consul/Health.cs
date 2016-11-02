@@ -184,7 +184,7 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Health _health;
+        private Lazy<Health> _health;
 
         /// <summary>
         /// Health returns a handle to the health endpoint
@@ -193,17 +193,7 @@ namespace Consul
         {
             get
             {
-                if (_health == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_health == null)
-                        {
-                            _health = new Health(this);
-                        }
-                    }
-                }
-                return _health;
+                return _health.Value;
             }
         }
     }

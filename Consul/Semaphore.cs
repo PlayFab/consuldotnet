@@ -23,9 +23,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+#if !(CORECLR || PORTABLE || PORTABLE40)
+using System.Security.Permissions;
+using System.Runtime.Serialization;
+#endif
 
 namespace Consul
 {
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreLimitConflictException : Exception
     {
         public int RemoteLimit { get; private set; }
@@ -48,8 +55,26 @@ namespace Consul
             RemoteLimit = remoteLimit;
             LocalLimit = localLimit;
         }
+
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreLimitConflictException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            base.GetObjectData(info, context);
+
+            info.AddValue("RemoteLimit", RemoteLimit);
+            info.AddValue("LocalLimit", LocalLimit);
+        }
+#endif
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreHeldException : Exception
     {
         public SemaphoreHeldException()
@@ -65,8 +90,16 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreHeldException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreNotHeldException : Exception
     {
         public SemaphoreNotHeldException()
@@ -82,8 +115,16 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreNotHeldException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreInUseException : Exception
     {
         public SemaphoreInUseException()
@@ -99,8 +140,18 @@ namespace Consul
             : base(message, inner)
         {
         }
+
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreInUseException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
+
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreConflictException : Exception
     {
         public SemaphoreConflictException()
@@ -116,13 +167,26 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreConflictException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SemaphoreMaxAttemptsReachedException : Exception
     {
         public SemaphoreMaxAttemptsReachedException() { }
         public SemaphoreMaxAttemptsReachedException(string message) : base(message) { }
         public SemaphoreMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SemaphoreMaxAttemptsReachedException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
     /// <summary>
@@ -259,11 +323,7 @@ namespace Consul
                         throw new SemaphoreHeldException();
                     }
                     // Don't overwrite the CancellationTokenSource until AFTER we've tested for holding, since there might be tasks that are currently running for this lock.
-                    if (_cts.IsCancellationRequested)
-                    {
-                        _cts.Dispose();
-                        _cts = new CancellationTokenSource();
-                    }
+                    DisposeCancellationTokenSource();
                     _cts = new CancellationTokenSource();
 
                     // Check if we need to create a session first
@@ -276,7 +336,7 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new InvalidOperationException("Failed to create session", ex);
                         }
                     }
@@ -288,7 +348,7 @@ namespace Consul
                     var contender = (await _client.KV.Acquire(ContenderEntry(LockSession)).ConfigureAwait(false)).Response;
                     if (!contender)
                     {
-                        _cts.Cancel();
+                        DisposeCancellationTokenSource();
                         throw new KeyNotFoundException("Failed to make contender entry");
                     }
 
@@ -307,7 +367,7 @@ namespace Consul
                             var elapsed = DateTime.UtcNow.Subtract(start);
                             if (elapsed > qOpts.WaitTime)
                             {
-                                _cts.Cancel();
+                                DisposeCancellationTokenSource();
                                 throw new SemaphoreMaxAttemptsReachedException("SemaphoreTryOnce is set and the semaphore is already at maximum capacity");
                             }
                             qOpts.WaitTime -= elapsed;
@@ -322,21 +382,21 @@ namespace Consul
                         }
                         catch (Exception ex)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new KeyNotFoundException("Failed to read prefix", ex);
                         }
 
                         var lockPair = FindLock(pairs.Response);
                         if (lockPair.Flags != SemaphoreFlagValue)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new SemaphoreConflictException();
                         }
 
                         var semaphoreLock = DecodeLock(lockPair);
                         if (semaphoreLock.Limit != Opts.Limit)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new SemaphoreLimitConflictException(
                                 string.Format("Semaphore limit conflict (lock: {0}, local: {1})", semaphoreLock.Limit,
                                     Opts.Limit),
@@ -356,7 +416,7 @@ namespace Consul
 
                         if (ct.IsCancellationRequested)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new TaskCanceledException();
                         }
 
@@ -367,10 +427,12 @@ namespace Consul
                         }
 
                         IsHeld = true;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                         MonitorLock(LockSession);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                         return _cts.Token;
                     }
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
                     throw new SemaphoreNotHeldException("Unable to acquire the semaphore with Consul");
                 }
             }
@@ -378,7 +440,7 @@ namespace Consul
             {
                 if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
                     await _client.KV.Delete(ContenderEntry(LockSession).Key).ConfigureAwait(false);
                     if (_sessionRenewTask != null)
                     {
@@ -410,7 +472,7 @@ namespace Consul
                     }
                     IsHeld = false;
 
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
 
                     var lockSession = LockSession;
                     LockSession = null;
@@ -546,7 +608,7 @@ namespace Consul
                                 {
 
                                     IsHeld = false;
-                                    _cts.Cancel();
+                                    DisposeCancellationTokenSource();
                                     return;
                                 }
 
@@ -558,7 +620,7 @@ namespace Consul
                             else
                             {
                                 IsHeld = false;
-                                _cts.Cancel();
+                                DisposeCancellationTokenSource();
                                 return;
                             }
                         }
@@ -690,6 +752,19 @@ namespace Consul
             }
 
             l.Holders = newHolders;
+        }
+
+        private void DisposeCancellationTokenSource()
+        {
+            // Make a copy of the reference to the CancellationTokenSource in case it gets removed before we finish.
+            // It's okay to cancel and dispose of them twice, it doesn't cause exceptions.
+            var cts = _cts;
+            if (cts != null)
+            {
+                Interlocked.CompareExchange(ref _cts, null, cts);
+                cts.Cancel();
+                cts.Dispose();
+            }
         }
     }
 

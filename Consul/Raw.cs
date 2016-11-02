@@ -61,27 +61,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Raw _raw;
+        private Lazy<Raw> _raw;
 
         /// <summary>
         /// Raw returns a handle to query endpoints
         /// </summary>
         public IRawEndpoint Raw
         {
-            get
-            {
-                if (_raw == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_raw == null)
-                        {
-                            _raw = new Raw(this);
-                        }
-                    }
-                }
-                return _raw;
-            }
+            get { return _raw.Value; }
         }
     }
 }

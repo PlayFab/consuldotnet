@@ -5,6 +5,9 @@ using System.Threading.Tasks;
 
 namespace Consul
 {
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class LockHeldException : Exception
     {
         public LockHeldException()
@@ -20,8 +23,15 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected LockHeldException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
-
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class LockNotHeldException : Exception
     {
         public LockNotHeldException()
@@ -37,8 +47,15 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected LockNotHeldException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
-
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class LockInUseException : Exception
     {
         public LockInUseException()
@@ -54,8 +71,15 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected LockInUseException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
-
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class LockConflictException : Exception
     {
         public LockConflictException()
@@ -71,13 +95,25 @@ namespace Consul
             : base(message, inner)
         {
         }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected LockConflictException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
-
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class LockMaxAttemptsReachedException : Exception
     {
         public LockMaxAttemptsReachedException() { }
         public LockMaxAttemptsReachedException(string message) : base(message) { }
         public LockMaxAttemptsReachedException(string message, Exception inner) : base(message, inner) { }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected LockMaxAttemptsReachedException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
     /// <summary>
@@ -111,7 +147,6 @@ namespace Consul
         private const ulong LockFlagValue = 0x2ddccbc058a50c18;
 
         private readonly AsyncLock _mutex = new AsyncLock();
-        private readonly object _heldLock = new object();
         private bool _isheld;
         private int _retries;
 
@@ -131,17 +166,11 @@ namespace Consul
         {
             get
             {
-                lock (_heldLock)
-                {
-                    return _isheld;
-                }
+                return _isheld;
             }
             private set
             {
-                lock (_heldLock)
-                {
-                    _isheld = value;
-                }
+                _isheld = value;
             }
         }
 
@@ -184,12 +213,10 @@ namespace Consul
                         throw new LockHeldException();
                     }
 
-                    // Don't overwrite the CancellationTokenSource until AFTER we've tested for holding, since there might be tasks that are currently running for this lock.
-                    if (_cts.IsCancellationRequested)
-                    {
-                        _cts.Dispose();
-                        _cts = new CancellationTokenSource();
-                    }
+                    // Don't overwrite the CancellationTokenSource until AFTER we've tested for holding,
+                    // since there might be tasks that are currently running for this lock.
+                    DisposeCancellationTokenSource();
+                    _cts = new CancellationTokenSource();
 
                     // Check if we need to create a session first
                     if (string.IsNullOrEmpty(Opts.Session))
@@ -218,7 +245,7 @@ namespace Consul
                             var elapsed = DateTime.UtcNow.Subtract(start);
                             if (elapsed > qOpts.WaitTime)
                             {
-                                _cts.Cancel();
+                                DisposeCancellationTokenSource();
                                 throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
                             }
                             qOpts.WaitTime -= elapsed;
@@ -234,7 +261,7 @@ namespace Consul
                         {
                             if (pair.Response.Flags != LockFlagValue)
                             {
-                                _cts.Cancel();
+                                DisposeCancellationTokenSource();
                                 throw new LockConflictException();
                             }
 
@@ -247,7 +274,9 @@ namespace Consul
                                     return _cts.Token;
                                 }
                                 IsHeld = true;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                                 MonitorLock();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                                 return _cts.Token;
                             }
 
@@ -267,14 +296,16 @@ namespace Consul
                         if (locked)
                         {
                             IsHeld = true;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                             MonitorLock();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
                             return _cts.Token;
                         }
 
                         // Handle the case of not getting the lock
                         if (ct.IsCancellationRequested)
                         {
-                            _cts.Cancel();
+                            DisposeCancellationTokenSource();
                             throw new TaskCanceledException();
                         }
 
@@ -294,7 +325,7 @@ namespace Consul
                         try { await Task.Delay(Opts.LockRetryTime, ct).ConfigureAwait(false); }
                         catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
                     }
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
                 }
             }
@@ -302,7 +333,7 @@ namespace Consul
             {
                 if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
                     if (_sessionRenewTask != null)
                     {
                         try
@@ -333,7 +364,7 @@ namespace Consul
                     }
                     IsHeld = false;
 
-                    _cts.Cancel();
+                    DisposeCancellationTokenSource();
 
                     var lockEnt = LockEntry(LockSession);
 
@@ -394,6 +425,19 @@ namespace Consul
             }
         }
 
+        private void DisposeCancellationTokenSource()
+        {
+            // Make a copy of the reference to the CancellationTokenSource in case it gets removed before we finish.
+            // It's okay to cancel and dispose of them twice, it doesn't cause exceptions.
+            var cts = _cts;
+            if (cts != null)
+            {
+                Interlocked.CompareExchange(ref _cts, null, cts);
+                cts.Cancel();
+                cts.Dispose();
+            }
+        }
+
         /// <summary>
         /// MonitorLock is a long running routine to monitor a lock ownership. It sets IsHeld to false if we lose our leadership.
         /// </summary>
@@ -401,11 +445,13 @@ namespace Consul
         {
             return Task.Run(async () =>
             {
+                // Copy a reference to _cts since we could end up destroying it before this method returns
+                var cts = _cts;
                 try
                 {
                     var opts = new QueryOptions() { Consistency = ConsistencyMode.Consistent };
                     _retries = Opts.MonitorRetries;
-                    while (IsHeld && !_cts.Token.IsCancellationRequested)
+                    while (IsHeld && !cts.Token.IsCancellationRequested)
                     {
                         try
                         {
@@ -419,7 +465,7 @@ namespace Consul
                                 if (pair.Response.Session != LockSession)
                                 {
                                     IsHeld = false;
-                                    _cts.Cancel();
+                                    DisposeCancellationTokenSource();
                                     return;
                                 }
 
@@ -431,7 +477,7 @@ namespace Consul
                             {
                                 // Failsafe in case the KV store is unavailable
                                 IsHeld = false;
-                                _cts.Cancel();
+                                DisposeCancellationTokenSource();
                                 return;
                             }
                         }
@@ -439,7 +485,7 @@ namespace Consul
                         {
                             if (_retries > 0)
                             {
-                                await Task.Delay(Opts.MonitorRetryTime, _cts.Token).ConfigureAwait(false);
+                                await Task.Delay(Opts.MonitorRetryTime, cts.Token).ConfigureAwait(false);
                                 _retries--;
                                 opts.WaitIndex = 0;
                                 continue;
