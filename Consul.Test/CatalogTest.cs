@@ -147,9 +147,10 @@ namespace Consul.Test
         [Fact]
         public async Task Catalog_EnableTagOverride()
         {
+            var svcID = KVTest.GenerateTestKeyName();
             var service = new AgentService()
             {
-                ID = "redis1",
+                ID = svcID,
                 Service = "redis",
                 Tags = new[] { "master", "v1" },
                 Port = 8000
@@ -169,8 +170,8 @@ namespace Consul.Test
 
                 var node = await client.Catalog.Node("foobar");
 
-                Assert.Contains("redis1", node.Response.Services.Keys);
-                Assert.False(node.Response.Services["redis1"].EnableTagOverride);
+                Assert.Contains(svcID, node.Response.Services.Keys);
+                Assert.False(node.Response.Services[svcID].EnableTagOverride);
 
                 var services = await client.Catalog.Service("redis");
 
@@ -188,8 +189,8 @@ namespace Consul.Test
                 await client.Catalog.Register(registration);
                 var node = await client.Catalog.Node("foobar");
 
-                Assert.Contains("redis1", node.Response.Services.Keys);
-                Assert.True(node.Response.Services["redis1"].EnableTagOverride);
+                Assert.Contains(svcID, node.Response.Services.Keys);
+                Assert.True(node.Response.Services[svcID].EnableTagOverride);
 
                 var services = await client.Catalog.Service("redis");
 

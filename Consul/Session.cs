@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Net;
+using System.Runtime.Serialization;
 
 namespace Consul
 {
@@ -70,19 +71,35 @@ namespace Consul
         }
     }
 
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SessionExpiredException : Exception
     {
         public SessionExpiredException() { }
         public SessionExpiredException(string message) : base(message) { }
         public SessionExpiredException(string message, Exception inner) : base(message, inner) { }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SessionExpiredException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
+
     }
 
-
+#if !(CORECLR || PORTABLE || PORTABLE40)
+    [Serializable]
+#endif
     public class SessionCreationException : Exception
     {
         public SessionCreationException() { }
         public SessionCreationException(string message) : base(message) { }
         public SessionCreationException(string message, Exception inner) : base(message, inner) { }
+#if !(CORECLR || PORTABLE || PORTABLE40)
+        protected SessionCreationException(
+          SerializationInfo info,
+          StreamingContext context) : base(info, context) { }
+#endif
     }
 
     public class SessionEntry
@@ -415,27 +432,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Session _session;
+        private Lazy<Session> _session;
 
         /// <summary>
         /// Session returns a handle to the session endpoint
         /// </summary>
         public ISessionEndpoint Session
         {
-            get
-            {
-                if (_session == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_session == null)
-                        {
-                            _session = new Session(this);
-                        }
-                    }
-                }
-                return _session;
-            }
+            get { return _session.Value; }
         }
     }
 }

@@ -273,27 +273,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private PreparedQuery _preparedquery;
+        private Lazy<PreparedQuery> _preparedquery;
 
         /// <summary>
         /// Catalog returns a handle to the catalog endpoints
         /// </summary>
         public IPreparedQueryEndpoint PreparedQuery
         {
-            get
-            {
-                if (_preparedquery == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_preparedquery == null)
-                        {
-                            _preparedquery = new PreparedQuery(this);
-                        }
-                    }
-                }
-                return _preparedquery;
-            }
+            get { return _preparedquery.Value; }
         }
     }
 }

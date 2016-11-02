@@ -116,7 +116,9 @@ namespace Consul.Test
             {
                 hc.Timeout = TimeSpan.FromDays(10);
                 hc.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+#pragma warning disable CS0618 // Type or member is obsolete
                 using (var client = new ConsulClient(new ConsulClientConfiguration(), hc))
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     await client.KV.Put(new KVPair("customhttpclient") { Value = System.Text.Encoding.UTF8.GetBytes("hello world") });
                     Assert.Equal(TimeSpan.FromDays(10), client.HttpClient.Timeout);
@@ -148,9 +150,13 @@ namespace Consul.Test
         {
             var config = new ConsulClientConfiguration();
 
+#pragma warning disable CS0618 // Type or member is obsolete
             using (var client = new ConsulClient(config))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 config.DisableServerCertificateValidation = true;
+#pragma warning restore CS0618 // Type or member is obsolete
                 await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 1000 });
                 Assert.Equal<ulong>(1000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
 #if !CORECLR
@@ -159,9 +165,13 @@ namespace Consul.Test
 #endif
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             using (var client = new ConsulClient(config))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 config.DisableServerCertificateValidation = false;
+#pragma warning restore CS0618 // Type or member is obsolete
                 await client.KV.Put(new KVPair("kv/reuseconfig") { Flags = 2000 });
                 Assert.Equal<ulong>(2000, (await client.KV.Get("kv/reuseconfig")).Response.Flags);
 #if !CORECLR
@@ -169,7 +179,9 @@ namespace Consul.Test
 #endif
             }
 
+#pragma warning disable CS0618 // Type or member is obsolete
             using (var client = new ConsulClient(config))
+#pragma warning restore CS0618 // Type or member is obsolete
             {
                 await client.KV.Delete("kv/reuseconfig");
             }

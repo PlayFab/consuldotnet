@@ -196,7 +196,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult<bool>> Destroy(string id, CancellationToken ct = default(CancellationToken))
         {
-            return Destroy(id, WriteOptions.Default,ct);
+            return Destroy(id, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -217,7 +217,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public Task<WriteResult<string>> Clone(string id, CancellationToken ct = default(CancellationToken))
         {
-            return Clone(id, WriteOptions.Default,ct);
+            return Clone(id, WriteOptions.Default, ct);
         }
 
         /// <summary>
@@ -278,27 +278,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private ACL _acl;
+        private Lazy<ACL> _acl;
 
         /// <summary>
         /// ACL returns a handle to the ACL endpoints
         /// </summary>
         public IACLEndpoint ACL
         {
-            get
-            {
-                if (_acl == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_acl == null)
-                        {
-                            _acl = new ACL(this);
-                        }
-                    }
-                }
-                return _acl;
-            }
+            get { return _acl.Value; }
         }
     }
 }

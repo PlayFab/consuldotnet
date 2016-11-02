@@ -21,6 +21,7 @@ using System.Linq;
 using Newtonsoft.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System;
 
 namespace Consul
 {
@@ -137,27 +138,14 @@ namespace Consul
 
     public partial class ConsulClient : IConsulClient
     {
-        private Event _event;
+        private Lazy<Event> _event;
 
         /// <summary>
         /// Event returns a handle to the event endpoints
         /// </summary>
         public IEventEndpoint Event
         {
-            get
-            {
-                if (_event == null)
-                {
-                    lock (_lock)
-                    {
-                        if (_event == null)
-                        {
-                            _event = new Event(this);
-                        }
-                    }
-                }
-                return _event;
-            }
+            get { return _event.Value; }
         }
     }
 }
