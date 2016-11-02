@@ -40,10 +40,10 @@ namespace Consul.Test
         public async Task Health_Checks()
         {
             var client = new ConsulClient();
-
+            var svcID = KVTest.GenerateTestKeyName();
             var registration = new AgentServiceRegistration()
             {
-                Name = "foo",
+                Name = svcID,
                 Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Check = new AgentServiceCheck
@@ -54,13 +54,13 @@ namespace Consul.Test
             try
             {
                 await client.Agent.ServiceRegister(registration);
-                var checks = await client.Health.Checks("foo");
+                var checks = await client.Health.Checks(svcID);
                 Assert.NotEqual((ulong)0, checks.LastIndex);
                 Assert.NotEqual(0, checks.Response.Length);
             }
             finally
             {
-                await client.Agent.ServiceDeregister("foo");
+                await client.Agent.ServiceDeregister(svcID);
             }
         }
 
@@ -69,7 +69,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            var checks = await client.Health.Service("consul", "", true);
+            var checks = await client.Health.Service("consul", "", false);
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
         }
