@@ -211,9 +211,10 @@ namespace Consul.Test
         public async Task Agent_Services_MultipleChecks()
         {
             var client = new ConsulClient();
+            var svcID = KVTest.GenerateTestKeyName();
             var registration = new AgentServiceRegistration()
             {
-                Name = "foo",
+                Name = svcID,
                 Tags = new[] { "bar", "baz" },
                 Port = 8000,
                 Checks = new[]
@@ -231,13 +232,13 @@ namespace Consul.Test
             await client.Agent.ServiceRegister(registration);
 
             var services = await client.Agent.Services();
-            Assert.True(services.Response.ContainsKey("foo"));
+            Assert.True(services.Response.ContainsKey(svcID));
 
             var checks = await client.Agent.Checks();
-            Assert.True(checks.Response.ContainsKey("service:foo:1"));
-            Assert.True(checks.Response.ContainsKey("service:foo:2"));
+            Assert.True(checks.Response.ContainsKey("service:" + svcID + ":1"));
+            Assert.True(checks.Response.ContainsKey("service:" + svcID + ":2"));
 
-            await client.Agent.ServiceDeregister("foo");
+            await client.Agent.ServiceDeregister(svcID);
         }
 
         [Fact]

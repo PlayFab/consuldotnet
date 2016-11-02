@@ -151,10 +151,9 @@ namespace Consul.Test
 
             Assert.True(lockKey.IsHeld);
             Assert.False(contender.IsHeld);
-            Task.WaitAny(
-                Task.Run(async () => { await Assert.ThrowsAsync<LockMaxAttemptsReachedException>(async () => await contender.Acquire()); }),
-                Task.Delay((int)(2 * lockOptions.LockWaitTime.TotalMilliseconds)).ContinueWith((t) => Assert.True(false, "Took too long"))
-                );
+            Assert.NotEqual(WaitHandle.WaitTimeout, Task.WaitAny(
+                new Task[] { Task.Run(async () => { await Assert.ThrowsAsync<LockMaxAttemptsReachedException>(async () => await contender.Acquire()); }) },
+                (int)(2 * lockOptions.LockWaitTime.TotalMilliseconds)));
 
             Assert.False(stopwatch.ElapsedMilliseconds < lockOptions.LockWaitTime.TotalMilliseconds);
             Assert.False(contender.IsHeld, "Contender should have failed to acquire");
