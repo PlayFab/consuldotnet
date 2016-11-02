@@ -25,6 +25,10 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-11-02
+* Cleaned up a few minor logic errors and made disposal of internally-used
+  `CancellationTokenSources` a lot more explicit instead of leaking them.
+
 ## 2016-10-10
 * Revert inadvertent upgrade to .NET 4.5.1.
 
