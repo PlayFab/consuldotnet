@@ -272,7 +272,10 @@ namespace Consul.Test
 
                 try
                 {
-                    getRequest = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
+                    while (!cts.IsCancellationRequested)
+                    {
+                        getRequest = await client.KV.Get(key, new QueryOptions() { WaitIndex = getRequest.LastIndex }, cts.Token);
+                    }
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (TaskCanceledException ex)
