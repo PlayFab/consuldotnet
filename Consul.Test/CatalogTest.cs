@@ -83,9 +83,10 @@ namespace Consul.Test
         public async Task Catalog_RegistrationDeregistration()
         {
             var client = new ConsulClient();
+            var svcID = KVTest.GenerateTestKeyName();
             var service = new AgentService()
             {
-                ID = "redis1",
+                ID = svcID,
                 Service = "redis",
                 Tags = new[] { "master", "v1" },
                 Port = 8000
@@ -94,11 +95,11 @@ namespace Consul.Test
             var check = new AgentCheck()
             {
                 Node = "foobar",
-                CheckID = "service:redis1",
+                CheckID = "service:" + svcID,
                 Name = "Redis health check",
                 Notes = "Script based health check",
                 Status = CheckStatus.Passing,
-                ServiceID = "redis1"
+                ServiceID = svcID
             };
 
             var registration = new CatalogRegistration()
@@ -113,17 +114,17 @@ namespace Consul.Test
             await client.Catalog.Register(registration);
 
             var node = await client.Catalog.Node("foobar");
-            Assert.True(node.Response.Services.ContainsKey("redis1"));
+            Assert.True(node.Response.Services.ContainsKey(svcID));
 
             var health = await client.Health.Node("foobar");
-            Assert.Equal("service:redis1", health.Response[0].CheckID);
+            Assert.Equal("service:" + svcID, health.Response[0].CheckID);
 
             var dereg = new CatalogDeregistration()
             {
                 Datacenter = "dc1",
                 Node = "foobar",
                 Address = "192.168.10.10",
-                CheckID = "service:redis1"
+                CheckID = "service:" + svcID
             };
 
             await client.Catalog.Deregister(dereg);
@@ -151,7 +152,7 @@ namespace Consul.Test
             var service = new AgentService()
             {
                 ID = svcID,
-                Service = "redis",
+                Service = svcID,
                 Tags = new[] { "master", "v1" },
                 Port = 8000
             };
@@ -173,10 +174,10 @@ namespace Consul.Test
                 Assert.Contains(svcID, node.Response.Services.Keys);
                 Assert.False(node.Response.Services[svcID].EnableTagOverride);
 
-                var services = await client.Catalog.Service("redis");
+                var services = await client.Catalog.Service(svcID);
 
                 Assert.NotEmpty(services.Response);
-                Assert.Equal("redis", services.Response[0].ServiceName);
+                Assert.Equal(svcID, services.Response[0].ServiceName);
 
                 Assert.False(services.Response[0].ServiceEnableTagOverride);
             }
@@ -192,10 +193,10 @@ namespace Consul.Test
                 Assert.Contains(svcID, node.Response.Services.Keys);
                 Assert.True(node.Response.Services[svcID].EnableTagOverride);
 
-                var services = await client.Catalog.Service("redis");
+                var services = await client.Catalog.Service(svcID);
 
                 Assert.NotEmpty(services.Response);
-                Assert.Equal("redis", services.Response[0].ServiceName);
+                Assert.Equal(svcID, services.Response[0].ServiceName);
 
                 Assert.True(services.Response[0].ServiceEnableTagOverride);
             }

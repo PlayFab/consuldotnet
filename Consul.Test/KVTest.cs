@@ -338,7 +338,10 @@ namespace Consul.Test
 
                 try
                 {
-                    pairs = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
+                    while (!cts.IsCancellationRequested)
+                    {
+                        pairs = await client.KV.List(prefix, new QueryOptions() { WaitIndex = pairs.LastIndex }, cts.Token);
+                    }
                     Assert.True(false, "A cancellation exception was not thrown when one was expected.");
                 }
                 catch (TaskCanceledException ex)
