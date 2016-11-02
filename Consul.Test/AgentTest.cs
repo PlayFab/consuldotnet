@@ -153,15 +153,17 @@ namespace Consul.Test
         public async Task Agent_ServiceAddress()
         {
             var client = new ConsulClient();
+            var svcID1 = KVTest.GenerateTestKeyName();
+            var svcID2 = KVTest.GenerateTestKeyName();
             var registration1 = new AgentServiceRegistration()
             {
-                Name = "foo1",
+                Name = svcID1,
                 Port = 8000,
                 Address = "192.168.0.42"
             };
             var registration2 = new AgentServiceRegistration()
             {
-                Name = "foo2",
+                Name = svcID2,
                 Port = 8000
             };
 
@@ -169,21 +171,23 @@ namespace Consul.Test
             await client.Agent.ServiceRegister(registration2);
 
             var services = await client.Agent.Services();
-            Assert.True(services.Response.ContainsKey("foo1"));
-            Assert.True(services.Response.ContainsKey("foo2"));
-            Assert.Equal("192.168.0.42", services.Response["foo1"].Address);
-            Assert.True(string.IsNullOrEmpty(services.Response["foo2"].Address));
+            Assert.True(services.Response.ContainsKey(svcID1));
+            Assert.True(services.Response.ContainsKey(svcID2));
+            Assert.Equal("192.168.0.42", services.Response[svcID1].Address);
+            Assert.True(string.IsNullOrEmpty(services.Response[svcID2].Address));
 
-            await client.Agent.ServiceDeregister("foo1");
-            await client.Agent.ServiceDeregister("foo2");
+            await client.Agent.ServiceDeregister(svcID1);
+            await client.Agent.ServiceDeregister(svcID2);
         }
 
         [Fact]
         public async Task Agent_EnableTagOverride()
         {
+            var svcID1 = KVTest.GenerateTestKeyName();
+            var svcID2 = KVTest.GenerateTestKeyName();
             var reg1 = new AgentServiceRegistration
             {
-                Name = "foo1",
+                Name = svcID1,
                 Port = 8000,
                 Address = "192.168.0.42",
                 EnableTagOverride = true
@@ -191,7 +195,7 @@ namespace Consul.Test
 
             var reg2 = new AgentServiceRegistration
             {
-                Name = "foo2",
+                Name = svcID2,
                 Port = 8000
             };
 
@@ -202,11 +206,11 @@ namespace Consul.Test
 
                 var services = await client.Agent.Services();
 
-                Assert.Contains("foo1", services.Response.Keys);
-                Assert.True(services.Response["foo1"].EnableTagOverride);
+                Assert.Contains(svcID1, services.Response.Keys);
+                Assert.True(services.Response[svcID1].EnableTagOverride);
 
-                Assert.Contains("foo2", services.Response.Keys);
-                Assert.False(services.Response["foo2"].EnableTagOverride);
+                Assert.Contains(svcID2, services.Response.Keys);
+                Assert.False(services.Response[svcID2].EnableTagOverride);
             }
         }
 

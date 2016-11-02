@@ -389,7 +389,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            const string keyName = "test/lock/contendlockdelay";
+            const string keyName = "test/lock/destroy";
 
             var lockKey = client.CreateLock(keyName);
 
