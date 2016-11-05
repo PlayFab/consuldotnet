@@ -233,11 +233,11 @@ namespace Consul.Test
 
             const string keyName = "test/lock/acquirewaitrelease";
 
-            var lockOptions = new LockOptions(keyName)
+            var lockOptions = new LockOptions(keyName, new SessionEntry()
             {
-                SessionName = "test_locksession",
-                SessionTTL = TimeSpan.FromSeconds(10)
-            };
+                Name = "test_locksession",
+                TTL = TimeSpan.FromSeconds(10)
+            });
 
             var l = client.CreateLock(lockOptions);
 

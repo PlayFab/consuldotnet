@@ -222,8 +222,11 @@ namespace Consul
                     if (string.IsNullOrEmpty(Opts.Session))
                     {
                         LockSession = await CreateSession().ConfigureAwait(false);
-                        _sessionRenewTask = _client.Session.RenewPeriodic(Opts.SessionTTL, LockSession,
-                            WriteOptions.Default, _cts.Token);
+                        _sessionRenewTask = _client.Session.RenewPeriodic(
+                            Opts.SessionEntry.TTL.GetValueOrDefault(LockOptions.DefaultLockSessionTTL),
+                            LockSession,
+                            WriteOptions.Default,
+                            _cts.Token);
                     }
                     else
                     {
@@ -513,8 +516,8 @@ namespace Consul
         {
             var se = new SessionEntry
             {
-                Name = Opts.SessionName,
-                TTL = Opts.SessionTTL
+                Name = Opts.SessionEntry.Name,
+                TTL = Opts.SessionEntry.TTL
             };
             return (await _client.Session.Create(se).ConfigureAwait(false)).Response;
         }
@@ -550,15 +553,18 @@ namespace Consul
         /// <summary>
         /// DefaultLockSessionTTL is the default session TTL if no Session is provided when creating a new Lock. This is used because we do not have another other check to depend upon.
         /// </summary>
-        private static readonly TimeSpan DefaultLockSessionTTL = TimeSpan.FromSeconds(15);
+        public static readonly TimeSpan DefaultLockSessionTTL = TimeSpan.FromSeconds(15);
 
         private TimeSpan _lockRetryTime;
 
         public string Key { get; set; }
         public byte[] Value { get; set; }
         public string Session { get; set; }
+        [Obsolete("Uses of SessionName to set the session info should be replaced by usage of the LockOptions(string, SessionEntry) constructor")]
         public string SessionName { get; set; }
+        [Obsolete("Uses of SessionTTL to set the session info should be replaced by usage of the LockOptions(string, SessionEntry) constructor")]
         public TimeSpan SessionTTL { get; set; }
+        public SessionEntry SessionEntry { get; set; }
         public int MonitorRetries { get; set; }
         public TimeSpan LockRetryTime
         {
@@ -577,11 +583,23 @@ namespace Consul
         public TimeSpan MonitorRetryTime { get; set; }
         public bool LockTryOnce { get; set; }
 
-        public LockOptions(string key)
+        public LockOptions(string key) : this(key, null) { }
+
+        public LockOptions(string key, SessionEntry se)
         {
             Key = key;
-            SessionName = DefaultLockSessionName;
-            SessionTTL = DefaultLockSessionTTL;
+            if (se == null)
+            {
+                SessionEntry = new SessionEntry()
+                {
+                    Name = DefaultLockSessionName,
+                    TTL = DefaultLockSessionTTL
+                };
+            }
+            else
+            {
+                SessionEntry = se;
+            }
             MonitorRetryTime = Lock.DefaultMonitorRetryTime;
             LockWaitTime = Lock.DefaultLockWaitTime;
             LockRetryTime = Lock.DefaultLockRetryTime;
