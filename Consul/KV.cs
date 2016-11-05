@@ -279,7 +279,7 @@ namespace Consul
         public Task<WriteResult<bool>> Acquire(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -307,7 +307,7 @@ namespace Consul
         public Task<WriteResult<bool>> CAS(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -335,7 +335,7 @@ namespace Consul
         public Task<WriteResult<bool>> Delete(string key, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(key);
-            return _client.Delete<bool>(string.Format("/v1/kv/{0}", key), q).Execute(ct);
+            return _client.Delete<bool>(string.Format("/v1/kv/{0}", key.TrimStart('/')), q).Execute(ct);
         }
 
         /// <summary>
@@ -357,7 +357,7 @@ namespace Consul
         public Task<WriteResult<bool>> DeleteCAS(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), q);
             req.Params.Add("cas", p.ModifyIndex.ToString());
             return req.Execute(ct);
         }
@@ -381,7 +381,7 @@ namespace Consul
         public Task<WriteResult<bool>> DeleteTree(string prefix, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(prefix);
-            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", prefix.TrimStart('/')), q);
             req.Params.Add("recurse", string.Empty);
             return req.Execute(ct);
         }
@@ -405,7 +405,7 @@ namespace Consul
         /// <returns>A query result containing the requested key/value pair, or a query result with a null response if the key does not exist</returns>
         public async Task<QueryResult<KVPair>> Get(string key, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", key), q);
+            var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", key.TrimStart('/')), q);
             var res = await req.Execute(ct).ConfigureAwait(false);
             return new QueryResult<KVPair>(res, res.Response != null && res.Response.Length > 0 ? res.Response[0] : null);
         }
@@ -441,7 +441,7 @@ namespace Consul
         /// <returns>A query result containing a list of key names</returns>
         public Task<QueryResult<string[]>> Keys(string prefix, string separator, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Get<string[]>(string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.Get<string[]>(string.Format("/v1/kv/{0}", prefix.TrimStart('/')), q);
             req.Params["keys"] = string.Empty;
             if (!string.IsNullOrEmpty(separator))
             {
@@ -469,7 +469,7 @@ namespace Consul
         /// <returns></returns>
         public Task<QueryResult<KVPair[]>> List(string prefix, QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", prefix), q);
+            var req = _client.Get<KVPair[]>(string.Format("/v1/kv/{0}", prefix.TrimStart('/')), q);
             req.Params["recurse"] = string.Empty;
             return req.Execute(ct);
         }
@@ -493,7 +493,7 @@ namespace Consul
         public Task<WriteResult<bool>> Put(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key), p.Value, q);
+            var req = _client.Put<byte[], bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), p.Value, q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
@@ -520,7 +520,7 @@ namespace Consul
         public Task<WriteResult<bool>> Release(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Put<object, bool>(string.Format("/v1/kv/{0}", p.Key), q);
+            var req = _client.Put<object, bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), q);
             if (p.Flags > 0)
             {
                 req.Params["flags"] = p.Flags.ToString();
