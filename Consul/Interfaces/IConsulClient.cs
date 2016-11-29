@@ -33,5 +33,6 @@ namespace Consul
         IStatusEndpoint Status { get; }
         IOperatorEndpoint Operator { get; }
         IPreparedQueryEndpoint PreparedQuery { get; }
+        ICoordinateEndpoint Coordinate { get; }
     }
 }
