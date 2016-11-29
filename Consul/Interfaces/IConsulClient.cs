@@ -32,5 +32,6 @@ namespace Consul
         ISessionEndpoint Session { get; }
         IStatusEndpoint Status { get; }
         IOperatorEndpoint Operator { get; }
+        IPreparedQueryEndpoint PreparedQuery { get; }
     }
 }
