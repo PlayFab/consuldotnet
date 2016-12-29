@@ -25,6 +25,9 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2016-12-29 (0.7.0.5)
+* Added missing nuget info to project.json. Thanks @latop2604!
+
 ## 2016-12-20
 * Added a couple missing interfaces to IConsulClient. Thanks
   @chrishoffman!
