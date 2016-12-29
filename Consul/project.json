@@ -1,14 +1,15 @@
 {
-  "version": "0.7.0.4",
+  "version": "0.7.0.5",
   "packOptions": {
-    "summary": "Consul",
-    "releaseNotes": "https://github.com/PlayFab/consuldotnet/releases",
+    "summary": "Consul.NET is a .NET port of the Go Consul API. This project is not affiliated with the main Consul product, which can be found at https://www.consul.io/",
+    "releaseNotes": "https://github.com/PlayFab/consuldotnet/blob/master/CHANGELOG.md",
     "projectUrl": "https://github.com/PlayFab/consuldotnet",
     "licenseUrl": "https://github.com/PlayFab/consuldotnet/blob/master/LICENSE",
     "repository": {
       "type": "git",
       "url": "https://github.com/PlayFab/consuldotnet"
-    }
+    },
+    "tags": ["Consul", "service discovery", "distributed locking", "health checking"]
   },
   "dependencies": {},
   "frameworks": {
