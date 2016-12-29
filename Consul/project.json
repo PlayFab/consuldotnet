@@ -1,5 +1,15 @@
 {
   "version": "0.7.0.4",
+  "packOptions": {
+    "summary": "Consul",
+    "releaseNotes": "https://github.com/PlayFab/consuldotnet/releases",
+    "projectUrl": "https://github.com/PlayFab/consuldotnet",
+    "licenseUrl": "https://github.com/PlayFab/consuldotnet/blob/master/LICENSE",
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/PlayFab/consuldotnet"
+    }
+  },
   "dependencies": {},
   "frameworks": {
     "netstandard1.3": {
