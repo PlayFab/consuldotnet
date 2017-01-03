@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using Consul.Test;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Xunit;
 
@@ -34,4 +35,5 @@ using Xunit;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
-//[assembly: CollectionBehavior(DisableTestParallelization = true)]
+//[assembly: CollectionBehavior(DisableTestParallelization = false)]
+[assembly: CollectionBehavior(MaxParallelThreads = 800)]

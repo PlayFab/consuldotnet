@@ -586,6 +586,7 @@ namespace Consul
             _preparedquery = new Lazy<PreparedQuery>(() => new PreparedQuery(this));
             _raw = new Lazy<Raw>(() => new Raw(this));
             _session = new Lazy<Session>(() => new Session(this));
+            _snapshot = new Lazy<Snapshot>(() => new Snapshot(this));
             _status = new Lazy<Status>(() => new Status(this));
         }
 
@@ -813,6 +814,7 @@ namespace Consul
             return System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value));
         }
     }
+
     public class GetRequest<T> : ConsulRequest
     {
         public QueryOptions Options { get; set; }
@@ -857,6 +859,34 @@ namespace Consul
             if (response.IsSuccessStatusCode)
             {
                 result.Response = Deserialize<T>(ResponseStream);
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        public async Task<QueryResult<Stream>> ExecuteStreaming(CancellationToken ct)
+        {
+            Client.CheckDisposed();
+            timer.Start();
+            var result = new QueryResult<Stream>();
+
+            var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
+            ApplyHeaders(message, Client.Config);
+            var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
+
+            ParseQueryHeaders(response, (result as QueryResult<T>));
+            result.StatusCode = response.StatusCode;
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            result.Response = ResponseStream;
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                    response.StatusCode), response.StatusCode);
             }
 
             result.RequestTime = timer.Elapsed;
@@ -1254,8 +1284,6 @@ namespace Consul
         public WriteOptions Options { get; set; }
         private TIn _body;
 
-        private readonly bool UseRawRequestBody = typeof(TIn) == typeof(byte[]);
-
         public PutRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Put)
         {
             if (string.IsNullOrEmpty(url))
@@ -1274,9 +1302,13 @@ namespace Consul
 
             HttpContent content;
 
-            if (UseRawRequestBody)
+            if (typeof(TIn) == typeof(byte[]))
             {
                 content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+            }
+            else if (typeof(TIn) == typeof(Stream))
+            {
+                content = new StreamContent((_body as Stream) ?? new MemoryStream());
             }
             else
             {
@@ -1286,6 +1318,7 @@ namespace Consul
             var message = new HttpRequestMessage(HttpMethod.Put, BuildConsulUri(Endpoint, Params));
             ApplyHeaders(message, Client.Config);
             message.Content = content;
+
             var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
 
             result.StatusCode = response.StatusCode;

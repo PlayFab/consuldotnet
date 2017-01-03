@@ -28,8 +28,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class KVTest
+    public class KVTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public KVTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         private static readonly Random Random = new Random();
 
         internal static string GenerateTestKeyName()

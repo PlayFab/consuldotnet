@@ -6,8 +6,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class OperatorTest
+    public class OperatorTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public OperatorTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Operator_RaftGetConfiguration()
         {

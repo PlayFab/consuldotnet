@@ -10,8 +10,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class ClientTest
+    public class ClientTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public ClientTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.NoParallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+
         [Fact]
         public void Client_DefaultConfig_env()
         {
@@ -192,7 +203,7 @@ namespace Consul.Test
         {
             Action<ConsulClientConfiguration> cfgAction2 = (cfg) => { cfg.Token = "yep"; };
             Action<ConsulClientConfiguration> cfgAction = (cfg) => { cfg.Datacenter = "foo"; cfgAction2(cfg); };
-            
+
             using (var c = new ConsulClient())
             {
                 Assert.NotNull(c.Config);

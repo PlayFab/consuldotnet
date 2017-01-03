@@ -22,8 +22,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class HealthTest
+    public class HealthTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public HealthTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Health_Node()
         {

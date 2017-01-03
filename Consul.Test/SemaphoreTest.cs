@@ -26,8 +26,19 @@ using Xunit;
 namespace Consul.Test
 {
     [Trait("speed", "slow")]
-    public class SemaphoreTest
+    public class SemaphoreTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public SemaphoreTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Semaphore_BadLimit()
         {

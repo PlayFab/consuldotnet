@@ -22,8 +22,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class AgentTest
+    public class AgentTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public AgentTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+
         [Fact]
         public async Task Agent_Self()
         {

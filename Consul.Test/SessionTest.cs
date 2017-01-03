@@ -24,8 +24,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class SessionTest
+    public class SessionTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public SessionTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Session_CreateDestroy()
         {
