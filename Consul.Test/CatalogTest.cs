@@ -110,7 +110,7 @@ namespace Consul.Test
                 CheckID = "service:" + svcID,
                 Name = "Redis health check",
                 Notes = "Script based health check",
-                Status = CheckStatus.Passing,
+                Status = HealthStatus.Passing,
                 ServiceID = svcID
             };
 

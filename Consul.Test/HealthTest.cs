@@ -90,7 +90,7 @@ namespace Consul.Test
         {
             var client = new ConsulClient();
 
-            var checks = await client.Health.State(CheckStatus.Any);
+            var checks = await client.Health.State(HealthStatus.Any);
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
         }

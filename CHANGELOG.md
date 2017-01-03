@@ -25,6 +25,13 @@
 * `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
   clean it up. It is still supposed to be used in a long-lived fashion, though.
 
+## 2017-01-03 (0.7.2.0)
+* Ported Snapshot API. Requires >= Consul 0.7.1 to use.
+* Added `TLSSkipVerify` and `DeregisterCriticalServiceAfter` to the AgentServiceCheck class. Requires >= Consul 0.7.0 to use.
+* Added `Health.AggregatedStatus()` extension method to any `IEnumerable<HealthCheck>` to roll up a set of checks. Can be used with any version of Consul.
+* Renamed `CheckStatus` to `HealthStatus`.
+* Changed the `Health.HealthCheck` class's `Status` field to be of type `HealthStatus`.
+
 ## 2016-12-29 (0.7.0.5)
 * Added missing nuget info to project.json. Thanks @latop2604!
 

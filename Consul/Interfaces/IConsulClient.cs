@@ -34,5 +34,6 @@ namespace Consul
         IOperatorEndpoint Operator { get; }
         IPreparedQueryEndpoint PreparedQuery { get; }
         ICoordinateEndpoint Coordinate { get; }
+        ISnapshotEndpoint Snapshot { get; }
     }
 }

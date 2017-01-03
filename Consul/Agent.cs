@@ -51,7 +51,7 @@ namespace Consul
             get { return criticalStatus; }
         }
 
-        [Obsolete("Use TTLStatus.Critical instead. This status will be an error in 0.7.0+", false)]
+        [Obsolete("Use TTLStatus.Critical instead. This status will be an error in 0.7.0+", true)]
         public static TTLStatus Fail
         {
             get { return criticalStatus; }
@@ -111,89 +111,6 @@ namespace Consul
     }
 
     /// <summary>
-    /// The status of a health check
-    /// </summary>
-    public class CheckStatus : IEquatable<CheckStatus>
-    {
-        private static readonly CheckStatus passing = new CheckStatus() { Status = "passing" };
-        private static readonly CheckStatus warning = new CheckStatus() { Status = "warning" };
-        private static readonly CheckStatus critical = new CheckStatus() { Status = "critical" };
-        private static readonly CheckStatus any = new CheckStatus() { Status = "any" };
-
-        public string Status { get; private set; }
-
-        public static CheckStatus Passing
-        {
-            get { return passing; }
-        }
-
-        public static CheckStatus Warning
-        {
-            get { return warning; }
-        }
-
-        public static CheckStatus Critical
-        {
-            get { return critical; }
-        }
-
-        public static CheckStatus Any
-        {
-            get { return any; }
-        }
-
-        public bool Equals(CheckStatus other)
-        {
-            return other != null && ReferenceEquals(this, other);
-        }
-
-        public override bool Equals(object other)
-        {
-            // other could be a reference type, the is operator will return false if null
-            return other is CheckStatus && Equals(other as CheckStatus);
-        }
-
-        public override int GetHashCode()
-        {
-            return Status.GetHashCode();
-        }
-    }
-
-    public class CheckStatusConverter : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            serializer.Serialize(writer, ((CheckStatus)value).Status);
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
-            JsonSerializer serializer)
-        {
-            var status = (string)serializer.Deserialize(reader, typeof(string));
-            switch (status)
-            {
-                case "passing":
-                    return CheckStatus.Passing;
-                case "warning":
-                    return CheckStatus.Warning;
-                case "critical":
-                    return CheckStatus.Critical;
-                default:
-                    throw new ArgumentException("Invalid Check status value during deserialization");
-            }
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            if (objectType == typeof(CheckStatus))
-            {
-                return true;
-            }
-            return false;
-        }
-    }
-
-    /// <summary>
     /// AgentCheck represents a check known to the agent
     /// </summary>
     public class AgentCheck
@@ -202,8 +119,8 @@ namespace Consul
         public string CheckID { get; set; }
         public string Name { get; set; }
 
-        [JsonConverter(typeof(CheckStatusConverter))]
-        public CheckStatus Status { get; set; }
+        [JsonConverter(typeof(HealthStatusConverter))]
+        public HealthStatus Status { get; set; }
 
         public string Notes { get; set; }
         public string Output { get; set; }
@@ -328,9 +245,20 @@ namespace Consul
         public string TCP { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        [JsonConverter(typeof(CheckStatusConverter))]
-        public CheckStatus Status { get; set; }
+        [JsonConverter(typeof(HealthStatusConverter))]
+        public HealthStatus Status { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool TLSSkipVerify { get; set; }
+
+        /// <summary>
+        /// In Consul 0.7 and later, checks that are associated with a service
+        /// may also contain this optional DeregisterCriticalServiceAfter field,
+        /// which is a timeout in the same Go time format as Interval and TTL. If
+        /// a check is in the critical state for more than this configured value,
+        /// then its associated service (and all of its associated checks) will
+        /// automatically be deregistered.
+        /// </summary>
         [JsonConverter(typeof(DurationTimespanConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TimeSpan? DeregisterCriticalServiceAfter { get; set; }
