@@ -541,7 +541,6 @@ namespace Consul
             return req.Execute(ct);
         }
 
-
         /// <summary>
         /// Monitor yields log lines to display streaming logs from the agent
         /// Providing a CancellationToken can be used to close the connection and stop the
