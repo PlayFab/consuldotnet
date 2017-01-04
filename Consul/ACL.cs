@@ -207,7 +207,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult<bool>> Destroy(string id, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
-            return _client.EmptyPut<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute(ct);
+            return _client.PutReturning<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute(ct);
         }
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace Consul
         /// <returns>A write result containing the newly created ACL token</returns>
         public async Task<WriteResult<string>> Clone(string id, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
-            var res = await _client.EmptyPut<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute(ct).ConfigureAwait(false);
+            var res = await _client.PutReturning<ACLCreationResult>(string.Format("/v1/acl/clone/{0}", id), q).Execute(ct).ConfigureAwait(false);
             return new WriteResult<string>(res, res.Response.ID);
         }
 

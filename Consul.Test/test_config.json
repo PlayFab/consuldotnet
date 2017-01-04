@@ -6,5 +6,5 @@
     "acl_datacenter": "dc1",
     "acl_master_token": "yep",
     "acl_default_policy": "allow",
-    "leave_on_terminate": true
+    "encrypt": "d8wu8CSUrqgtjVsvcBPmhQ=="
 }

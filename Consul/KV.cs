@@ -335,7 +335,7 @@ namespace Consul
         public Task<WriteResult<bool>> Delete(string key, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(key);
-            return _client.Delete<bool>(string.Format("/v1/kv/{0}", key.TrimStart('/')), q).Execute(ct);
+            return _client.DeleteReturning<bool>(string.Format("/v1/kv/{0}", key.TrimStart('/')), q).Execute(ct);
         }
 
         /// <summary>
@@ -357,7 +357,7 @@ namespace Consul
         public Task<WriteResult<bool>> DeleteCAS(KVPair p, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             p.Validate();
-            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), q);
+            var req = _client.DeleteReturning<bool>(string.Format("/v1/kv/{0}", p.Key.TrimStart('/')), q);
             req.Params.Add("cas", p.ModifyIndex.ToString());
             return req.Execute(ct);
         }
@@ -381,7 +381,7 @@ namespace Consul
         public Task<WriteResult<bool>> DeleteTree(string prefix, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             KVPair.ValidatePath(prefix);
-            var req = _client.Delete<bool>(string.Format("/v1/kv/{0}", prefix.TrimStart('/')), q);
+            var req = _client.DeleteReturning<bool>(string.Format("/v1/kv/{0}", prefix.TrimStart('/')), q);
             req.Params.Add("recurse", string.Empty);
             return req.Execute(ct);
         }
