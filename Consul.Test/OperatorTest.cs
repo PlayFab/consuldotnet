@@ -56,6 +56,8 @@ namespace Consul.Test
 
             using (var c = new ConsulClient())
             {
+                await c.Operator.KeyringInstall(oldKey);
+                await c.Operator.KeyringUse(oldKey);
                 await c.Operator.KeyringInstall(newKey);
 
                 var listResponses = await c.Operator.KeyringList();
