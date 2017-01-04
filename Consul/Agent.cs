@@ -19,8 +19,11 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace Consul
 {
@@ -51,7 +54,7 @@ namespace Consul
             get { return criticalStatus; }
         }
 
-        [Obsolete("Use TTLStatus.Critical instead. This status will be an error in 0.7.0+", false)]
+        [Obsolete("Use TTLStatus.Critical instead. This status will be an error in 0.7.0+", true)]
         public static TTLStatus Fail
         {
             get { return criticalStatus; }
@@ -111,89 +114,6 @@ namespace Consul
     }
 
     /// <summary>
-    /// The status of a health check
-    /// </summary>
-    public class CheckStatus : IEquatable<CheckStatus>
-    {
-        private static readonly CheckStatus passing = new CheckStatus() { Status = "passing" };
-        private static readonly CheckStatus warning = new CheckStatus() { Status = "warning" };
-        private static readonly CheckStatus critical = new CheckStatus() { Status = "critical" };
-        private static readonly CheckStatus any = new CheckStatus() { Status = "any" };
-
-        public string Status { get; private set; }
-
-        public static CheckStatus Passing
-        {
-            get { return passing; }
-        }
-
-        public static CheckStatus Warning
-        {
-            get { return warning; }
-        }
-
-        public static CheckStatus Critical
-        {
-            get { return critical; }
-        }
-
-        public static CheckStatus Any
-        {
-            get { return any; }
-        }
-
-        public bool Equals(CheckStatus other)
-        {
-            return other != null && ReferenceEquals(this, other);
-        }
-
-        public override bool Equals(object other)
-        {
-            // other could be a reference type, the is operator will return false if null
-            return other is CheckStatus && Equals(other as CheckStatus);
-        }
-
-        public override int GetHashCode()
-        {
-            return Status.GetHashCode();
-        }
-    }
-
-    public class CheckStatusConverter : JsonConverter
-    {
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        {
-            serializer.Serialize(writer, ((CheckStatus)value).Status);
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue,
-            JsonSerializer serializer)
-        {
-            var status = (string)serializer.Deserialize(reader, typeof(string));
-            switch (status)
-            {
-                case "passing":
-                    return CheckStatus.Passing;
-                case "warning":
-                    return CheckStatus.Warning;
-                case "critical":
-                    return CheckStatus.Critical;
-                default:
-                    throw new ArgumentException("Invalid Check status value during deserialization");
-            }
-        }
-
-        public override bool CanConvert(Type objectType)
-        {
-            if (objectType == typeof(CheckStatus))
-            {
-                return true;
-            }
-            return false;
-        }
-    }
-
-    /// <summary>
     /// AgentCheck represents a check known to the agent
     /// </summary>
     public class AgentCheck
@@ -202,8 +122,8 @@ namespace Consul
         public string CheckID { get; set; }
         public string Name { get; set; }
 
-        [JsonConverter(typeof(CheckStatusConverter))]
-        public CheckStatus Status { get; set; }
+        [JsonConverter(typeof(HealthStatusConverter))]
+        public HealthStatus Status { get; set; }
 
         public string Notes { get; set; }
         public string Output { get; set; }
@@ -328,12 +248,32 @@ namespace Consul
         public string TCP { get; set; }
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
-        [JsonConverter(typeof(CheckStatusConverter))]
-        public CheckStatus Status { get; set; }
+        [JsonConverter(typeof(HealthStatusConverter))]
+        public HealthStatus Status { get; set; }
 
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public bool TLSSkipVerify { get; set; }
+
+        /// <summary>
+        /// In Consul 0.7 and later, checks that are associated with a service
+        /// may also contain this optional DeregisterCriticalServiceAfter field,
+        /// which is a timeout in the same Go time format as Interval and TTL. If
+        /// a check is in the critical state for more than this configured value,
+        /// then its associated service (and all of its associated checks) will
+        /// automatically be deregistered.
+        /// </summary>
         [JsonConverter(typeof(DurationTimespanConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TimeSpan? DeregisterCriticalServiceAfter { get; set; }
+    }
+
+    public enum LogLevel
+    {
+        Info,
+        Trace,
+        Debug,
+        Warn,
+        Err
     }
 
     /// <summary>
@@ -445,7 +385,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> ServiceDeregister(string serviceID, CancellationToken ct = default(CancellationToken))
         {
-            return _client.Put(string.Format("/v1/agent/service/deregister/{0}", serviceID)).Execute(ct);
+            return _client.PutNothing(string.Format("/v1/agent/service/deregister/{0}", serviceID)).Execute(ct);
         }
 
         /// <summary>
@@ -497,7 +437,7 @@ namespace Consul
 
         private Task<WriteResult> LegacyUpdateTTL(string checkID, string note, TTLStatus status, CancellationToken ct = default(CancellationToken))
         {
-            var request = _client.Put(string.Format("/v1/agent/check/{0}/{1}", status.LegacyStatus, checkID));
+            var request = _client.PutNothing(string.Format("/v1/agent/check/{0}/{1}", status.LegacyStatus, checkID));
             if (!string.IsNullOrEmpty(note))
             {
                 request.Params.Add("note", note);
@@ -522,7 +462,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> CheckDeregister(string checkID, CancellationToken ct = default(CancellationToken))
         {
-            return _client.Put(string.Format("/v1/agent/check/deregister/{0}", checkID)).Execute(ct);
+            return _client.PutNothing(string.Format("/v1/agent/check/deregister/{0}", checkID)).Execute(ct);
         }
 
         /// <summary>
@@ -533,7 +473,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> Join(string addr, bool wan, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Put(string.Format("/v1/agent/join/{0}", addr));
+            var req = _client.PutNothing(string.Format("/v1/agent/join/{0}", addr));
             if (wan)
             {
                 req.Params["wan"] = "1";
@@ -548,7 +488,26 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> ForceLeave(string node, CancellationToken ct = default(CancellationToken))
         {
-            return _client.Put(string.Format("/v1/agent/force-leave/{0}", node)).Execute(ct);
+            return _client.PutNothing(string.Format("/v1/agent/force-leave/{0}", node)).Execute(ct);
+        }
+
+
+        /// <summary>
+        /// Leave is used to have the agent gracefully leave the cluster and shutdown
+        /// </summary>
+        /// <returns>An empty write result</returns>
+        public Task<WriteResult> Leave(string node, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.PutNothing("/v1/agent/leave").Execute(ct);
+        }
+
+        /// <summary>
+        /// Reload triggers a configuration reload for the agent we are connected to.
+        /// </summary>
+        /// <returns>An empty write result</returns>
+        public Task<WriteResult> Reload(string node, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.PutNothing("/v1/agent/reload").Execute(ct);
         }
 
         /// <summary>
@@ -559,7 +518,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> EnableServiceMaintenance(string serviceID, string reason, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Put(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.PutNothing(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
             return req.Execute(ct);
@@ -572,7 +531,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> DisableServiceMaintenance(string serviceID, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Put(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
+            var req = _client.PutNothing(string.Format("/v1/agent/service/maintenance/{0}", serviceID));
             req.Params["enable"] = "false";
             return req.Execute(ct);
         }
@@ -584,7 +543,7 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> EnableNodeMaintenance(string reason, CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Put("/v1/agent/maintenance");
+            var req = _client.PutNothing("/v1/agent/maintenance");
             req.Params["enable"] = "true";
             req.Params["reason"] = reason;
             return req.Execute(ct);
@@ -596,9 +555,53 @@ namespace Consul
         /// <returns>An empty write result</returns>
         public Task<WriteResult> DisableNodeMaintenance(CancellationToken ct = default(CancellationToken))
         {
-            var req = _client.Put("/v1/agent/maintenance");
+            var req = _client.PutNothing("/v1/agent/maintenance");
             req.Params["enable"] = "false";
             return req.Execute(ct);
+        }
+
+        /// <summary>
+        /// Monitor yields log lines to display streaming logs from the agent
+        /// Providing a CancellationToken can be used to close the connection and stop the
+        /// log stream, otherwise the log stream will time out based on the HTTP Client's timeout value.
+        /// </summary>
+        public async Task<LogStream> Monitor(LogLevel level = default(LogLevel), CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Get<Stream>("/v1/agent/monitor");
+            req.Params["loglevel"] = level.ToString().ToLowerInvariant();
+            var res = await req.ExecuteStreaming(ct).ConfigureAwait(false);
+            return new LogStream(res.Response);
+        }
+
+        public class LogStream : IEnumerable<Task<string>>, IDisposable
+        {
+            private Stream m_stream;
+            private StreamReader m_streamreader;
+            internal LogStream(Stream s)
+            {
+                m_stream = s;
+                m_streamreader = new StreamReader(s);
+            }
+
+            public void Dispose()
+            {
+                m_streamreader.Dispose();
+                m_stream.Dispose();
+            }
+
+            public IEnumerator<Task<string>> GetEnumerator()
+            {
+
+                while (!m_streamreader.EndOfStream)
+                {
+                    yield return m_streamreader.ReadLineAsync();
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
         }
     }
 

@@ -23,8 +23,19 @@ using Xunit;
 
 namespace Consul.Test
 {    
-    public class EventTest
+    public class EventTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public EventTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Event_FireList()
         {

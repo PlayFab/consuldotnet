@@ -22,15 +22,25 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class ACLTest
+    public class ACLTest : IDisposable
     {
-        private const string ConsulRoot = "yep";
+        AsyncReaderWriterLock.Releaser m_lock;
+        public ACLTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+
+        internal const string ConsulRoot = "yep";
 
         [SkippableFact]
         public async Task ACL_CreateDestroy()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
-
             var client = new ConsulClient((c) => { c.Token = ConsulRoot; });
             var aclEntry = new ACLEntry()
             {
@@ -54,7 +64,7 @@ namespace Consul.Test
             Assert.True((await client.ACL.Destroy(id)).Response);
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task ACL_CloneUpdateDestroy()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
@@ -78,7 +88,7 @@ namespace Consul.Test
             Assert.True((await client.ACL.Destroy(id)).Response);
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task ACL_Info()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));
@@ -93,7 +103,7 @@ namespace Consul.Test
             Assert.Equal(aclEntry.Response.Type, ACLType.Management);
         }
 
-        [Fact]
+        [SkippableFact]
         public async Task ACL_List()
         {
             Skip.If(string.IsNullOrEmpty(ConsulRoot));

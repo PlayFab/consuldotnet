@@ -16,13 +16,25 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
 {
-    public class CatalogTest
+    public class CatalogTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public CatalogTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Catalog_Datacenters()
         {
@@ -98,7 +110,7 @@ namespace Consul.Test
                 CheckID = "service:" + svcID,
                 Name = "Redis health check",
                 Notes = "Script based health check",
-                Status = CheckStatus.Passing,
+                Status = HealthStatus.Passing,
                 ServiceID = svcID
             };
 

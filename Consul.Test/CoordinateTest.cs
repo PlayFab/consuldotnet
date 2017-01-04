@@ -4,16 +4,24 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class CoordinateTest
+    public class CoordinateTest : IDisposable
     {
-        [SkippableFact]
+        AsyncReaderWriterLock.Releaser m_lock;
+        public CoordinateTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+        [Fact]
         public async Task Coordinate_Datacenters()
         {
             var client = new ConsulClient();
 
             var info = await client.Agent.Self();
-
-            Skip.IfNot(info.Response.ContainsKey("Coord"), "This version of Consul does not support the coordinate API");
 
             var datacenters = await client.Coordinate.Datacenters();
 
@@ -21,14 +29,12 @@ namespace Consul.Test
             Assert.True(datacenters.Response.Length > 0);
         }
 
-        [SkippableFact]
+        [Fact]
         public async Task Coordinate_Nodes()
         {
             var client = new ConsulClient();
 
             var info = await client.Agent.Self();
-
-            Skip.If(!info.Response.ContainsKey("Coord"), "This version of Consul does not support the coordinate API");
 
             var nodes = await client.Coordinate.Nodes();
 

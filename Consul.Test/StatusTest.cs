@@ -16,13 +16,25 @@
 //  </copyright>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
 {
-    public class Status
+    public class StatusTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public StatusTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.NoParallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Status_Leader()
         {

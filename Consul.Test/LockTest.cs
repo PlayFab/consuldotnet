@@ -26,8 +26,19 @@ using Xunit;
 namespace Consul.Test
 {
     [Trait("speed", "slow")]
-    public class LockTest
+    public class LockTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public LockTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task Lock_AcquireRelease()
         {

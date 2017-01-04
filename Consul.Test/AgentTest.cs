@@ -17,13 +17,26 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace Consul.Test
 {
-    public class AgentTest
+    public class AgentTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public AgentTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+
         [Fact]
         public async Task Agent_Self()
         {
@@ -71,7 +84,7 @@ namespace Consul.Test
             var checks = await client.Agent.Checks();
             Assert.True(checks.Response.ContainsKey("service:" + svcID));
 
-            Assert.Equal(CheckStatus.Critical, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Critical, checks.Response["service:" + svcID].Status);
 
             await client.Agent.ServiceDeregister(svcID);
         }
@@ -89,7 +102,7 @@ namespace Consul.Test
                 Check = new AgentServiceCheck
                 {
                     TTL = TimeSpan.FromSeconds(15),
-                    Status = CheckStatus.Passing
+                    Status = HealthStatus.Passing
                 }
             };
 
@@ -101,7 +114,7 @@ namespace Consul.Test
             var checks = await client.Agent.Checks();
             Assert.True(checks.Response.ContainsKey("service:" + svcID));
 
-            Assert.Equal(CheckStatus.Passing, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Passing, checks.Response["service:" + svcID].Status);
 
             await client.Agent.ServiceDeregister(svcID);
         }
@@ -119,7 +132,7 @@ namespace Consul.Test
                 Check = new AgentServiceCheck
                 {
                     TTL = TimeSpan.FromSeconds(15),
-                    Status = CheckStatus.Critical
+                    Status = HealthStatus.Critical
                 }
             };
 
@@ -131,13 +144,13 @@ namespace Consul.Test
             var checks = await client.Agent.Checks();
             Assert.True(checks.Response.ContainsKey("service:" + svcID));
 
-            Assert.Equal(CheckStatus.Critical, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Critical, checks.Response["service:" + svcID].Status);
 
             await client.Agent.PassTTL("service:" + svcID, "test is ok");
             checks = await client.Agent.Checks();
 
             Assert.True(checks.Response.ContainsKey("service:" + svcID));
-            Assert.Equal(CheckStatus.Passing, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Passing, checks.Response["service:" + svcID].Status);
             Assert.Equal("test is ok", checks.Response["service:" + svcID].Output);
 
             await client.Agent.ServiceDeregister(svcID);
@@ -266,37 +279,37 @@ namespace Consul.Test
             await client.Agent.WarnTTL("service:" + svcID, "warning");
             var checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Warning, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Warning, checks.Response["service:" + svcID].Status);
             Assert.Equal("warning", checks.Response["service:" + svcID].Output);
 
             await client.Agent.PassTTL("service:" + svcID, "passing");
             checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Passing, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Passing, checks.Response["service:" + svcID].Status);
             Assert.Equal("passing", checks.Response["service:" + svcID].Output);
 
             await client.Agent.FailTTL("service:" + svcID, "failing");
             checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Critical, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Critical, checks.Response["service:" + svcID].Status);
             Assert.Equal("failing", checks.Response["service:" + svcID].Output);
 
             await client.Agent.UpdateTTL("service:" + svcID, svcID, TTLStatus.Pass);
             checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Passing, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Passing, checks.Response["service:" + svcID].Status);
             Assert.Equal(svcID, checks.Response["service:" + svcID].Output);
 
             await client.Agent.UpdateTTL("service:" + svcID, "foo warning", TTLStatus.Warn);
             checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Warning, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Warning, checks.Response["service:" + svcID].Status);
             Assert.Equal("foo warning", checks.Response["service:" + svcID].Output);
 
             await client.Agent.UpdateTTL("service:" + svcID, "foo failing", TTLStatus.Critical);
             checks = await client.Agent.Checks();
             Assert.Contains("service:" + svcID, checks.Response.Keys);
-            Assert.Equal(CheckStatus.Critical, checks.Response["service:" + svcID].Status);
+            Assert.Equal(HealthStatus.Critical, checks.Response["service:" + svcID].Status);
             Assert.Equal("foo failing", checks.Response["service:" + svcID].Output);
 
             await client.Agent.ServiceDeregister(svcID);
@@ -316,7 +329,7 @@ namespace Consul.Test
 
             var checks = await client.Agent.Checks();
             Assert.True(checks.Response.ContainsKey(svcID));
-            Assert.Equal(CheckStatus.Critical, checks.Response[svcID].Status);
+            Assert.Equal(HealthStatus.Critical, checks.Response[svcID].Status);
 
             await client.Agent.CheckDeregister(svcID);
         }
@@ -361,14 +374,14 @@ namespace Consul.Test
             var registration = new AgentCheckRegistration()
             {
                 Name = svcID,
-                Status = CheckStatus.Passing,
+                Status = HealthStatus.Passing,
                 TTL = TimeSpan.FromSeconds(15)
             };
             await client.Agent.CheckRegister(registration);
 
             var checks = await client.Agent.Checks();
             Assert.True(checks.Response.ContainsKey(svcID));
-            Assert.Equal(CheckStatus.Passing, checks.Response[svcID].Status);
+            Assert.Equal(HealthStatus.Passing, checks.Response[svcID].Status);
 
             await client.Agent.CheckDeregister(svcID);
         }
@@ -438,7 +451,7 @@ namespace Consul.Test
                 if (check.Value.CheckID.Contains("maintenance"))
                 {
                     found = true;
-                    Assert.Equal(CheckStatus.Critical, check.Value.Status);
+                    Assert.Equal(HealthStatus.Critical, check.Value.Status);
                     Assert.Equal("broken", check.Value.Notes);
                 }
             }
@@ -469,7 +482,7 @@ namespace Consul.Test
                 if (check.Value.CheckID.Contains("maintenance"))
                 {
                     found = true;
-                    Assert.Equal(CheckStatus.Critical, check.Value.Status);
+                    Assert.Equal(HealthStatus.Critical, check.Value.Status);
                     Assert.Equal("broken", check.Value.Notes);
                 }
             }
@@ -481,6 +494,26 @@ namespace Consul.Test
             foreach (var check in checks.Response)
             {
                 Assert.False(check.Value.CheckID.Contains("maintenance"));
+            }
+        }
+
+        [Fact]
+        public async Task Agent_Monitor()
+        {
+            using (var client = new ConsulClient())
+            {
+                var logs = await client.Agent.Monitor(LogLevel.Trace);
+                var counter = 0;
+                var successToken = new CancellationTokenSource();
+                var failTask = Task.Delay(5000, successToken.Token).ContinueWith(x => Assert.True(false, "Failed to finish reading logs in time"));
+                foreach (var line in logs)
+                {
+                    Assert.False(string.IsNullOrEmpty(await line));
+                    counter++;
+                    if (counter > 5) { break; }
+                }
+                successToken.Cancel();
+                logs.Dispose();
             }
         }
     }

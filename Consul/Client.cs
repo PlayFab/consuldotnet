@@ -586,6 +586,7 @@ namespace Consul
             _preparedquery = new Lazy<PreparedQuery>(() => new PreparedQuery(this));
             _raw = new Lazy<Raw>(() => new Raw(this));
             _session = new Lazy<Session>(() => new Session(this));
+            _snapshot = new Lazy<Snapshot>(() => new Snapshot(this));
             _status = new Lazy<Status>(() => new Status(this));
         }
 
@@ -701,14 +702,14 @@ namespace Consul
             }
         }
 
-        internal GetRequest<T> Get<T>(string path, QueryOptions opts = null)
+        internal GetRequest<TOut> Get<TOut>(string path, QueryOptions opts = null)
         {
-            return new GetRequest<T>(this, path, opts ?? QueryOptions.Default);
+            return new GetRequest<TOut>(this, path, opts ?? QueryOptions.Default);
         }
 
-        internal DeleteRequest<T> Delete<T>(string path, WriteOptions opts = null)
+        internal DeleteReturnRequest<TOut> DeleteReturning<TOut>(string path, WriteOptions opts = null)
         {
-            return new DeleteRequest<T>(this, path, opts ?? WriteOptions.Default);
+            return new DeleteReturnRequest<TOut>(this, path, opts ?? WriteOptions.Default);
         }
 
         internal DeleteRequest Delete(string path, WriteOptions opts = null)
@@ -716,9 +717,14 @@ namespace Consul
             return new DeleteRequest(this, path, opts ?? WriteOptions.Default);
         }
 
-        internal EmptyPutRequest<TOut> EmptyPut<TOut>(string path, WriteOptions opts = null)
+        internal DeleteAcceptingRequest<TIn> DeleteAccepting<TIn>(string path, TIn body, WriteOptions opts = null)
         {
-            return new EmptyPutRequest<TOut>(this, path, opts ?? WriteOptions.Default);
+            return new DeleteAcceptingRequest<TIn>(this, path, body, opts ?? WriteOptions.Default);
+        }
+
+        internal PutReturningRequest<TOut> PutReturning<TOut>(string path, WriteOptions opts = null)
+        {
+            return new PutReturningRequest<TOut>(this, path, opts ?? WriteOptions.Default);
         }
 
         internal PutRequest<TIn> Put<TIn>(string path, TIn body, WriteOptions opts = null)
@@ -726,14 +732,19 @@ namespace Consul
             return new PutRequest<TIn>(this, path, body, opts ?? WriteOptions.Default);
         }
 
-        internal SilentPutRequest Put(string path, WriteOptions opts = null)
+        internal PutNothingRequest PutNothing(string path, WriteOptions opts = null)
         {
-            return new SilentPutRequest(this, path, opts ?? WriteOptions.Default);
+            return new PutNothingRequest(this, path, opts ?? WriteOptions.Default);
         }
 
         internal PutRequest<TIn, TOut> Put<TIn, TOut>(string path, TIn body, WriteOptions opts = null)
         {
             return new PutRequest<TIn, TOut>(this, path, body, opts ?? WriteOptions.Default);
+        }
+
+        internal PostRequest<TIn> Post<TIn>(string path, TIn body, WriteOptions opts = null)
+        {
+            return new PostRequest<TIn>(this, path, body, opts ?? WriteOptions.Default);
         }
 
         internal PostRequest<TIn, TOut> Post<TIn, TOut>(string path, TIn body, WriteOptions opts = null)
@@ -813,7 +824,8 @@ namespace Consul
             return System.Text.Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value));
         }
     }
-    public class GetRequest<T> : ConsulRequest
+
+    public class GetRequest<TOut> : ConsulRequest
     {
         public QueryOptions Options { get; set; }
 
@@ -826,11 +838,11 @@ namespace Consul
             Options = options ?? QueryOptions.Default;
         }
 
-        public async Task<QueryResult<T>> Execute(CancellationToken ct)
+        public async Task<QueryResult<TOut>> Execute(CancellationToken ct)
         {
             Client.CheckDisposed();
             timer.Start();
-            var result = new QueryResult<T>();
+            var result = new QueryResult<TOut>();
 
             var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
             ApplyHeaders(message, Client.Config);
@@ -856,7 +868,35 @@ namespace Consul
 
             if (response.IsSuccessStatusCode)
             {
-                result.Response = Deserialize<T>(ResponseStream);
+                result.Response = Deserialize<TOut>(ResponseStream);
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        public async Task<QueryResult<Stream>> ExecuteStreaming(CancellationToken ct)
+        {
+            Client.CheckDisposed();
+            timer.Start();
+            var result = new QueryResult<Stream>();
+
+            var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
+            ApplyHeaders(message, Client.Config);
+            var response = await Client.HttpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+
+            ParseQueryHeaders(response, (result as QueryResult<TOut>));
+            result.StatusCode = response.StatusCode;
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            result.Response = ResponseStream;
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                    response.StatusCode), response.StatusCode);
             }
 
             result.RequestTime = timer.Elapsed;
@@ -901,7 +941,7 @@ namespace Consul
             }
         }
 
-        protected void ParseQueryHeaders(HttpResponseMessage res, QueryResult<T> meta)
+        protected void ParseQueryHeaders(HttpResponseMessage res, QueryResult<TOut> meta)
         {
             var headers = res.Headers;
 
@@ -963,11 +1003,11 @@ namespace Consul
         }
     }
 
-    public class DeleteRequest<TOut> : ConsulRequest
+    public class DeleteReturnRequest<TOut> : ConsulRequest
     {
         public WriteOptions Options { get; set; }
 
-        public DeleteRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Delete)
+        public DeleteReturnRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Delete)
         {
             if (string.IsNullOrEmpty(url))
             {
@@ -1106,11 +1146,98 @@ namespace Consul
         }
     }
 
-    public class EmptyPutRequest<TOut> : ConsulRequest
+    public class DeleteAcceptingRequest<TIn> : ConsulRequest
+    {
+        public WriteOptions Options { get; set; }
+        private TIn _body;
+
+        public DeleteAcceptingRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Delete)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException(nameof(url));
+            }
+            _body = body;
+            Options = options ?? WriteOptions.Default;
+        }
+
+        public async Task<WriteResult> Execute(CancellationToken ct)
+        {
+            Client.CheckDisposed();
+            var result = new WriteResult();
+
+            HttpContent content;
+
+            if (typeof(TIn) == typeof(byte[]))
+            {
+                content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+            }
+            else if (typeof(TIn) == typeof(Stream))
+            {
+                content = new StreamContent((_body as Stream) ?? new MemoryStream());
+            }
+            else
+            {
+                content = new ByteArrayContent(Serialize(_body));
+            }
+
+            var message = new HttpRequestMessage(HttpMethod.Delete, BuildConsulUri(Endpoint, Params));
+            ApplyHeaders(message, Client.Config);
+            message.Content = content;
+
+            var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
+
+            result.StatusCode = response.StatusCode;
+
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                if (ResponseStream == null)
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                        response.StatusCode), response.StatusCode);
+                }
+                using (var sr = new StreamReader(ResponseStream))
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
+                }
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        protected override void ApplyOptions(ConsulClientConfiguration clientConfig)
+        {
+            if (Options == WriteOptions.Default)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Options.Datacenter))
+            {
+                Params["dc"] = Options.Datacenter;
+            }
+        }
+
+        protected override void ApplyHeaders(HttpRequestMessage message, ConsulClientConfiguration clientConfig)
+        {
+            if (!string.IsNullOrEmpty(Options.Token))
+            {
+                message.Headers.Add("X-Consul-Token", Options.Token);
+            }
+        }
+    }
+
+    public class PutReturningRequest<TOut> : ConsulRequest
     {
         public WriteOptions Options { get; set; }
 
-        public EmptyPutRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Put)
+        public PutReturningRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Put)
         {
             if (string.IsNullOrEmpty(url))
             {
@@ -1180,11 +1307,11 @@ namespace Consul
         }
     }
 
-    public class SilentPutRequest : ConsulRequest
+    public class PutNothingRequest : ConsulRequest
     {
         public WriteOptions Options { get; set; }
 
-        public SilentPutRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Put)
+        public PutNothingRequest(ConsulClient client, string url, WriteOptions options = null) : base(client, url, HttpMethod.Put)
         {
             if (string.IsNullOrEmpty(url))
             {
@@ -1254,8 +1381,6 @@ namespace Consul
         public WriteOptions Options { get; set; }
         private TIn _body;
 
-        private readonly bool UseRawRequestBody = typeof(TIn) == typeof(byte[]);
-
         public PutRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Put)
         {
             if (string.IsNullOrEmpty(url))
@@ -1274,9 +1399,13 @@ namespace Consul
 
             HttpContent content;
 
-            if (UseRawRequestBody)
+            if (typeof(TIn) == typeof(byte[]))
             {
                 content = new ByteArrayContent((_body as byte[]) ?? new byte[0]);
+            }
+            else if (typeof(TIn) == typeof(Stream))
+            {
+                content = new StreamContent((_body as Stream) ?? new MemoryStream());
             }
             else
             {
@@ -1286,6 +1415,7 @@ namespace Consul
             var message = new HttpRequestMessage(HttpMethod.Put, BuildConsulUri(Endpoint, Params));
             ApplyHeaders(message, Client.Config);
             message.Content = content;
+
             var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
 
             result.StatusCode = response.StatusCode;
@@ -1431,6 +1561,93 @@ namespace Consul
         }
     }
 
+    public class PostRequest<TIn> : ConsulRequest
+    {
+        public WriteOptions Options { get; set; }
+        private TIn _body;
+
+        public PostRequest(ConsulClient client, string url, TIn body, WriteOptions options = null) : base(client, url, HttpMethod.Post)
+        {
+            if (string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentException(nameof(url));
+            }
+            _body = body;
+            Options = options ?? WriteOptions.Default;
+        }
+
+        public async Task<WriteResult> Execute(CancellationToken ct)
+        {
+            Client.CheckDisposed();
+            timer.Start();
+            var result = new WriteResult();
+
+            HttpContent content = null;
+
+            if (typeof(TIn) == typeof(byte[]))
+            {
+                var bodyBytes = (_body as byte[]);
+                if (bodyBytes != null)
+                {
+                    content = new ByteArrayContent(bodyBytes);
+                }
+                // If body is null and should be a byte array, then just don't send anything.
+            }
+            else
+            {
+                content = new ByteArrayContent(Serialize(_body));
+            }
+
+            var message = new HttpRequestMessage(HttpMethod.Post, BuildConsulUri(Endpoint, Params));
+            ApplyHeaders(message, Client.Config);
+            message.Content = content;
+            var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
+
+            result.StatusCode = response.StatusCode;
+
+            ResponseStream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+
+            if (response.StatusCode != HttpStatusCode.NotFound && !response.IsSuccessStatusCode)
+            {
+                if (ResponseStream == null)
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}",
+                        response.StatusCode), response.StatusCode);
+                }
+                using (var sr = new StreamReader(ResponseStream))
+                {
+                    throw new ConsulRequestException(string.Format("Unexpected response, status code {0}: {1}",
+                        response.StatusCode, sr.ReadToEnd()), response.StatusCode);
+                }
+            }
+
+            result.RequestTime = timer.Elapsed;
+            timer.Stop();
+
+            return result;
+        }
+
+        protected override void ApplyOptions(ConsulClientConfiguration clientConfig)
+        {
+            if (Options == WriteOptions.Default)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(Options.Datacenter))
+            {
+                Params["dc"] = Options.Datacenter;
+            }
+        }
+
+        protected override void ApplyHeaders(HttpRequestMessage message, ConsulClientConfiguration clientConfig)
+        {
+            if (!string.IsNullOrEmpty(Options.Token))
+            {
+                message.Headers.Add("X-Consul-Token", Options.Token);
+            }
+        }
+    }
 
     public class PostRequest<TIn, TOut> : ConsulRequest
     {

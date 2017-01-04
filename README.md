@@ -2,7 +2,7 @@
 
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/PlayFab/consuldotnet?branch=master&svg=true)](https://ci.appveyor.com/project/highlyunavailable/consuldotnet)
 
-* Consul API: [v0.7.0](https://github.com/hashicorp/consul/tree/v0.7.0/api)
+* Consul API: [v0.7.2](https://github.com/hashicorp/consul/tree/v0.7.2/api)
 * .NET: >= 4.5 - .NET Core: >= 1.0.0
 
 Consul.NET is a .NET port of the Go Consul API, but reworked to use .NET

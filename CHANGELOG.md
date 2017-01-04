@@ -12,18 +12,20 @@
   query parameter. This may break use of ACLs with very old Consuls (<
   0.6.0). Please file an issue if this breaks for you.
 
-## Major Changes between 0.5.0 and 0.6.0
-* ___THE ENTIRE CLIENT HAS BEEN REWRITTEN TO BE ASYNC___. This means
-  that any sync calls will need to be reworked to either call the Async
-  API with `GetAwaiter().GetResult()` or, better yet, the calling method
-  needs to be `async` as well and then simply `await` the call.
-* The `Client` class has been renamed `ConsulClient`. The interface
-  remains the same - `IConsulClient`.
-* The `ConsulClientConfiguration` class no longer accepts a string
-  `Address` property to the Consul server. It is now a `System.Uri`
-  named `Address`.
-* `ConsulClient` is now `IDisposable` and should have `Dispose()` called to
-  clean it up. It is still supposed to be used in a long-lived fashion, though.
+## 2017-01-03 (0.7.2.0)
+* New APIs ported:
+  * Snapshot API. Requires >= Consul 0.7.1 to use.
+  * Keyring API. Requires >= Consul 0.7.2 to use.
+  * Agent Leave/Reload APIs. Requires >= Consul 0.7.2 to use.
+* Added `TLSSkipVerify` and `DeregisterCriticalServiceAfter` to the
+  AgentServiceCheck class. Requires >= Consul 0.7.0 to use.
+* Added `Health.AggregatedStatus()` extension method to any
+  `IEnumerable<HealthCheck>` to roll up a set of checks. Can be used
+  with any version of Consul.
+* Renamed `CheckStatus` to `HealthStatus`. This affects the
+  `AgentServiceCheck` and `AgentCheck` classes.
+* Changed the `Health.HealthCheck` `Status` field to be of type
+  `HealthStatus` instead of `string`.
 
 ## 2016-12-29 (0.7.0.5)
 * Added missing nuget info to project.json. Thanks @latop2604!

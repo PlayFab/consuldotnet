@@ -6,8 +6,19 @@ using Xunit;
 
 namespace Consul.Test
 {
-    public class PreparedQueryTest
+    public class PreparedQueryTest : IDisposable
     {
+        AsyncReaderWriterLock.Releaser m_lock;
+        public PreparedQueryTest()
+        {
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+        }
+
+        public void Dispose()
+        {
+            m_lock.Dispose();
+        }
+    
         [Fact]
         public async Task PreparedQuery_Test()
         {
