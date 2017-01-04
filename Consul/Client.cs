@@ -875,7 +875,7 @@ namespace Consul
 
             var message = new HttpRequestMessage(HttpMethod.Get, BuildConsulUri(Endpoint, Params));
             ApplyHeaders(message, Client.Config);
-            var response = await Client.HttpClient.SendAsync(message, ct).ConfigureAwait(false);
+            var response = await Client.HttpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
 
             ParseQueryHeaders(response, (result as QueryResult<T>));
             result.StatusCode = response.StatusCode;

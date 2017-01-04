@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -34,7 +35,7 @@ namespace Consul.Test
         {
             m_lock.Dispose();
         }
-    
+
         [Fact]
         public async Task Health_Node()
         {
@@ -93,6 +94,73 @@ namespace Consul.Test
             var checks = await client.Health.State(HealthStatus.Any);
             Assert.NotEqual((ulong)0, checks.LastIndex);
             Assert.NotEqual(0, checks.Response.Length);
+        }
+
+        private struct AggregatedStatusResult
+        {
+            public string Name;
+            public List<HealthCheck> Checks;
+            public HealthStatus Expected;
+
+        }
+
+        [Fact]
+        public void Health_AggregatedStatus()
+        {
+            var cases = new List<AggregatedStatusResult>()
+            {
+                new AggregatedStatusResult() {Name="empty", Expected=HealthStatus.Passing, Checks = null},
+                new AggregatedStatusResult() {Name="passing", Expected=HealthStatus.Passing, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Passing }
+                }},
+                new AggregatedStatusResult() {Name="warning", Expected=HealthStatus.Warning, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Warning }
+                }},
+                new AggregatedStatusResult() {Name="critical", Expected=HealthStatus.Critical, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Critical }
+                }},
+                new AggregatedStatusResult() {Name="node_maintenance", Expected=HealthStatus.Maintenance, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() { CheckID=HealthStatus.NodeMaintenance }
+                }},
+                new AggregatedStatusResult() {Name="service_maintenance", Expected=HealthStatus.Maintenance, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() { CheckID=HealthStatus.ServiceMaintenancePrefix + "service"}
+                }},
+                new AggregatedStatusResult() {Name="unknown", Expected=HealthStatus.Passing, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() { Status = HealthStatus.Any}
+                }},
+                new AggregatedStatusResult() {Name="maintenance_over_critical", Expected=HealthStatus.Maintenance, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() { CheckID=HealthStatus.NodeMaintenance },
+                    new HealthCheck() {Status = HealthStatus.Critical }
+                }},
+                new AggregatedStatusResult() {Name="critical_over_warning", Expected=HealthStatus.Critical, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Critical },
+                    new HealthCheck() {Status = HealthStatus.Warning }
+                }},
+                new AggregatedStatusResult() {Name="warning_over_passing", Expected=HealthStatus.Warning, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Warning },
+                    new HealthCheck() {Status = HealthStatus.Passing }
+                }},
+                new AggregatedStatusResult() {Name="lots", Expected=HealthStatus.Warning, Checks = new List<HealthCheck>()
+                {
+                    new HealthCheck() {Status = HealthStatus.Passing },
+                    new HealthCheck() {Status = HealthStatus.Passing },
+                    new HealthCheck() {Status = HealthStatus.Warning },
+                    new HealthCheck() {Status = HealthStatus.Passing }
+                }}
+            };
+            foreach (var test_case in cases)
+            {
+                Assert.Equal(test_case.Expected, test_case.Checks.AggregatedStatus());
+            }
         }
     }
 }

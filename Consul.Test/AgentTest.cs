@@ -17,6 +17,8 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -27,7 +29,7 @@ namespace Consul.Test
         AsyncReaderWriterLock.Releaser m_lock;
         public AgentTest()
         {
-            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.NoParallel());
         }
 
         public void Dispose()
@@ -492,6 +494,26 @@ namespace Consul.Test
             foreach (var check in checks.Response)
             {
                 Assert.False(check.Value.CheckID.Contains("maintenance"));
+            }
+        }
+
+        [Fact]
+        public async Task Agent_Monitor()
+        {
+            using (var client = new ConsulClient())
+            {
+                var logs = await client.Agent.Monitor(LogLevel.Trace);
+                var counter = 0;
+                var successToken = new CancellationTokenSource();
+                var failTask = Task.Delay(5000, successToken.Token).ContinueWith(x => Assert.True(false, "Failed to finish reading logs in time"));
+                foreach (var line in logs)
+                {
+                    Assert.False(string.IsNullOrEmpty(await line));
+                    counter++;
+                    if (counter > 5) { break; }
+                }
+                successToken.Cancel();
+                logs.Dispose();
             }
         }
     }

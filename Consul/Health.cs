@@ -35,8 +35,8 @@ namespace Consul
         private static readonly HealthStatus maintenance = new HealthStatus() { Status = "maintenance" };
         private static readonly HealthStatus any = new HealthStatus() { Status = "any" };
 
-        public static readonly string NodeMaintenance = "_node_maintenance";
-        public static readonly string ServiceMaintenancePrefix = "_service_maintenance:";
+        public const string NodeMaintenance = "_node_maintenance";
+        public const string ServiceMaintenancePrefix = "_service_maintenance:";
 
         public string Status { get; private set; }
 
@@ -136,20 +136,27 @@ namespace Consul
     {
         public static HealthStatus AggregatedStatus(this IEnumerable<HealthCheck> checks)
         {
+            if (checks == null)
+            {
+                return HealthStatus.Passing;
+            }
+
             bool warning = false, critical = false, maintenance = false;
             foreach (var check in checks)
             {
-                if (check.CheckID == HealthStatus.NodeMaintenance || check.CheckID.StartsWith(HealthStatus.ServiceMaintenancePrefix))
+                if (!string.IsNullOrEmpty(check.CheckID) &&
+                    (check.CheckID == HealthStatus.NodeMaintenance || check.CheckID.StartsWith(HealthStatus.ServiceMaintenancePrefix)))
                 {
                     maintenance = true;
-                }
-                else if (check.Status == HealthStatus.Warning)
-                {
-                    warning = true;
+                    break;
                 }
                 else if (check.Status == HealthStatus.Critical)
                 {
                     critical = true;
+                }
+                else if (check.Status == HealthStatus.Warning)
+                {
+                    warning = true;
                 }
             }
 

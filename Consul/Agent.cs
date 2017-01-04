@@ -19,8 +19,11 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections;
 
 namespace Consul
 {
@@ -262,6 +265,15 @@ namespace Consul
         [JsonConverter(typeof(DurationTimespanConverter))]
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public TimeSpan? DeregisterCriticalServiceAfter { get; set; }
+    }
+
+    public enum LogLevel
+    {
+        Info,
+        Trace,
+        Debug,
+        Warn,
+        Err
     }
 
     /// <summary>
@@ -527,6 +539,51 @@ namespace Consul
             var req = _client.Put("/v1/agent/maintenance");
             req.Params["enable"] = "false";
             return req.Execute(ct);
+        }
+
+
+        /// <summary>
+        /// Monitor yields log lines to display streaming logs from the agent
+        /// Providing a CancellationToken can be used to close the connection and stop the
+        /// log stream, otherwise the log stream will time out based on the HTTP Client's timeout value.
+        /// </summary>
+        public async Task<LogStream> Monitor(LogLevel level = default(LogLevel), CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Get<Stream>("/v1/agent/monitor");
+            req.Params["loglevel"] = level.ToString().ToLowerInvariant();
+            var res = await req.ExecuteStreaming(ct).ConfigureAwait(false);
+            return new LogStream(res.Response);
+        }
+
+        public class LogStream : IEnumerable<Task<string>>, IDisposable
+        {
+            private Stream m_stream;
+            private StreamReader m_streamreader;
+            internal LogStream(Stream s)
+            {
+                m_stream = s;
+                m_streamreader = new StreamReader(s);
+            }
+
+            public void Dispose()
+            {
+                m_streamreader.Dispose();
+                m_stream.Dispose();
+            }
+
+            public IEnumerator<Task<string>> GetEnumerator()
+            {
+
+                while (!m_streamreader.EndOfStream)
+                {
+                    yield return m_streamreader.ReadLineAsync();
+                }
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
         }
     }
 
