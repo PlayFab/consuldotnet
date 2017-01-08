@@ -1,5 +1,5 @@
 {
-  "version": "0.7.2.0",
+  "version": "0.7.2.1-alpha1",
   "packOptions": {
     "summary": "Consul.NET is a .NET port of the Go Consul API. This project is not affiliated with the main Consul product, which can be found at https://www.consul.io/",
     "releaseNotes": "https://github.com/PlayFab/consuldotnet/blob/master/CHANGELOG.md",
