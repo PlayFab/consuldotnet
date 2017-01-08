@@ -264,6 +264,8 @@ namespace Consul
 
         private readonly ConsulClient _client;
         private Task _sessionRenewTask;
+        private Task _monitorTask;
+
         internal SemaphoreOptions Opts { get; set; }
 
         public bool IsHeld
@@ -427,9 +429,7 @@ namespace Consul
                         }
 
                         IsHeld = true;
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                        MonitorLock(LockSession);
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                        _monitorTask = MonitorLock(LockSession);
                         return _cts.Token;
                     }
                     DisposeCancellationTokenSource();
@@ -446,6 +446,7 @@ namespace Consul
                     {
                         try
                         {
+                            await _monitorTask.ConfigureAwait(false);
                             await _sessionRenewTask.ConfigureAwait(false);
                         }
                         catch (Exception)
@@ -584,7 +585,7 @@ namespace Consul
         /// <param name="lockSession">The session ID to monitor</param>
         private Task MonitorLock(string lockSession)
         {
-            return Task.Run(async () =>
+            return Task.Factory.StartNew(async () =>
             {
                 try
                 {
@@ -635,6 +636,10 @@ namespace Consul
                             }
                             throw;
                         }
+                        catch (OperationCanceledException)
+                        {
+                            // Ignore and retry since this could be the underlying HTTPClient being swapped out/disposed of.
+                        }
                         catch (Exception)
                         {
                             throw;
@@ -645,7 +650,7 @@ namespace Consul
                 {
                     IsHeld = false;
                 }
-            });
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
 
         /// <summary>

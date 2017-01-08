@@ -152,6 +152,7 @@ namespace Consul
 
         private CancellationTokenSource _cts;
         private Task _sessionRenewTask;
+        private Task _monitorTask;
 
         private readonly ConsulClient _client;
         internal LockOptions Opts { get; set; }
@@ -274,9 +275,7 @@ namespace Consul
                                     return _cts.Token;
                                 }
                                 IsHeld = true;
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                                MonitorLock();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                                _monitorTask = MonitorLock();
                                 return _cts.Token;
                             }
 
@@ -296,9 +295,7 @@ namespace Consul
                         if (locked)
                         {
                             IsHeld = true;
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-                            MonitorLock();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+                            _monitorTask = MonitorLock();
                             return _cts.Token;
                         }
 
@@ -323,7 +320,7 @@ namespace Consul
                         // If the session is null and the lock failed to acquire, then it means
                         // a lock-delay is in effect and a timed wait must be used to avoid a hot loop.
                         try { await Task.Delay(Opts.LockRetryTime, ct).ConfigureAwait(false); }
-                        catch (TaskCanceledException) {/* Ignore TaskTaskCanceledException */}
+                        catch (TaskCanceledException) { /* Ignore TaskTaskCanceledException */}
                     }
                     DisposeCancellationTokenSource();
                     throw new LockNotHeldException("Unable to acquire the lock with Consul");
@@ -338,6 +335,7 @@ namespace Consul
                     {
                         try
                         {
+                            await _monitorTask.ConfigureAwait(false);
                             await _sessionRenewTask.ConfigureAwait(false);
                         }
                         catch (AggregateException)
@@ -443,8 +441,7 @@ namespace Consul
         /// </summary>
         private Task MonitorLock()
         {
-            return Task.Run(async () =>
-            {
+            return Task.Factory.StartNew(async () => { 
                 // Copy a reference to _cts since we could end up destroying it before this method returns
                 var cts = _cts;
                 try
@@ -492,6 +489,10 @@ namespace Consul
                             }
                             throw;
                         }
+                        catch (OperationCanceledException)
+                        {
+                            // Ignore and retry since this could be the underlying HTTPClient being swapped out/disposed of.
+                        }
                         catch (Exception)
                         {
                             throw;
@@ -502,7 +503,7 @@ namespace Consul
                 {
                     IsHeld = false;
                 }
-            });
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
 
         /// <summary>

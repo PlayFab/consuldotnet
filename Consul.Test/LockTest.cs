@@ -257,7 +257,15 @@ namespace Consul.Test
             Assert.True(l.IsHeld);
 
             // Wait for multiple renewal cycles to ensure the lock session stays renewed.
-            Task.Delay(TimeSpan.FromSeconds(60)).Wait();
+            await Task.Delay(1000).ContinueWith((f) => client.Reconfigure(null, null, null));
+
+            // Wait for multiple renewal cycles to ensure the semaphore session stays renewed.
+            for (int i = 0; i < 60; i++)
+            {
+                await Task.Delay(1000);
+                Assert.True(l.IsHeld);
+            }
+
             Assert.True(l.IsHeld);
 
             await l.Release();

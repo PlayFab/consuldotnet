@@ -77,8 +77,13 @@ namespace Consul
 
         internal bool ClientCertificateSupported { get { return _clientCertSupport.Value; } }
 
+#if CORECLR
+        [Obsolete("Use of DisableServerCertificateValidation should be converted to setting the HttpHandler's ServerCertificateCustomValidationCallback in the ConsulClient constructor" +
+            "This property will be removed when 0.8.0 is released.", false)]
+#else
         [Obsolete("Use of DisableServerCertificateValidation should be converted to setting the WebRequestHandler's ServerCertificateValidationCallback in the ConsulClient constructor" +
             "This property will be removed when 0.8.0 is released.", false)]
+#endif
         internal bool DisableServerCertificateValidation
         {
             get
@@ -106,6 +111,13 @@ namespace Consul
         /// Credentials to use for access to the HTTP API.
         /// This is only needed if an authenticating service exists in front of Consul; Token is used for ACL authentication by Consul.
         /// </summary>
+#if CORECLR
+        [Obsolete("Use of HttpAuth should be converted to setting the HttpHandler's Credential property in the ConsulClient constructor" +
+            "This property will be removed when 0.8.0 is released.", false)]
+#else
+        [Obsolete("Use of HttpAuth should be converted to setting the WebRequestHandler's Credential property in the ConsulClient constructor" +
+            "This property will be removed when 0.8.0 is released.", false)]
+#endif
         public NetworkCredential HttpAuth
         {
             internal get
@@ -126,6 +138,9 @@ namespace Consul
         /// <exception cref="PlatformNotSupportedException">Setting this property will throw a PlatformNotSupportedException on Mono</exception>
 #if __MonoCS__
         [Obsolete("Client Certificates are not implemented in Mono", true)]
+#elif CORECLR
+        [Obsolete("Use of ClientCertificate should be converted to adding to the HttpHandler's ClientCertificates list in the ConsulClient constructor." +
+            "This property will be removed when 0.8.0 is released.", false)]
 #else
         [Obsolete("Use of ClientCertificate should be converted to adding to the WebRequestHandler's ClientCertificates list in the ConsulClient constructor." +
             "This property will be removed when 0.8.0 is released.", false)]
@@ -166,7 +181,6 @@ namespace Consul
         {
             UriBuilder consulAddress = new UriBuilder("http://127.0.0.1:8500");
             ConfigureFromEnvironment(consulAddress);
-
             Address = consulAddress.Uri;
         }
 
@@ -249,7 +263,9 @@ namespace Consul
                 {
                     credential.UserName = auth;
                 }
+#pragma warning disable CS0618 // Type or member is obsolete
                 HttpAuth = credential;
+#pragma warning restore CS0618 // Type or member is obsolete
             }
 
             if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CONSUL_HTTP_TOKEN")))
@@ -461,15 +477,146 @@ namespace Consul
     /// </summary>
     public partial class ConsulClient : IDisposable
     {
-        private object _lock = new object();
-        private bool skipClientDispose;
-        internal readonly HttpClient HttpClient;
+        private class ConsulClientConfigurationContainer
+        {
+
+            internal readonly bool skipClientDispose;
+            internal readonly HttpClient HttpClient;
 #if CORECLR
-        internal readonly HttpClientHandler HttpHandler;
+            internal readonly HttpClientHandler HttpHandler;
 #else
-        internal readonly WebRequestHandler HttpHandler;
+            internal readonly WebRequestHandler HttpHandler;
 #endif
-        internal readonly ConsulClientConfiguration Config;
+            public readonly ConsulClientConfiguration Config;
+
+            private Action<ConsulClientConfiguration> _configOverride;
+            private Action<HttpClient> _clientOverride;
+#if CORECLR
+            private Action<HttpClientHandler> _handlerOverride;
+#else
+            private Action<WebRequestHandler> _handlerOverride;
+#endif
+
+            public ConsulClientConfigurationContainer()
+            {
+                Config = new ConsulClientConfiguration();
+#if CORECLR
+                HttpHandler = new HttpClientHandler();
+#else
+                HttpHandler = new WebRequestHandler();
+#endif
+                HttpClient = new HttpClient(HttpHandler);
+                HttpClient.Timeout = TimeSpan.FromMinutes(15);
+                HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+            }
+
+            #region Old style config handling
+            public ConsulClientConfigurationContainer(ConsulClientConfiguration config, HttpClient client)
+            {
+                skipClientDispose = true;
+                Config = config;
+                HttpClient = client;
+            }
+
+            public ConsulClientConfigurationContainer(ConsulClientConfiguration config)
+            {
+                Config = config;
+#if CORECLR
+                HttpHandler = new HttpClientHandler();
+#else
+                HttpHandler = new WebRequestHandler();
+#endif
+                HttpClient = new HttpClient(HttpHandler);
+                HttpClient.Timeout = TimeSpan.FromMinutes(15);
+                HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
+            }
+            #endregion
+
+#if CORECLR
+            internal void SaveOverrides(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
+#else
+            internal void SaveOverrides(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
+#endif
+            {
+                _configOverride = configOverride;
+                _clientOverride = clientOverride;
+                _handlerOverride = handlerOverride;
+            }
+
+            internal void ApplySavedConfigOverride()
+            {
+                _configOverride?.Invoke(Config);
+            }
+
+            internal void ApplySavedClientOverride()
+            {
+                _clientOverride?.Invoke(HttpClient);
+            }
+
+            internal void ApplySavedHandlerOverride()
+            {
+                _handlerOverride?.Invoke(HttpHandler);
+            }
+
+
+            #region IDisposable Support
+            private bool disposedValue = false; // To detect redundant calls
+
+            protected virtual void Dispose(bool disposing)
+            {
+                if (!disposedValue)
+                {
+                    if (disposing)
+                    {
+                        if (HttpClient != null && !skipClientDispose)
+                        {
+                            HttpClient.Dispose();
+                        }
+                        if (HttpHandler != null)
+                        {
+                            HttpHandler.Dispose();
+                        }
+                    }
+
+                    disposedValue = true;
+                }
+            }
+
+            //~ConsulClient()
+            //{
+            //    // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+            //    Dispose(false);
+            //}
+
+            // This code added to correctly implement the disposable pattern.
+            public void Dispose()
+            {
+                // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            public void CheckDisposed()
+            {
+                if (disposedValue)
+                {
+                    throw new ObjectDisposedException(typeof(ConsulClientConfigurationContainer).FullName.ToString());
+                }
+            }
+            #endregion
+        }
+
+        private ConsulClientConfigurationContainer ConfigContainer;
+
+        internal HttpClient HttpClient { get { return ConfigContainer.HttpClient; } }
+#if CORECLR
+        internal HttpClientHandler HttpHandler { get { return ConfigContainer.HttpHandler; } }
+#else
+        internal WebRequestHandler HttpHandler { get { return ConfigContainer.HttpHandler; } }
+#endif
+        public ConsulClientConfiguration Config { get { return ConfigContainer.Config; } }
 
         internal readonly JsonSerializer serializer = new JsonSerializer();
 
@@ -503,29 +650,89 @@ namespace Consul
         /// <param name="configOverride">The Action to modify the default configuration with</param>
         /// <param name="clientOverride">The Action to modify the HttpClient with</param>
         /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
+        /// <param name="saveOverrides">Caches all override actions to be applied when Reconfigure is called</param>
 #if !CORECLR
-        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride, bool saveOverrides = false)
 #else
-        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride, bool saveOverrides = false)
 #endif
         {
-            Config = new ConsulClientConfiguration();
-            configOverride?.Invoke(Config);
-#if !CORECLR
-            HttpHandler = new WebRequestHandler();
-#else
-            HttpHandler = new HttpClientHandler();
-#endif
-            HttpClient = new HttpClient(HttpHandler);
-            ApplyConfig(Config);
-            handlerOverride?.Invoke(HttpHandler);
-            HttpClient.Timeout = TimeSpan.FromMinutes(15);
-            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
-            clientOverride?.Invoke(HttpClient);
+            var ctr = new ConsulClientConfigurationContainer();
+            if (saveOverrides)
+            {
+                ctr.SaveOverrides(configOverride, clientOverride, handlerOverride);
+            }
+
+            configOverride?.Invoke(ctr.Config);
+            ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
+            handlerOverride?.Invoke(ctr.HttpHandler);
+            clientOverride?.Invoke(ctr.HttpClient);
+
+            ConfigContainer = ctr;
+
             InitializeEndpoints();
         }
+        #endregion
 
+        #region Reconfiguration
+        /// <summary>
+        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
+        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
+        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
+        /// active requests because it disposes of the HTTPClient.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
+
+        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, bool deleteSavedOverrides = false)
+        {
+            Reconfigure(configOverride, null, null, deleteSavedOverrides);
+        }
+
+        /// <summary>
+        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
+        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
+        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
+        /// active requests because it disposes of the HTTPClient.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
+        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
+
+        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, bool deleteSavedOverrides = false)
+        {
+            Reconfigure(configOverride, clientOverride, null, deleteSavedOverrides);
+        }
+
+        /// <summary>
+        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
+        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
+        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
+        /// active requests because it disposes of the HTTPClient.
+        /// </summary>
+        /// <param name="configOverride">The Action to modify the default configuration with</param>
+        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
+        /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
+        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
+#if !CORECLR
+        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride, bool deleteSavedOverrides = false)
+#else
+        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride, bool deleteSavedOverrides = false)
+#endif
+        {
+            var ctr = new ConsulClientConfigurationContainer();
+            ctr.ApplySavedClientOverride();
+            configOverride?.Invoke(ctr.Config);
+            ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
+            ctr.ApplySavedHandlerOverride();
+            handlerOverride?.Invoke(ctr.HttpHandler);
+            ctr.ApplySavedClientOverride();
+            clientOverride?.Invoke(ctr.HttpClient);
+
+            var oldCtr = ConfigContainer;
+            ConfigContainer = ctr;
+            oldCtr.Dispose();
+        }
         #endregion
 
         #region Old style config
@@ -537,18 +744,11 @@ namespace Consul
             "Please use the ConsulClient(Action<ConsulClientConfiguration>) constructor to set configuration options.", false)]
         public ConsulClient(ConsulClientConfiguration config)
         {
-            Config = config;
             config.Updated += HandleConfigUpdateEvent;
-#if !CORECLR
-            HttpHandler = new WebRequestHandler();
-#else
-            HttpHandler = new HttpClientHandler();
-#endif
-            HttpClient = new HttpClient(HttpHandler);
-            HttpClient.Timeout = TimeSpan.FromMinutes(15);
-            HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
-            ApplyConfig(config);
+            var ctr = new ConsulClientConfigurationContainer(config);
+            ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
+            
+            ConfigContainer = ctr;
             InitializeEndpoints();
         }
 
@@ -562,13 +762,12 @@ namespace Consul
             "Please use one of the ConsulClient(Action<>) constructors instead to set internal options on the HttpClient/WebRequestHandler.", false)]
         public ConsulClient(ConsulClientConfiguration config, HttpClient client)
         {
-            Config = config;
-            HttpClient = client;
-            skipClientDispose = true;
-            if (!HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
+            var ctr = new ConsulClientConfigurationContainer(config, client);
+            if (!ctr.HttpClient.DefaultRequestHeaders.Accept.Contains(new MediaTypeWithQualityHeaderValue("application/json")))
             {
                 throw new ArgumentException("HttpClient must accept the application/json content type", nameof(client));
             }
+            ConfigContainer = ctr;
             InitializeEndpoints();
         }
         #endregion
@@ -600,13 +799,9 @@ namespace Consul
                 if (disposing)
                 {
                     Config.Updated -= HandleConfigUpdateEvent;
-                    if (HttpClient != null && !skipClientDispose)
+                    if (ConfigContainer != null)
                     {
-                        HttpClient.Dispose();
-                    }
-                    if (HttpHandler != null)
-                    {
-                        HttpHandler.Dispose();
+                        ConfigContainer.Dispose();
                     }
                 }
 
@@ -639,15 +834,22 @@ namespace Consul
 
         void HandleConfigUpdateEvent(object sender, EventArgs e)
         {
-            ApplyConfig(sender as ConsulClientConfiguration);
+            ApplyConfig(sender as ConsulClientConfiguration, HttpHandler, HttpClient);
 
         }
-        void ApplyConfig(ConsulClientConfiguration config)
+#if !CORECLR
+        void ApplyConfig(ConsulClientConfiguration config, WebRequestHandler handler, HttpClient client)
+#else
+        void ApplyConfig(ConsulClientConfiguration config, HttpClientHandler handler, HttpClient client)
+#endif        
         {
-            var handler = HttpHandler;
+#pragma warning disable CS0618 // Type or member is obsolete
             if (config.HttpAuth != null)
+#pragma warning restore CS0618 // Type or member is obsolete
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 handler.Credentials = config.HttpAuth;
+#pragma warning restore CS0618 // Type or member is obsolete
             }
 #if !__MonoCS__
             if (config.ClientCertificateSupported)
@@ -694,11 +896,11 @@ namespace Consul
 
             if (!string.IsNullOrEmpty(config.Token))
             {
-                if (HttpClient.DefaultRequestHeaders.Contains("X-Consul-Token"))
+                if (client.DefaultRequestHeaders.Contains("X-Consul-Token"))
                 {
-                    HttpClient.DefaultRequestHeaders.Remove("X-Consul-Token");
+                    client.DefaultRequestHeaders.Remove("X-Consul-Token");
                 }
-                HttpClient.DefaultRequestHeaders.Add("X-Consul-Token", Config.Token);
+                client.DefaultRequestHeaders.Add("X-Consul-Token", config.Token);
             }
         }
 
