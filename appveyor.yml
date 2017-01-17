@@ -22,6 +22,7 @@ install:
     $consul_url = "https://releases.hashicorp.com/consul/$($env:CONSUL_VERSION)/$consul_zip"
     if (!(test-path "c:\consul_install\$consul_zip")) {
       write-output "Downloading $consul_url"
+      [Net.ServicePointManager]::SecurityProtocol = 'Tls12'
       Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"
     } else {write-output "Using cached $consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
