@@ -159,30 +159,6 @@ namespace Consul.Test
         }
 
         [Fact]
-        public async Task Client_Reconfigure()
-        {
-            using (var client = new ConsulClient(c => c.Token = "anonymous", null, null, true))
-            {
-                var p = await client.KV.Put(new KVPair("reconfigure_test") { Value = System.Text.Encoding.UTF8.GetBytes("foo") });
-                var k = await client.KV.Get("reconfigure_test");
-
-                Assert.Equal(System.Text.Encoding.UTF8.GetBytes("foo"), k.Response.Value);
-
-                var q = client.KV.Get("reconfigure_test", new QueryOptions() { WaitIndex = k.LastIndex });
-
-                client.Reconfigure(c => c.Token = ACLTest.ConsulRoot, null, null);
-
-                await Assert.ThrowsAsync<TaskCanceledException>(() => q);
-
-                q = client.KV.Get("reconfigure_test", new QueryOptions() { WaitIndex = k.LastIndex });
-                await client.KV.Put(new KVPair("reconfigure_test") { Value = System.Text.Encoding.UTF8.GetBytes("bar") });
-
-                Assert.Equal(System.Text.Encoding.UTF8.GetBytes("bar"), (await q).Response.Value);
-                await client.KV.Delete("reconfigure_test");
-            }
-        }
-
-        [Fact]
         public async Task Client_ReuseAndUpdateConfig()
         {
             var config = new ConsulClientConfiguration();

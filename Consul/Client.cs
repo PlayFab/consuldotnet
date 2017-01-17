@@ -477,6 +477,11 @@ namespace Consul
     /// </summary>
     public partial class ConsulClient : IDisposable
     {
+
+        /// <summary>
+        /// This class is used to group all the configurable bits of a ConsulClient into a single pointer reference
+        /// which is great for implementing reconfiguration later.
+        /// </summary>
         private class ConsulClientConfigurationContainer
         {
 
@@ -488,14 +493,6 @@ namespace Consul
             internal readonly WebRequestHandler HttpHandler;
 #endif
             public readonly ConsulClientConfiguration Config;
-
-            private Action<ConsulClientConfiguration> _configOverride;
-            private Action<HttpClient> _clientOverride;
-#if CORECLR
-            private Action<HttpClientHandler> _handlerOverride;
-#else
-            private Action<WebRequestHandler> _handlerOverride;
-#endif
 
             public ConsulClientConfigurationContainer()
             {
@@ -533,33 +530,6 @@ namespace Consul
                 HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
             }
             #endregion
-
-#if CORECLR
-            internal void SaveOverrides(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
-#else
-            internal void SaveOverrides(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
-#endif
-            {
-                _configOverride = configOverride;
-                _clientOverride = clientOverride;
-                _handlerOverride = handlerOverride;
-            }
-
-            internal void ApplySavedConfigOverride()
-            {
-                _configOverride?.Invoke(Config);
-            }
-
-            internal void ApplySavedClientOverride()
-            {
-                _clientOverride?.Invoke(HttpClient);
-            }
-
-            internal void ApplySavedHandlerOverride()
-            {
-                _handlerOverride?.Invoke(HttpHandler);
-            }
-
 
             #region IDisposable Support
             private bool disposedValue = false; // To detect redundant calls
@@ -650,18 +620,13 @@ namespace Consul
         /// <param name="configOverride">The Action to modify the default configuration with</param>
         /// <param name="clientOverride">The Action to modify the HttpClient with</param>
         /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
-        /// <param name="saveOverrides">Caches all override actions to be applied when Reconfigure is called</param>
 #if !CORECLR
-        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride, bool saveOverrides = false)
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
 #else
-        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride, bool saveOverrides = false)
+        public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
 #endif
         {
             var ctr = new ConsulClientConfigurationContainer();
-            if (saveOverrides)
-            {
-                ctr.SaveOverrides(configOverride, clientOverride, handlerOverride);
-            }
 
             configOverride?.Invoke(ctr.Config);
             ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
@@ -671,67 +636,6 @@ namespace Consul
             ConfigContainer = ctr;
 
             InitializeEndpoints();
-        }
-        #endregion
-
-        #region Reconfiguration
-        /// <summary>
-        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
-        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
-        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
-        /// active requests because it disposes of the HTTPClient.
-        /// </summary>
-        /// <param name="configOverride">The Action to modify the default configuration with</param>
-        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
-
-        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, bool deleteSavedOverrides = false)
-        {
-            Reconfigure(configOverride, null, null, deleteSavedOverrides);
-        }
-
-        /// <summary>
-        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
-        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
-        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
-        /// active requests because it disposes of the HTTPClient.
-        /// </summary>
-        /// <param name="configOverride">The Action to modify the default configuration with</param>
-        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
-        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
-
-        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, bool deleteSavedOverrides = false)
-        {
-            Reconfigure(configOverride, clientOverride, null, deleteSavedOverrides);
-        }
-
-        /// <summary>
-        /// Creates a new set of configuration properties of an existing ConsulClient in a thread-safe manner. If saveOverrides was true
-        /// when the client was constructed, and Reconfigure with deleteSavedOverrides has not been called previously for this
-        /// client, all original override Actions from construction will be re-executed. WARNING: Reconfiguring cancels all currently
-        /// active requests because it disposes of the HTTPClient.
-        /// </summary>
-        /// <param name="configOverride">The Action to modify the default configuration with</param>
-        /// <param name="clientOverride">The Action to modify the HttpClient with</param>
-        /// <param name="handlerOverride">The Action to modify the WebRequestHandler with</param>
-        /// <param name="deleteSavedOverrides">Clears saved overrides if they were set</param>
-#if !CORECLR
-        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride, bool deleteSavedOverrides = false)
-#else
-        public void Reconfigure(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride, bool deleteSavedOverrides = false)
-#endif
-        {
-            var ctr = new ConsulClientConfigurationContainer();
-            ctr.ApplySavedClientOverride();
-            configOverride?.Invoke(ctr.Config);
-            ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
-            ctr.ApplySavedHandlerOverride();
-            handlerOverride?.Invoke(ctr.HttpHandler);
-            ctr.ApplySavedClientOverride();
-            clientOverride?.Invoke(ctr.HttpClient);
-
-            var oldCtr = ConfigContainer;
-            ConfigContainer = ctr;
-            oldCtr.Dispose();
         }
         #endregion
 
