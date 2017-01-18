@@ -1,10 +1,12 @@
 version: 0.7.2.{build}-{branch}
+pull_requests:
+  do_not_increment_build_number: true
+nuget:
+  disable_publish_on_pr: true
 configuration: Release
 platform: Any CPU
 clone_depth: 1
 clone_folder: C:\consul
-init:
-- if "%APPVEYOR_REPO_TAG%" == "true" set APPVEYOR_BUILD_VERSION=%APPVEYOR_REPO_TAG_NAME%
 assembly_info:
   patch: true
   file: '**\AssemblyInfo.*'
@@ -12,6 +14,7 @@ assembly_info:
   assembly_file_version: $(APPVEYOR_BUILD_VERSION)
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:
+  CONSUL_BIN: c:\consul\consul.test\consul.exe
   CONSUL_VERSION: 0.7.2
   CLI_VERSION: Latest
 install:
@@ -30,15 +33,15 @@ cache:
 - C:\ProgramData\chocolatey\bin -> appveyor.yml
 - C:\ProgramData\chocolatey\lib -> appveyor.yml
 - C:\consul_install -> appveyor.yml
-- packages -> **\packages.config
 - '%USERPROFILE%\.nuget\packages -> **\project.json'
-nuget:
-  disable_publish_on_pr: true
+init:
+- if "%APPVEYOR_REPO_TAG%" == "true" set APPVEYOR_BUILD_VERSION=%APPVEYOR_REPO_TAG_NAME%
+- ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(4, "0")
 before_build:
 - dotnet --info
-- dotnet restore
+- appveyor-retry dotnet restore
 build_script:
-- dotnet --verbose build Consul --configuration Release
+- dotnet --verbose build Consul --configuration %CONFIGURATION% --no-dependencies
 - cmd: |-
     move %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45 %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
     cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
@@ -46,7 +49,7 @@ build_script:
     cd %APPVEYOR_BUILD_FOLDER%
     del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
 after_build:
-- dotnet --verbose pack Consul --configuration Release
+- dotnet --verbose pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o artifacts
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
@@ -70,7 +73,8 @@ after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
 artifacts:
-- path: '**\*.nupkg'
+- path: .\artifacts\**\*.*
+  name: NuGet
 deploy:
 - provider: NuGet
   api_key:
