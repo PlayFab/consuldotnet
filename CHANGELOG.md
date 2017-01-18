@@ -12,6 +12,11 @@
   query parameter. This may break use of ACLs with very old Consuls (<
   0.6.0). Please file an issue if this breaks for you.
 
+## 2017-01-17
+* Fixed up a few leaking tasks in Sessions, Locks and Semaphores, as well as
+  properly waiting for the previously-leaked tasks to complete.
+  Also made some tasks Long Running in the TPL sense.
+
 ## 2017-01-03 (0.7.2.0)
 * New APIs ported:
   * Snapshot API. Requires >= Consul 0.7.1 to use.
