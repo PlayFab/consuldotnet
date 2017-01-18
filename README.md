@@ -160,7 +160,7 @@ Election](https://consul.io/docs/guides/leader-election.html) guide.
 ### Semaphore
 
 Semaphore is used to implement a distributed semaphore using the Consul
-KV primitives. It is an implementaiton of the [Consul Semaphore
+KV primitives. It is an implementation of the [Consul Semaphore
 ](https://www.consul.io/docs/guides/semaphore.html) guide.
 
 ## Using with .NET Core and Mono
