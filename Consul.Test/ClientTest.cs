@@ -40,9 +40,11 @@ namespace Consul.Test
 
             Assert.Equal(addr, string.Format("{0}:{1}", config.Address.Host, config.Address.Port));
             Assert.Equal(token, config.Token);
+#pragma warning disable CS0618 // Type or member is obsolete
             Assert.NotNull(config.HttpAuth);
             Assert.Equal("username", config.HttpAuth.UserName);
             Assert.Equal("password", config.HttpAuth.Password);
+#pragma warning restore CS0618 // Type or member is obsolete
             Assert.Equal("https", config.Address.Scheme);
 
             Environment.SetEnvironmentVariable("CONSUL_HTTP_ADDR", string.Empty);

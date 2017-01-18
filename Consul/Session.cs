@@ -189,7 +189,7 @@ namespace Consul
         /// <param name="ct">The CancellationToken used to stop the session from being renewed (e.g. when the long-running action completes)</param>
         public Task RenewPeriodic(TimeSpan initialTTL, string id, WriteOptions q, CancellationToken ct)
         {
-            return Task.Run(async () =>
+            return Task.Factory.StartNew(async () =>
             {
                 if (q == null)
                 {
@@ -244,7 +244,7 @@ namespace Consul
                         await _client.Session.Destroy(id).ConfigureAwait(false);
                     }
                 }
-            });
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
 
         /// <summary>

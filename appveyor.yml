@@ -22,6 +22,7 @@ install:
     $consul_url = "https://releases.hashicorp.com/consul/$($env:CONSUL_VERSION)/$consul_zip"
     if (!(test-path "c:\consul_install\$consul_zip")) {
       write-output "Downloading $consul_url"
+      [Net.ServicePointManager]::SecurityProtocol = 'Tls12'
       Invoke-WebRequest $consul_url -OutFile "c:\consul_install\$consul_zip"
     } else {write-output "Using cached $consul_zip"}
     7z x -y c:\consul_install\$consul_zip -oc:\consul\consul.test
@@ -44,6 +45,7 @@ build_script:
     %USERPROFILE%\.nuget\packages\ILRepack\2.0.10\tools\ILRepack.exe /keyfile:%APPVEYOR_BUILD_FOLDER%\assets\consuldotnet.snk /parallel /internalize /out:%APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45\Consul.dll Consul.dll Newtonsoft.Json.dll
     cd %APPVEYOR_BUILD_FOLDER%
     del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
+after_build:
 - dotnet --verbose pack Consul --configuration Release
 before_test:
 - ps: >-
