@@ -21,10 +21,7 @@
         "portable-net45+win8"
       ],
       "buildOptions": {
-        "compile": {
-          "excludeFiles": [
-          ]
-        },
+        "debugType": "portable",
         "define": [ "CORECLR" ],
         "keyFile": "../assets/consuldotnet.snk",
         "publicSign": true

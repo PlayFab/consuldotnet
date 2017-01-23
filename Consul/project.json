@@ -30,6 +30,7 @@
       "buildOptions": {
         "define": [ "CORECLR" ],
         "keyFile": "../assets/consuldotnet.snk",
+        "debugType": "portable",
         "publicSign": true
       }
     },
