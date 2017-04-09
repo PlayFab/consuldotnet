@@ -47,5 +47,7 @@ namespace Consul
         Task<WriteResult> UpdateTTL(string checkID, string output, TTLStatus status, CancellationToken ct = default(CancellationToken));
         Task WarnTTL(string checkID, string note, CancellationToken ct = default(CancellationToken));
         Task<Agent.LogStream> Monitor(LogLevel level = default(LogLevel), CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> Leave(string node, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> Reload(string node, CancellationToken ct = default(CancellationToken));
     }
 }
