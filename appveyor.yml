@@ -42,7 +42,7 @@ before_build:
 - appveyor-retry dotnet restore Consul
 - appveyor-retry dotnet restore Consul.Test
 build_script:
-- dotnet --verbose build Consul --configuration %CONFIGURATION% --no-dependencies
+- dotnet build Consul --configuration %CONFIGURATION% --no-dependencies
 - cmd: |-
     move %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45 %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
     cd %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
@@ -50,7 +50,7 @@ build_script:
     cd %APPVEYOR_BUILD_FOLDER%
     del /s /q %APPVEYOR_BUILD_FOLDER%\Consul\bin\release\net45unmerged
 after_build:
-- dotnet --verbose pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o artifacts
+- dotnet pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o artifacts
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
@@ -68,8 +68,8 @@ before_test:
 
     Receive-Job $consulJob
 test_script:
-- dotnet --verbose build Consul.Test --configuration Release
-- dotnet --verbose test Consul.Test --configuration Release
+- dotnet build Consul.Test --configuration Release
+- dotnet test Consul.Test --configuration Release
 after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
