@@ -39,7 +39,8 @@ init:
 - ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(4, "0")
 before_build:
 - dotnet --info
-- appveyor-retry dotnet restore
+- appveyor-retry dotnet restore Consul
+- appveyor-retry dotnet restore Consul.Test
 build_script:
 - dotnet --verbose build Consul --configuration %CONFIGURATION% --no-dependencies
 - cmd: |-
