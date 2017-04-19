@@ -69,7 +69,7 @@ before_test:
     Receive-Job $consulJob
 test_script:
 - dotnet build Consul.Test --configuration Release
-- dotnet test Consul.Test --configuration Release
+- dotnet test Consul.Test/Consul.Test.csproj --configuration Release
 after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
