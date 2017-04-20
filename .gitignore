@@ -199,3 +199,4 @@ NuGet.exe
 # Net Core files
 .vs
 project.lock.json
+.vscode/
