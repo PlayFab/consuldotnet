@@ -1,5 +1,7 @@
 # Consul.NET
 
+[![Join the chat at https://gitter.im/PlayFab/consuldotnet](https://badges.gitter.im/PlayFab/consuldotnet.svg)](https://gitter.im/PlayFab/consuldotnet?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/PlayFab/consuldotnet?branch=master&svg=true)](https://ci.appveyor.com/project/highlyunavailable/consuldotnet)
 
 * Consul API: [v0.7.2](https://github.com/hashicorp/consul/tree/v0.7.2/api)
