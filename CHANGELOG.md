@@ -12,6 +12,11 @@
   query parameter. This may break use of ACLs with very old Consuls (<
   0.6.0). Please file an issue if this breaks for you.
 
+## 2017-04-24
+* Fixed a NullReferenceException when attempting to acquire a lock with
+  a timeout and the timeout expires.
+* Added a couple missing methods to the interface for IAgentEndpoint.
+
 ## 2017-01-17
 * Fixed up a few leaking tasks in Sessions, Locks and Semaphores, as well as
   properly waiting for the previously-leaked tasks to complete.
