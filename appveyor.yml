@@ -74,7 +74,7 @@ after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
 artifacts:
-- path: .\artifacts\**\*.*
+- path: **\artifacts\**\*.*
   name: NuGet
 deploy:
 - provider: NuGet
