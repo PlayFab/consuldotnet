@@ -202,7 +202,7 @@ namespace Consul
                 {
                     consulAddress.Host = addrParts[0];
                 }
-                if (!string.IsNullOrEmpty(addrParts[1]))
+                if (addrParts.Length > 1 && !string.IsNullOrEmpty(addrParts[1]))
                 {
                     try
                     {
