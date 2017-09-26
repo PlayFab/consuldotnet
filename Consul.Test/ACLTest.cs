@@ -116,5 +116,17 @@ namespace Consul.Test
             Assert.NotEqual(TimeSpan.Zero, aclList.RequestTime);
             Assert.True(aclList.Response.Length >= 2);
         }
+
+        [Fact]
+        public async Task ACL_Replication()
+        {
+            using (var client = new ConsulClient((c) => { c.Token = ConsulRoot; }))
+            {
+                var status = await client.ACL.Replication();
+                Assert.NotNull(status.Response);
+                Assert.False(status.Response.Running);
+                Assert.False(status.Response.Enabled);
+            }
+        }
     }
 }

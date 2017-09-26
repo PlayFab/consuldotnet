@@ -129,6 +129,20 @@ namespace Consul
     }
 
     /// <summary>
+    /// ACLReplicationStatus is used to represent the status of ACL replication.
+    /// </summary>
+    public class ACLReplicationStatus
+    {
+        public bool Enabled { get; set; }
+        public bool Running { get; set; }
+        public string SourceDatacenter { get; set; }
+        public ulong ReplicatedIndex { get; set; }
+        public DateTime LastSuccess { get; set; }
+        public DateTime LastError { get; set; }
+
+    }
+
+    /// <summary>
     /// ACL can be used to query the ACL endpoints
     /// </summary>
     public class ACL : IACLEndpoint
@@ -144,6 +158,28 @@ namespace Consul
         {
             [JsonProperty]
             internal string ID { get; set; }
+        }
+
+        /// <summary>
+        /// Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
+        /// to get the first management token.
+        /// </summary>
+        /// <returns>A write result containing the newly created ACL token</returns>
+        public Task<WriteResult<string>> Bootstrap(CancellationToken ct = default(CancellationToken))
+        {
+            return Bootstrap(WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
+        /// to get the first management token.
+        /// </summary>
+        /// <param name="q">Customized write options</param>
+        /// <returns>A write result containing the newly created ACL token</returns>
+        public async Task<WriteResult<string>> Bootstrap(WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var res = await _client.PutReturning<ACLCreationResult>("/v1/acl/bootstrap", q).Execute(ct).ConfigureAwait(false);
+            return new WriteResult<string>(res, res.Response.ID);
         }
 
         /// <summary>
@@ -273,6 +309,26 @@ namespace Consul
         public Task<QueryResult<ACLEntry[]>> List(QueryOptions q, CancellationToken ct = default(CancellationToken))
         {
             return _client.Get<ACLEntry[]>("/v1/acl/list", q).Execute(ct);
+        }
+        
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <returns>A write result containing the list of all ACLs</returns>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(CancellationToken ct = default(CancellationToken))
+        {
+            return Replication(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <param name="q">Customized query options</param>
+        /// <param name="ct">Cancellation token for long poll request. If set, OperationCanceledException will be thrown if the request is cancelled before completing</param>
+        /// <returns>A write result containing the list of all ACLs</returns>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<ACLReplicationStatus>("/v1/acl/replication", q).Execute(ct);
         }
     }
 
