@@ -31,37 +31,45 @@ namespace Consul
         [JsonProperty(PropertyName = "Node")]
         public string Name { get; set; }
         public string Address { get; set; }
+        public string Datacenter { get; set; }
         public Dictionary<string, string> TaggedAddresses { get; set; }
+        public Dictionary<string, string> Meta { get; set; }
+        public ulong CreateIndex { get; set; }
+        public ulong ModifyIndex { get; set; }
     }
 
     public class CatalogService
     {
+        public string ID { get; set; }
         public string Node { get; set; }
         public string Address { get; set; }
+        public string Datacenter { get; set; }
+        public Dictionary<string, string> TaggedAddresses { get; set; }
+        public Dictionary<string, string> Meta { get; set; }
         public string ServiceID { get; set; }
         public string ServiceName { get; set; }
         public string ServiceAddress { get; set; }
         public string[] ServiceTags { get; set; }
         public int ServicePort { get; set; }
         public bool ServiceEnableTagOverride { get; set; }
+        public ulong CreateIndex { get; set; }
+        public ulong ModifyIndex { get; set; }
     }
 
     public class CatalogNode
     {
         public Node Node { get; set; }
-        public Dictionary<string, AgentService> Services { get; set; }
-
-        public CatalogNode()
-        {
-            Services = new Dictionary<string, AgentService>();
-        }
+        public Dictionary<string, AgentService> Services { get; set; } = new Dictionary<string, AgentService>();
     }
 
     public class CatalogRegistration
     {
+        public string ID { get; set; }
         public string Node { get; set; }
         public string Address { get; set; }
         public string Datacenter { get; set; }
+        public Dictionary<string, string> TaggedAddresses { get; set; }
+        public Dictionary<string, string> NodeMeta { get; set; }
         public AgentService Service { get; set; }
         public AgentCheck Check { get; set; }
     }

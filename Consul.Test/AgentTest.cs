@@ -17,6 +17,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -502,17 +503,32 @@ namespace Consul.Test
         {
             using (var client = new ConsulClient())
             {
-                var logs = await client.Agent.Monitor(LogLevel.Trace);
+                var cts = new CancellationTokenSource();
+                var logs = await client.Agent.Monitor(LogLevel.Trace, cts.Token);
                 var counter = 0;
-                var successToken = new CancellationTokenSource();
-                var failTask = Task.Delay(5000, successToken.Token).ContinueWith(x => Assert.True(false, "Failed to finish reading logs in time"));
-                foreach (var line in logs)
+                var failTask = Task.Run(async delegate { await Task.Delay(5000, cts.Token); cts.Cancel(); });
+                var readTask = Task.Run(async delegate
                 {
-                    Assert.False(string.IsNullOrEmpty(await line));
-                    counter++;
-                    if (counter > 5) { break; }
+                    foreach (var line in logs)
+                    {
+                        if (cts.IsCancellationRequested) break;
+                        var text = await line;
+                        Assert.False(string.IsNullOrEmpty(text));
+                        counter++;
+                        if (text.Contains("Request GET /v1/agent/monitor"))
+                        {
+                            cts.Cancel();
+                            break;
+                        }
+                    }
+                });
+
+                Task.WaitAny(failTask, readTask);
+
+                if (failTask.Status == TaskStatus.RanToCompletion)
+                {
+                    Assert.True(false, "Failed to finish reading logs in time");
                 }
-                successToken.Cancel();
                 logs.Dispose();
             }
         }

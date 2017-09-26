@@ -78,6 +78,7 @@ namespace Consul
         private static readonly KVTxnVerb kvGetTreeOp = new KVTxnVerb() { Operation = "get-tree" };
         private static readonly KVTxnVerb kvCheckSessionOp = new KVTxnVerb() { Operation = "check-session" };
         private static readonly KVTxnVerb kvCheckIndexOp = new KVTxnVerb() { Operation = "check-index" };
+        private static readonly KVTxnVerb kvCheckNotExistsOp = new KVTxnVerb() { Operation = "check-not-exists" };
 
         public static KVTxnVerb Set { get { return kvSetOp; } }
         public static KVTxnVerb Delete { get { return kvDeleteOp; } }
@@ -90,6 +91,7 @@ namespace Consul
         public static KVTxnVerb GetTree { get { return kvGetTreeOp; } }
         public static KVTxnVerb CheckSession { get { return kvCheckSessionOp; } }
         public static KVTxnVerb CheckIndex { get { return kvCheckIndexOp; } }
+        public static KVTxnVerb CheckNotExists { get { return kvCheckNotExistsOp; } }
 
         public string Operation { get; private set; }
 
@@ -144,6 +146,8 @@ namespace Consul
                 case "check-session":
                     return KVTxnVerb.CheckSession;
                 case "check-index":
+                    return KVTxnVerb.CheckIndex;
+                case "check-not-exists":
                     return KVTxnVerb.CheckIndex;
                 default:
                     throw new ArgumentException("Invalid KVTxnOpType value during deserialization");

@@ -167,6 +167,76 @@ namespace Consul
     }
 
     /// <summary>
+    /// MembersOpts is used for querying member information.
+    /// </summary>
+    public class MembersOpts
+    {
+        /// <summary>
+        /// AllSegments is used to select for all segments in MembersOpts.
+        /// </summary>
+        public const string AllSegments = "_all";
+
+        /// <summary>
+        /// WAN is whether to show members from the WAN.
+        /// </summary>
+        public bool WAN { get; set; }
+
+        /// <summary>
+        /// Segment is the LAN segment to show members for. Setting this to the
+        /// MembersOpts.AllSegments value will show members in all segments.
+        /// </summary>
+        public string Segment { get; set; }
+    }
+
+    /// <summary>
+    /// Metrics info is used to store different types of metric values from the agent.
+    /// </summary>
+    public class MetricsInfo
+    {
+        public string Timestamp { get; set; }
+        public GaugeValue[] Gauges { get; set; }
+        public PointValue[] Points { get; set; }
+        public SampledValue[] Counters { get; set; }
+        public SampledValue[] Samples { get; set; }
+    }
+
+    /// <summary>
+    /// GaugeValue stores one value that is updated as time goes on, such as
+    /// the amount of memory allocated.
+    /// </summary>
+    public class GaugeValue
+    {
+        public string Name { get; set; }
+        public float Value { get; set; }
+        public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// PointValue holds a series of points for a metric.
+    /// </summary>
+    public class PointValue
+    {
+        public string Name { get; set; }
+        public float[] Points { get; set; }
+    }
+
+    /// <summary>
+    /// SampledValue stores info about a metric that is incremented over time,
+    /// such as the number of requests to an HTTP endpoint.
+    /// </summary>
+    public class SampledValue
+    {
+        public string Name { get; set; }
+        public int Count { get; set; }
+        public double Sum { get; set; }
+        public double Min { get; set; }
+        public double Max { get; set; }
+        public double Mean { get; set; }
+        public double Stddev { get; set; }
+        public Dictionary<string, string> Labels { get; set; } = new Dictionary<string, string>();
+    }
+
+    /// <summary>
     /// AgentServiceRegistration is used to register a new service
     /// </summary>
     public class AgentServiceRegistration
@@ -282,9 +352,18 @@ namespace Consul
     {
         private class CheckUpdate
         {
+            [JsonProperty]
             public string Status { get; set; }
+            [JsonProperty]
             public string Output { get; set; }
         }
+
+        private class AgentToken
+        {
+            [JsonProperty]
+            internal string Token { get; set; }
+        }
+
         private readonly ConsulClient _client;
         private string _nodeName;
         private readonly AsyncLock _nodeNameLock;
@@ -305,15 +384,22 @@ namespace Consul
         }
 
         /// <summary>
-        /// NodeName is used to get the node name of the agent
+        /// Metrics is used to query the agent we are speaking to for
+        /// its current internal metric data
         /// </summary>
-        [Obsolete("This property will be removed in 0.8.0. Replace uses of it with a call to 'await GetNodeName()'")]
-        public string NodeName
+        /// <returns>A metrics result object with the current agent metrics at the time of the request.</returns>
+        public Task<QueryResult<MetricsInfo>> Metrics(CancellationToken ct = default(CancellationToken))
         {
-            get
-            {
-                return GetNodeName().ConfigureAwait(false).GetAwaiter().GetResult();
-            }
+            return _client.Get<MetricsInfo>("/v1/agent/metrics").Execute(ct);
+        }
+
+        /// <summary>
+        /// Reload triggers a configuration reload for the agent we are connected to.
+        /// </summary>
+        /// <returns>A metrics result object with the current agent metrics at the time of the request.</returns>
+        public Task<WriteResult> Reload(CancellationToken ct = default(CancellationToken))
+        {
+            return _client.PutNothing("/v1/agent/reload").Execute(ct);
         }
 
         /// <summary>
@@ -368,6 +454,21 @@ namespace Consul
         }
 
         /// <summary>
+        /// Members with a MembersOpts returns the known gossip members and can be passed additional options for WAN/segment filtering.
+        /// </summary>
+        /// <returns>An array of gossip peers</returns>
+        public Task<QueryResult<AgentMember[]>> Members(MembersOpts opts, CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Get<AgentMember[]>("/v1/agent/members");
+            req.Params["segment"] = opts.Segment ?? string.Empty;
+            if (opts.WAN)
+            {
+                req.Params["wan"] = "1";
+            }
+            return req.Execute(ct);
+        }
+
+        /// <summary>
         /// ServiceRegister is used to register a new service with the local agent
         /// </summary>
         /// <param name="service">A service registration object</param>
@@ -392,6 +493,7 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
+        [Obsolete("This method is deprecated in favor of UpdateTTL()", true)]
         public Task PassTTL(string checkID, string note, CancellationToken ct = default(CancellationToken))
         {
             return LegacyUpdateTTL(checkID, note, TTLStatus.Pass, ct);
@@ -402,6 +504,7 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
+        [Obsolete("This method is deprecated in favor of UpdateTTL()", true)]
         public Task WarnTTL(string checkID, string note, CancellationToken ct = default(CancellationToken))
         {
             return LegacyUpdateTTL(checkID, note, TTLStatus.Warn, ct);
@@ -412,6 +515,7 @@ namespace Consul
         /// </summary>
         /// <param name="checkID">The check ID</param>
         /// <param name="note">An optional, arbitrary string to write to the check status</param>
+        [Obsolete("This method is deprecated in favor of UpdateTTL()", true)]
         public Task FailTTL(string checkID, string note, CancellationToken ct = default(CancellationToken))
         {
             return LegacyUpdateTTL(checkID, note, TTLStatus.Critical, ct);
@@ -479,18 +583,7 @@ namespace Consul
             }
             return req.Execute(ct);
         }
-
-        /// <summary>
-        /// ForceLeave is used to have the agent eject a failed node
-        /// </summary>
-        /// <param name="node">The node name to remove. An attempt to eject a node that doesn't exist will still be successful</param>
-        /// <returns>An empty write result</returns>
-        public Task<WriteResult> ForceLeave(string node, CancellationToken ct = default(CancellationToken))
-        {
-            return _client.PutNothing(string.Format("/v1/agent/force-leave/{0}", node)).Execute(ct);
-        }
-
-
+        
         /// <summary>
         /// Leave is used to have the agent gracefully leave the cluster and shutdown
         /// </summary>
@@ -501,12 +594,13 @@ namespace Consul
         }
 
         /// <summary>
-        /// Reload triggers a configuration reload for the agent we are connected to.
+        /// ForceLeave is used to have the agent eject a failed node
         /// </summary>
+        /// <param name="node">The node name to remove. An attempt to eject a node that doesn't exist will still be successful</param>
         /// <returns>An empty write result</returns>
-        public Task<WriteResult> Reload(string node, CancellationToken ct = default(CancellationToken))
+        public Task<WriteResult> ForceLeave(string node, CancellationToken ct = default(CancellationToken))
         {
-            return _client.PutNothing("/v1/agent/reload").Execute(ct);
+            return _client.PutNothing(string.Format("/v1/agent/force-leave/{0}", node)).Execute(ct);
         }
 
         /// <summary>

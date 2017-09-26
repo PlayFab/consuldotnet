@@ -36,8 +36,7 @@ namespace Consul
         Task<WriteResult> ForceLeave(string node, CancellationToken ct = default(CancellationToken));
         Task<WriteResult> Join(string addr, bool wan, CancellationToken ct = default(CancellationToken));
         Task<QueryResult<AgentMember[]>> Members(bool wan, CancellationToken ct = default(CancellationToken));
-        [Obsolete("This property will be removed in 0.8.0. Replace uses of it with a call to GetNodeName()")]
-        string NodeName { get; }
+        Task<QueryResult<AgentMember[]>> Members(MembersOpts opts, CancellationToken ct = default(CancellationToken));
         Task<string> GetNodeName(CancellationToken ct = default(CancellationToken));
         Task PassTTL(string checkID, string note, CancellationToken ct = default(CancellationToken));
         Task<QueryResult<Dictionary<string, Dictionary<string, dynamic>>>> Self(CancellationToken ct = default(CancellationToken));
@@ -48,6 +47,7 @@ namespace Consul
         Task WarnTTL(string checkID, string note, CancellationToken ct = default(CancellationToken));
         Task<Agent.LogStream> Monitor(LogLevel level = default(LogLevel), CancellationToken ct = default(CancellationToken));
         Task<WriteResult> Leave(string node, CancellationToken ct = default(CancellationToken));
-        Task<WriteResult> Reload(string node, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> Reload(CancellationToken ct = default(CancellationToken));
+        Task<QueryResult<MetricsInfo>> Metrics(CancellationToken ct = default(CancellationToken));
     }
 }

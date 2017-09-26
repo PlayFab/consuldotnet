@@ -712,42 +712,5 @@ namespace Consul
             }
 
         }
-        /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
-        /// </summary>
-        /// <param name="key"></param>
-        /// <param name="ct"></param>
-        /// <param name="action"></param>
-        /// <returns></returns>
-        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(string, Action, CancellationToken)")]
-        public Task ExecuteLocked(string key, CancellationToken ct, Action action)
-        {
-            if (string.IsNullOrEmpty(key))
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
-            if (action == null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
-            return ExecuteLocked(new LockOptions(key), action, ct);
-        }
-
-        /// <summary>
-        /// ExecuteLock accepts a delegate to execute in the context of a lock, releasing the lock when completed.
-        /// </summary>
-        /// <param name="opts"></param>
-        /// <param name="ct"></param>
-        /// <param name="action"></param>
-        /// <returns></returns>
-        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(LockOptions, Action, CancellationToken)")]
-        public Task ExecuteLocked(LockOptions opts, CancellationToken ct, Action action)
-        {
-            if (opts == null)
-            {
-                throw new ArgumentNullException(nameof(opts));
-            }
-            return ExecuteLocked(opts, action, ct);
-        }
     }
 }

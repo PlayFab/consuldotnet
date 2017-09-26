@@ -19,11 +19,7 @@ namespace Consul
         Task ExecuteInSemaphore(SemaphoreOptions opts, Action a, CancellationToken ct = default(CancellationToken));
         Task ExecuteInSemaphore(string prefix, int limit, Action a, CancellationToken ct = default(CancellationToken));
         Task ExecuteLocked(LockOptions opts, Action action, CancellationToken ct = default(CancellationToken));
-        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(LockOptions, Action, CancellationToken)")]
-        Task ExecuteLocked(LockOptions opts, CancellationToken ct, Action action);
         Task ExecuteLocked(string key, Action action, CancellationToken ct = default(CancellationToken));
-        [Obsolete("This method will be removed in 0.8.0. Replace calls with the method signature ExecuteLocked(string, Action, CancellationToken)")]
-        Task ExecuteLocked(string key, CancellationToken ct, Action action);
         IHealthEndpoint Health { get; }
         IKVEndpoint KV { get; }
         IRawEndpoint Raw { get; }

@@ -26,6 +26,7 @@ namespace Consul
     public class CoordinateEntry
     {
         public string Node { get; set; }
+        public string Segment { get; set; }
         public SerfCoordinate Coord { get; set; }
     }
 
