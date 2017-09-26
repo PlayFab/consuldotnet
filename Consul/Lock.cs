@@ -243,13 +243,14 @@ namespace Consul
                     {
                         if (attempts > 0 && Opts.LockTryOnce)
                         {
+                            DisposeCancellationTokenSource();
                             throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held.");
                         }
 
                         attempts++;
 
                         var elapsed = DateTime.UtcNow.Subtract(start);
-                        if (elapsed > qOpts.WaitTime)
+                        if (elapsed > qOpts.WaitTime && !Opts.LockTryOnce)
                         {
                             DisposeCancellationTokenSource();
                             throw new LockMaxAttemptsReachedException("The lock is already held and the timeout has been reached");
