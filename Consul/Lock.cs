@@ -249,7 +249,7 @@ namespace Consul
                                 DisposeCancellationTokenSource();
                                 throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
                             }
-                            qOpts.WaitTime -= elapsed;
+                            qOpts.WaitTime = Opts.LockWaitTime - elapsed;
                         }
 
                         attempts++;
