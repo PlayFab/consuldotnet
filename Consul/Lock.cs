@@ -243,16 +243,18 @@ namespace Consul
                     {
                         if (attempts > 0 && Opts.LockTryOnce)
                         {
-                            var elapsed = DateTime.UtcNow.Subtract(start);
-                            if (elapsed > qOpts.WaitTime)
-                            {
-                                DisposeCancellationTokenSource();
-                                throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held or lock delay is in effect");
-                            }
-                            qOpts.WaitTime -= elapsed;
+                            DisposeCancellationTokenSource();
+                            throw new LockMaxAttemptsReachedException("LockTryOnce is set and the lock is already held.");
                         }
 
                         attempts++;
+
+                        var elapsed = DateTime.UtcNow.Subtract(start);
+                        if (elapsed > qOpts.WaitTime && !Opts.LockTryOnce)
+                        {
+                            DisposeCancellationTokenSource();
+                            throw new LockMaxAttemptsReachedException("The lock is already held and the timeout has been reached");
+                        }
 
                         QueryResult<KVPair> pair;
 
