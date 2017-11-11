@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.0;net452</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0;netcoreapp1.0;net452</TargetFrameworks>
     <AssemblyName>Consul.Test</AssemblyName>
     <PackageId>Consul.Test</PackageId>
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
@@ -32,9 +32,20 @@
   <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">
     <PackageReference Include="System.Net.Requests" Version="4.3.0" />
   </ItemGroup>
+  
+  <ItemGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <PackageReference Include="System.Net.Requests" Version="4.3.0" />
+  </ItemGroup>
 
   <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">
     <DefineConstants>$(DefineConstants);CORECLR</DefineConstants>
+    <PublicSign>true</PublicSign>
+    <AssemblyOriginatorKeyFile>../assets/consuldotnet.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  
+  <PropertyGroup Condition=" '$(TargetFramework)' == 'netcoreapp2.0' ">
+    <DefineConstants>$(DefineConstants);CORECLR;NETCORE2</DefineConstants>
     <PublicSign>true</PublicSign>
     <AssemblyOriginatorKeyFile>../assets/consuldotnet.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
