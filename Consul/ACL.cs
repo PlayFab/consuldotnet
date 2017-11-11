@@ -129,6 +129,19 @@ namespace Consul
     }
 
     /// <summary>
+    /// ACLReplicationStatus is used to represent the status of ACL replication.
+    /// </summary>
+    public class ACLReplicationStatus
+    {
+        public bool Enabled { get; set; }
+        public bool Running { get; set; }
+        public string SourceDatacenter { get; set; }
+        public ulong ReplicatedIndex { get; set; }
+        public DateTime LastSuccess { get; set; }
+        public DateTime LastError { get; set; }
+    }
+
+    /// <summary>
     /// ACL can be used to query the ACL endpoints
     /// </summary>
     public class ACL : IACLEndpoint
@@ -208,6 +221,40 @@ namespace Consul
         public Task<WriteResult<bool>> Destroy(string id, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             return _client.PutReturning<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute(ct);
+        }
+
+        /// <summary>
+        /// Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
+        /// to get the first management token.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public Task<WriteResult<string>> Bootstrap(CancellationToken ct = default(CancellationToken))
+        {
+            return _client.PutReturning<string>("/v1/acl/bootstrap").Execute(ct);
+        }
+
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(CancellationToken ct = default(CancellationToken))
+        {
+            return Replication(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<ACLReplicationStatus>("/v1/acl/replication", q).Execute(ct);
         }
 
         /// <summary>
