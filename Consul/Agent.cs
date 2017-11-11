@@ -358,6 +358,9 @@ namespace Consul
             public string Output { get; set; }
         }
 
+        /// <summary>
+        /// AgentToken is used when updating ACL tokens for an agent.
+        /// </summary>
         private class AgentToken
         {
             [JsonProperty]
@@ -664,6 +667,133 @@ namespace Consul
             req.Params["loglevel"] = level.ToString().ToLowerInvariant();
             var res = await req.ExecuteStreaming(ct).ConfigureAwait(false);
             return new LogStream(res.Response);
+        }
+        
+        /// <summary>
+        /// UpdateACLToken updates the agent's "acl_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLToken updates the agent's "acl_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentToken updates the agent's "acl_agent_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_agent_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentToken updates the agent's "acl_agent_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLAgentToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentMasterToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_agent_master_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentMasterToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLAgentMasterToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLReplicationToken updates the agent's "acl_replication_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLReplicationToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_replication_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLReplicationToken updates the agent's "acl_replication_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <see cref="UpdateToken"/>
+        public Task<WriteResult> UpdateACLReplicationToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLReplicationToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateToken can be used to update an agent's ACL token after the agent has
+        /// started. The tokens are not persisted, so will need to be updated again if
+        /// the agent is restarted.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        private Task<WriteResult> UpdateToken(string target, string token, WriteOptions q, CancellationToken ct)
+        {
+            var req = _client.Put(string.Format("/v1/agent/token/{0}", target),
+                new AgentToken {Token = token}, q);
+
+            return req.Execute(ct);
         }
 
         public class LogStream : IEnumerable<Task<string>>, IDisposable
