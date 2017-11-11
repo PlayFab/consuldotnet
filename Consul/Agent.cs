@@ -167,6 +167,84 @@ namespace Consul
     }
 
     /// <summary>
+    /// MembersOpts is used for querying member information.
+    /// </summary>
+    public class MembersOpts
+    {
+        /// <summary>
+        /// WAN is whether to show members from the WAN.
+        /// </summary>
+        public bool WAN { get; set; }
+        
+        /// <summary>
+        /// Segment is the LAN segment to show members for. Setting this to the
+        /// AllSegments value above will show members in all segments.
+        /// </summary>
+        public string Segment { get; set; }
+    }
+
+    /// <summary>
+    /// Metrics info is used to store different types of metric values from the agent.
+    /// </summary>
+    public class MetricsInfo
+    {
+        public string Timestamp { get; set; }
+        public GaugeValue[] Gauges { get; set; }
+        public PointValue[] Points { get; set; }
+        public SampledValue[] Counters { get; set; }
+        public SampledValue[] Samples { get; set; }
+    }
+
+    /// <summary>
+    /// GaugeValue stores one value that is updated as time goes on, such as
+    /// the amount of memory allocated.
+    /// </summary>
+    public class GaugeValue
+    {
+        public string Name { get; set; }
+        public float Value { get; set; }
+        public Dictionary<string, string> Labels { get; set; }
+    }
+
+    /// <summary>
+    /// PointValue holds a series of points for a metric.
+    /// </summary>
+    public class PointValue
+    {
+        public string Name { get; set; }
+        public float[] Points { get; set; }
+    }
+
+    /// <summary>
+    /// SampledValue stores info about a metric that is incremented over time,
+    /// such as the number of requests to an HTTP endpoint.
+    /// </summary>
+    public class SampledValue
+    {
+        public string Name { get; set; }
+        public int Count { get; set; }
+        public double Sum { get; set; }
+        public double Min { get; set; }
+        public double Max { get; set; }
+        public double Mean { get; set; }
+        public double Stddev { get; set; }
+        public Dictionary<string, string> Labels { get; set; }
+    }
+
+    /// <summary>
+    /// AgentToken is used when updating ACL tokens for an agent.
+    /// </summary>
+    public class AgentToken
+    {
+        public AgentToken(string token)
+        {
+            Token = token;
+        }
+        
+        public string Token { get; set; }
+    }
+
+    /// <summary>
     /// AgentServiceRegistration is used to register a new service
     /// </summary>
     public class AgentServiceRegistration
@@ -364,6 +442,163 @@ namespace Consul
             {
                 req.Params["wan"] = "1";
             }
+            return req.Execute(ct);
+        }
+        
+        /// <summary>
+        /// MembersOpts returns the known gossip members and can be passed
+        /// additional options for WAN/segment filtering.
+        /// </summary>
+        /// <param name="opts"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public Task<QueryResult<AgentMember[]>> MembersOpts(MembersOpts opts, CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Get<AgentMember[]>("/v1/agent/members");
+            req.Params["segment"] = opts.Segment;
+            if (opts.WAN)
+            {
+                req.Params["wan"] = "1";
+            }
+            return req.Execute(ct);
+        }
+
+        /// <summary>
+        /// Metrics is used to query the agent we are speaking to for
+        /// its current internal metric data
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public Task<QueryResult<MetricsInfo>> Metrics(CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<MetricsInfo>("/v1/agent/metrics").Execute(ct);
+        }
+
+        /// <summary>
+        /// UpdateACLToken updates the agent's "acl_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLToken updates the agent's "acl_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentToken updates the agent's "acl_agent_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_agent_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentToken updates the agent's "acl_agent_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLAgentToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentMasterToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_agent_master_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLAgentMasterToken updates the agent's "acl_agent_master_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLAgentMasterToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLAgentMasterToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLReplicationToken updates the agent's "acl_replication_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> UpdateACLReplicationToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateToken("acl_replication_token", token, q, ct);
+        }
+
+        /// <summary>
+        /// UpdateACLReplicationToken updates the agent's "acl_replication_token".
+        /// <see cref="UpdateToken"/> for more details.
+        /// </summary>
+        /// <param name="token"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        /// <see cref="UpdateToken"/>
+        public Task<WriteResult> UpdateACLReplicationToken(string token, CancellationToken ct = default(CancellationToken))
+        {
+            return UpdateACLReplicationToken(token, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// UpdateToken can be used to update an agent's ACL token after the agent has
+        /// started. The tokens are not persisted, so will need to be updated again if
+        /// the agent is restarted.
+        /// </summary>
+        /// <param name="target"></param>
+        /// <param name="token"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        private Task<WriteResult> UpdateToken(string target, string token, WriteOptions q,
+            CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Put(string.Format("/v1/agent/token/{0}", target),
+                new AgentToken(token), q);
+
             return req.Execute(ct);
         }
 
