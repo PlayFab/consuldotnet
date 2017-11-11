@@ -49,5 +49,15 @@ namespace Consul
         Task<Agent.LogStream> Monitor(LogLevel level = default(LogLevel), CancellationToken ct = default(CancellationToken));
         Task<WriteResult> Leave(string node, CancellationToken ct = default(CancellationToken));
         Task<WriteResult> Reload(string node, CancellationToken ct = default(CancellationToken));
+        Task<QueryResult<AgentMember[]>> MembersOpts(MembersOpts opts, CancellationToken ct = default(CancellationToken));
+        Task<QueryResult<MetricsInfo>> Metrics(CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLToken(string token, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLAgentToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLAgentToken(string token, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLAgentMasterToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLAgentMasterToken(string token, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLReplicationToken(string token, WriteOptions q, CancellationToken ct = default(CancellationToken));
+        Task<WriteResult> UpdateACLReplicationToken(string token, CancellationToken ct = default(CancellationToken));
     }
 }

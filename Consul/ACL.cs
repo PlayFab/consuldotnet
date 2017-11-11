@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Consul
 {
@@ -129,6 +131,21 @@ namespace Consul
     }
 
     /// <summary>
+    /// ACLReplicationStatus is used to represent the status of ACL replication.
+    /// </summary>
+    public class ACLReplicationStatus
+    {
+        public bool Enabled { get; set; }
+        public bool Running { get; set; }
+        public string SourceDatacenter { get; set; }
+        public ulong ReplicatedIndex { get; set; }
+        [JsonConverter(typeof(DateTimeConverter))]
+        public DateTime LastSuccess { get; set; }
+        [JsonConverter(typeof(DateTimeConverter))]
+        public DateTime LastError { get; set; }
+    }
+
+    /// <summary>
     /// ACL can be used to query the ACL endpoints
     /// </summary>
     public class ACL : IACLEndpoint
@@ -208,6 +225,48 @@ namespace Consul
         public Task<WriteResult<bool>> Destroy(string id, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             return _client.PutReturning<bool>(string.Format("/v1/acl/destroy/{0}", id), q).Execute(ct);
+        }
+
+        /// <summary>
+        /// Bootstrap is used to perform a one-time ACL bootstrap operation on a cluster
+        /// to get the first management token.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public async Task<WriteResult<string>> Bootstrap(CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.PutNothing("/v1/acl/bootstrap");
+            var resp = await req.Execute(ct);
+
+            using (var reader = new StreamReader(req.ResponseStream))
+            {
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var jo = JObject.Parse(body);
+                return new WriteResult<string>(resp, jo.SelectToken("ID").ToObject<string>());
+            }
+        }
+
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(CancellationToken ct = default(CancellationToken))
+        {
+            return Replication(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// Replication returns the status of the ACL replication process in the datacenter
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<ACLReplicationStatus>> Replication(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<ACLReplicationStatus>("/v1/acl/replication", q).Execute(ct);
         }
 
         /// <summary>

@@ -1,9 +1,10 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Consul
 {
@@ -82,6 +83,275 @@ namespace Consul
         /// </summary>
         public int NumNodes { get; set; }
     }
+
+    public class Area
+    {
+        /// <summary>
+        /// ID is this identifier for an area (a UUID). This must be left empty
+        /// when creating a new area.
+        /// </summary>
+        public string ID { get; set; }
+        
+        /// <summary>
+        /// PeerDatacenter is the peer Consul datacenter that will make up the
+        /// other side of this network area. Network areas always involve a pair
+        /// of datacenters: the datacenter where the area was created, and the
+        /// peer datacenter. This is required.
+        /// </summary>
+        public string PeerDatacenter { get; set; }
+        
+        /// <summary>
+        /// RetryJoin specifies the address of Consul servers to join to, such as
+        /// an IPs or hostnames with an optional port number. This is optional.
+        /// </summary>
+        public string[] RetryJoin { get; set; }
+    }
+
+    /// <summary>
+    /// AreaJoinResponse is returned when a join occurs and gives the result for each
+    /// address.
+    /// </summary>
+    public class AreaJoinResponse
+    {
+        /// <summary>
+        /// The address that was joined.
+        /// </summary>
+        public string Address { get; set; }
+        
+        /// <summary>
+        /// Whether or not the join was a success.
+        /// </summary>
+        public bool Joined { get; set; }
+        
+        /// <summary>
+        /// If we couldn't join, this is the message with information.
+        /// </summary>
+        public string Error { get; set; }
+    }
+
+    /// <summary>
+    /// SerfMember is a generic structure for reporting information about members in
+    /// a Serf cluster. This is only used by the area endpoints right now, but this
+    /// could be expanded to other endpoints in the future.
+    /// </summary>
+    public class SerfMember
+    {
+        /// <summary>
+        /// ID is the node identifier (a UUID).
+        /// </summary>
+        public string ID { get; set; }
+        
+        /// <summary>
+        /// Name is the node name.
+        /// </summary>
+        public string Name { get; set; }
+        
+        /// <summary>
+        /// Addr has the IP address.
+        /// </summary>
+        public byte[] Addr { get; set; }
+        
+        /// <summary>
+        /// Port is the RPC port.
+        /// </summary>
+        public ushort Port { get; set; }
+        
+        /// <summary>
+        /// Datacenter is the DC name.
+        /// </summary>
+        public string Datacenter { get; set; }
+        
+        /// <summary>
+        /// Role is "client", "server", or "unknown".
+        /// </summary>
+        public string Role { get; set; }
+        
+        /// <summary>
+        /// Build has the version of the Consul agent.
+        /// </summary>
+        public string Build { get; set; }
+        
+        /// <summary>
+        /// Protocol is the protocol of the Consul agent.
+        /// </summary>
+        public int Protocol { get; set; }
+        
+        /// <summary>
+        /// Status is the Serf health status "none", "alive", "leaving", "left",
+        /// or "failed".
+        /// </summary>
+        public string Status { get; set; }
+        
+        /// <summary>
+        /// RTT is the estimated round trip time from the server handling the
+        /// request to the this member. This will be negative if no RTT estimate
+        /// is available.
+        /// </summary>
+        [JsonConverter(typeof(NanoSecTimespanConverter))]
+        public TimeSpan RTT { get; set; }
+    }
+
+    /// <summary>
+    /// AutopilotConfiguration is used for querying/setting the Autopilot configuration.
+    /// Autopilot helps manage operator tasks related to Consul servers like removing
+    /// failed servers from the Raft quorum.
+    /// </summary>
+    public class AutopilotConfiguration
+    {
+        /// <summary>
+        /// CleanupDeadServers controls whether to remove dead servers from the Raft
+        /// peer list when a new server joins
+        /// </summary>
+        public bool CleanupDeadServers { get; set; }
+        
+        /// <summary>
+        /// LastContactThreshold is the limit on the amount of time a server can go
+        /// without leader contact before being considered unhealthy.
+        /// </summary>
+        [JsonConverter(typeof(DurationTimespanConverter))]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? LastContactThreshold { get; set; }
+        
+        /// <summary>
+        /// MaxTrailingLogs is the amount of entries in the Raft Log that a server can
+        /// be behind before being considered unhealthy.
+        /// </summary>
+        public ulong MaxTrailingLogs { get; set; }
+        
+        /// <summary>
+        /// ServerStabilizationTime is the minimum amount of time a server must be
+        /// in a stable, healthy state before it can be added to the cluster. Only
+        /// applicable with Raft protocol version 3 or higher.
+        /// </summary>
+        [JsonConverter(typeof(DurationTimespanConverter))]
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public TimeSpan? ServerStabilizationTime { get; set; }
+        
+        /// <summary>
+        /// (Enterprise-only) RedundancyZoneTag is the node tag to use for separating
+        /// servers into zones for redundancy. If left blank, this feature will be disabled.
+        /// </summary>
+        public string RedundancyZoneTag { get; set; }
+        
+        /// <summary>
+        /// (Enterprise-only) DisableUpgradeMigration will disable Autopilot's upgrade migration
+        /// strategy of waiting until enough newer-versioned servers have been added to the
+        /// cluster before promoting them to voters.
+        /// </summary>
+        public bool DisableUpgradeMigration { get; set; }
+        
+        /// <summary>
+        /// (Enterprise-only) UpgradeVersionTag is the node tag to use for version info when
+        /// performing upgrade migrations. If left blank, the Consul version will be used.
+        /// </summary>
+        public string UpgradeVersionTag { get; set; }
+        
+        /// <summary>
+        /// CreateIndex holds the index corresponding the creation of this configuration.
+        /// This is a read-only field.
+        /// </summary>
+        public ulong CreateIndex { get; set; }
+        
+        /// <summary>
+        /// ModifyIndex will be set to the index of the last update when retrieving the
+        /// Autopilot configuration. Resubmitting a configuration with
+        /// AutopilotCASConfiguration will perform a check-and-set operation which ensures
+        /// there hasn't been a subsequent update since the configuration was retrieved.
+        /// </summary>
+        public ulong ModifyIndex { get; set; }
+    }
+
+    /// <summary>
+    /// ServerHealth is the health (from the leader's point of view) of a server.
+    /// </summary>
+    public class ServerHealth
+    {
+        /// <summary>
+        /// ID is the raft ID of the server.
+        /// </summary>
+        public string ID { get; set; }
+        
+        /// <summary>
+        /// Name is the node name of the server.
+        /// </summary>
+        public string Name { get; set; }
+        
+        /// <summary>
+        /// Address is the address of the server.
+        /// </summary>
+        public string Address { get; set; }
+        
+        /// <summary>
+        /// The status of the SerfHealth check for the server.
+        /// </summary>
+        public string SerfStatus { get; set; }
+        
+        /// <summary>
+        /// Version is the Consul version of the server.
+        /// </summary>
+        public string Version { get; set; }
+        
+        /// <summary>
+        /// Leader is whether this server is currently the leader.
+        /// </summary>
+        public string Leader { get; set; }
+        
+        /// <summary>
+        /// LastContact is the time since this node's last contact with the leader.
+        /// </summary>
+        [JsonConverter(typeof(DurationTimespanConverter))]
+        public TimeSpan LastContact { get; set; }
+        
+        /// <summary>
+        /// LastTerm is the highest leader term this server has a record of in its Raft log.
+        /// </summary>
+        public ulong LastTerm { get; set; }
+        
+        /// <summary>
+        /// LastIndex is the last log index this server has a record of in its Raft log.
+        /// </summary>
+        public ulong LastIndex { get; set; }
+        
+        /// <summary>
+        /// Healthy is whether or not the server is healthy according to the current
+        /// Autopilot config.
+        /// </summary>
+        public bool Healthy { get; set; }
+        
+        /// <summary>
+        /// Voter is whether this is a voting server.
+        /// </summary>
+        public bool Voter { get; set; }
+        
+        /// <summary>
+        /// StableSince is the last time this server's Healthy value changed.
+        /// </summary>
+        [JsonConverter(typeof(DateTimeConverter))]
+        public DateTime StableSince { get; set; }
+    }
+
+    /// <summary>
+    /// OperatorHealthReply is a representation of the overall health of the cluster
+    /// </summary>
+    public class OperatorHealthReply
+    {
+        /// <summary>
+        /// Healthy is true if all the servers in the cluster are healthy.
+        /// </summary>
+        public bool Healthy { get; set; }
+        
+        /// <summary>
+        /// FailureTolerance is the number of healthy servers that could be lost without
+        /// an outage occurring.
+        /// </summary>
+        public int FailureTolerance { get; set; }
+        
+        /// <summary>
+        /// Servers holds the health of each server.
+        /// </summary>
+        public ServerHealth[] Servers { get; set; }
+    }
+    
 
     public class Operator : IOperatorEndpoint
     {
@@ -210,6 +480,342 @@ namespace Consul
         public Task<WriteResult> KeyringUse(string key, WriteOptions q, CancellationToken ct = default(CancellationToken))
         {
             return _client.Put("/v1/operator/keyring", new KeyringRequest() { Key = key }, q).Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaCreate will create a new network area. The ID in the given structure must
+        /// be empty and a generated ID will be returned on success.
+        /// </summary>
+        /// <param name="area"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<WriteResult<string>> AreaCreate(Area area, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Post("/v1/operator/area", area, q);
+            var resp = await req.Execute(ct);
+
+            using (var reader = new StreamReader(req.ResponseStream))
+            {
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var jo = JObject.Parse(body);
+
+                return new WriteResult<string>(resp, jo.SelectToken("ID").ToObject<string>());
+            }
+        }
+
+        /// <summary>
+        /// AreaCreate will create a new network area. The ID in the given structure must
+        /// be empty and a generated ID will be returned on success.
+        /// </summary>
+        /// <param name="area"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult<string>> AreaCreate(Area area, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaCreate(area, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaDelete deletes the given network area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> AreaDelete(string areaID, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Delete(string.Format("/v1/operator/area/{0}", areaID)).Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaDelete deletes the given network area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult> AreaDelete(string areaID, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaDelete(areaID, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaGet returns a single network area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<Area[]>> AreaGet(string areaID, QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<Area[]>(string.Format("/v1/operator/area/{0}", areaID), q).Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaGet returns a single network area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<Area[]>> AreaGet(string areaID, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaGet(areaID, QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaJoin attempts to join the given set of join addresses to the given
+        /// network area. See the Area class for details about join addresses.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="addresses"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult<AreaJoinResponse[]>> AreaJoin(string areaID, string[] addresses, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client
+                .Put<string[], AreaJoinResponse[]>(string.Format("/v1/operator/area/{0}/join", areaID), addresses, q)
+                .Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaJoin attempts to join the given set of join addresses to the given
+        /// network area. See the Area class for details about join addresses.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="addresses"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult<AreaJoinResponse[]>> AreaJoin(string areaID, string[] addresses, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaJoin(areaID, addresses, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaList returns all the available network areas.
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<Area[]>> AreaList(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<Area[]>("/v1/operator/area").Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaList returns all the available network areas.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<Area[]>> AreaList(CancellationToken ct = default(CancellationToken))
+        {
+            return AreaList(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaMembers lists the Serf information about the members in the given area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<SerfMember[]>> AreaMembers(string areaID, QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<SerfMember[]>(string.Format("/v1/operator/area/{0}/members", areaID), q).Execute(ct);
+        }
+
+        /// <summary>
+        /// AreaMembers lists the Serf information about the members in the given area.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<SerfMember[]>> AreaMembers(string areaID, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaMembers(areaID, QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AreaUpdate will update the configuration of the network area with the given ID.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="area"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<WriteResult<string>> AreaUpdate(string areaID, Area area, WriteOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Put(string.Format("/v1/operator/area/{0}", areaID), area, q);
+            var resp = await req.Execute(ct);
+
+            using (var reader = new StreamReader(req.ResponseStream))
+            {
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var jo = JObject.Parse(body);
+
+                var res = new WriteResult<string>(resp, jo.SelectToken("ID").ToObject<string>());
+                return res;
+            }
+        }
+
+        /// <summary>
+        /// AreaUpdate will update the configuration of the network area with the given ID.
+        /// </summary>
+        /// <param name="areaID"></param>
+        /// <param name="area"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<WriteResult<string>> AreaUpdate(string areaID, Area area, CancellationToken ct = default(CancellationToken))
+        {
+            return AreaUpdate(areaID, area, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// SegmentList returns all the available LAN segments.
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<string[]>> SegmentList(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            return _client.Get<string[]>("/v1/operator/segment", q).Execute(ct);
+        }
+
+        /// <summary>
+        /// SegmentList returns all the available LAN segments.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<QueryResult<string[]>> SegmentList(CancellationToken ct = default(CancellationToken))
+        {
+            return SegmentList(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AutopilotCASConfiguration is used to perform a Check-And-Set update on the
+        /// Autopilot configuration. The ModifyIndex value will be respected. Returns
+        /// true on success or false on failures.
+        /// </summary>
+        /// <param name="conf"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public async Task<bool> AutopilotCASConfiguration(AutopilotConfiguration conf, WriteOptions q,
+            CancellationToken ct = default(CancellationToken))
+        {
+            var req = _client.Put("/v1/operator/autopilot/configuration", conf, q);
+            req.Params["cas"] = conf.ModifyIndex.ToString();
+
+            await req.Execute(ct);
+
+            using (var reader = new StreamReader(req.ResponseStream))
+            {
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                return body.Contains("true");
+            }
+        }
+
+        /// <summary>
+        /// AutopilotCASConfiguration is used to perform a Check-And-Set update on the
+        /// Autopilot configuration. The ModifyIndex value will be respected. Returns
+        /// true on success or false on failures.
+        /// </summary>
+        /// <param name="conf"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        public Task<bool> AutopilotCASConfiguration(AutopilotConfiguration conf, CancellationToken ct = default(CancellationToken))
+        {
+            return AutopilotCASConfiguration(conf, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AutopilotGetConfiguration is used to query the current Autopilot configuration.
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<AutopilotConfiguration> AutopilotGetConfiguration(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var res = await _client.Get<AutopilotConfiguration>("/v1/operator/autopilot/configuration", q).Execute(ct);
+            return res.Response;
+        }
+
+        /// <summary>
+        /// AutopilotGetConfiguration is used to query the current Autopilot configuration.
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<AutopilotConfiguration> AutopilotGetConfiguration(CancellationToken ct = default(CancellationToken))
+        {
+            return AutopilotGetConfiguration(QueryOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AutopilotSetConfiguration is used to set the current Autopilot configuration.
+        /// </summary>
+        /// <param name="conf"></param>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task AutopilotSetConfiguration(AutopilotConfiguration conf, WriteOptions q,
+            CancellationToken ct = default(CancellationToken))
+        {
+            await _client.Put("/v1/operator/autopilot/configuration", conf, q).Execute(ct);
+        }
+
+        /// <summary>
+        /// AutopilotSetConfiguration is used to set the current Autopilot configuration.
+        /// </summary>
+        /// <param name="conf"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task AutopilotSetConfiguration(AutopilotConfiguration conf, CancellationToken ct = default(CancellationToken))
+        {
+            return AutopilotSetConfiguration(conf, WriteOptions.Default, ct);
+        }
+
+        /// <summary>
+        /// AutopilotServerHealth
+        /// </summary>
+        /// <param name="q"></param>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public async Task<OperatorHealthReply> AutopilotServerHealth(QueryOptions q, CancellationToken ct = default(CancellationToken))
+        {
+            var resp = await _client.Get<OperatorHealthReply>("/v1/operator/autopilot/health", q).Execute(ct);
+            return resp.Response;
+        }
+
+        /// <summary>
+        /// AutopilotServerHealth
+        /// </summary>
+        /// <param name="ct"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public Task<OperatorHealthReply> AutopilotServerHealth(CancellationToken ct = default(CancellationToken))
+        {
+            return AutopilotServerHealth(QueryOptions.Default, ct);
         }
     }
 
