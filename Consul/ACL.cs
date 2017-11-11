@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Consul
 {
@@ -137,7 +139,9 @@ namespace Consul
         public bool Running { get; set; }
         public string SourceDatacenter { get; set; }
         public ulong ReplicatedIndex { get; set; }
+        [JsonConverter(typeof(DateTimeConverter))]
         public DateTime LastSuccess { get; set; }
+        [JsonConverter(typeof(DateTimeConverter))]
         public DateTime LastError { get; set; }
     }
 
@@ -229,9 +233,17 @@ namespace Consul
         /// </summary>
         /// <param name="ct"></param>
         /// <returns></returns>
-        public Task<WriteResult<string>> Bootstrap(CancellationToken ct = default(CancellationToken))
+        public async Task<WriteResult<string>> Bootstrap(CancellationToken ct = default(CancellationToken))
         {
-            return _client.PutReturning<string>("/v1/acl/bootstrap").Execute(ct);
+            var req = _client.PutNothing("/v1/acl/bootstrap");
+            var resp = await req.Execute(ct);
+
+            using (var reader = new StreamReader(req.ResponseStream))
+            {
+                var body = await reader.ReadToEndAsync().ConfigureAwait(false);
+                var jo = JObject.Parse(body);
+                return new WriteResult<string>(resp, jo.SelectToken("ID").ToObject<string>());
+            }
         }
 
         /// <summary>
