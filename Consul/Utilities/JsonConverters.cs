@@ -18,9 +18,7 @@
 
 using System;
 using Newtonsoft.Json;
-using System.Reflection;
-using System.Linq;
-using System.Collections.Generic;
+using System.Globalization;
 
 namespace Consul
 {
