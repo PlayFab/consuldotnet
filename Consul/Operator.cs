@@ -330,7 +330,6 @@ namespace Consul
         /// <summary>
         /// StableSince is the last time this server's Healthy value changed.
         /// </summary>
-        [JsonConverter(typeof(Rfc3339DateTimeConverter))]
         public DateTime StableSince { get; set; }
     }
 

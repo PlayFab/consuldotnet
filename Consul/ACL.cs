@@ -137,9 +137,7 @@ namespace Consul
         public bool Running { get; set; }
         public string SourceDatacenter { get; set; }
         public ulong ReplicatedIndex { get; set; }
-        [JsonConverter(typeof(Rfc3339DateTimeConverter))]
         public DateTime LastSuccess { get; set; }
-        [JsonConverter(typeof(Rfc3339DateTimeConverter))]
         public DateTime LastError { get; set; }
 
     }
