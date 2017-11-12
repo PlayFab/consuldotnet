@@ -15,7 +15,7 @@ assembly_info:
   assembly_informational_version: $(APPVEYOR_BUILD_VERSION)
 environment:
   CONSUL_BIN: c:\consul\consul.test\consul.exe
-  CONSUL_VERSION: 0.7.2
+  CONSUL_VERSION: 0.9.3
   CLI_VERSION: Latest
 install:
 - cinst: 7zip.commandline
