@@ -502,6 +502,7 @@ namespace Consul
                 finally
                 {
                     IsHeld = false;
+                    DisposeCancellationTokenSource();
                 }
             }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
