@@ -44,11 +44,12 @@ before_build:
 build_script:
 - dotnet build Consul --configuration %CONFIGURATION% --no-dependencies
 - cmd: |-
-    move "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45" "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged""
-    cd "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged""
+    move "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45" "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
+    cd "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
     %USERPROFILE%\.nuget\packages\ILRepack\2.0.10\tools\ILRepack.exe /keyfile:%APPVEYOR_BUILD_FOLDER%\assets\consuldotnet.snk /parallel /internalize /out:"%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45\Consul.dll" Consul.dll Newtonsoft.Json.dll
     cd %APPVEYOR_BUILD_FOLDER%
-    del /s /q "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged""
+    copy "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged\Consul.pdb" "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45\"
+    del /s /q "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
 after_build:
 - dotnet pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o artifacts
 before_test:
