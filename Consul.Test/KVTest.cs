@@ -33,7 +33,7 @@ namespace Consul.Test
         AsyncReaderWriterLock.Releaser m_lock;
         public KVTest()
         {
-            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.Parallel());
+            m_lock = SelectiveParallel.Parallel().GetAwaiter().GetResult();
         }
 
         public void Dispose()
