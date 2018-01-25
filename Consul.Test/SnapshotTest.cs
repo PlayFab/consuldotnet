@@ -29,7 +29,7 @@ namespace Consul.Test
         AsyncReaderWriterLock.Releaser m_lock;   
         public SnapshotTest()
         {
-            m_lock = AsyncHelpers.RunSync(() => SelectiveParallel.NoParallel());
+            m_lock = SelectiveParallel.NoParallel().GetAwaiter().GetResult();
         }
 
         public void Dispose()
