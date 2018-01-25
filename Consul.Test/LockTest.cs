@@ -669,5 +669,24 @@ namespace Consul.Test
                 }
             }
         }
+
+        [Fact]
+        public async Task Lock_AcquireTimeout()
+        {
+            using (var client = new ConsulClient())
+            {
+                const string keyName = "test/lock/acquiretimeout";
+                var distributedLock = await client.AcquireLock(keyName, CancellationToken.None);
+                try
+                {
+                    var ts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    await Assert.ThrowsAsync(typeof(LockNotHeldException), () => client.AcquireLock(keyName, ts.Token));
+                }
+                finally
+                {
+                    await distributedLock.Release();
+                }
+            }
+        }
     }
 }
