@@ -91,31 +91,33 @@ namespace Consul
                 {
                     string jsonPropName = reader.Value.ToString();
                     var propName = objProps.Value.FirstOrDefault(p => p.Equals(jsonPropName, StringComparison.OrdinalIgnoreCase));
+                    if (propName != null)
+                    {
+                        PropertyInfo pi = result.GetType().GetRuntimeProperty(propName);
 
-                    PropertyInfo pi = result.GetType().GetRuntimeProperty(propName);
-
-                    if (jsonPropName.Equals("Flags", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!string.IsNullOrEmpty(reader.ReadAsString()))
+                        if (jsonPropName.Equals("Flags", StringComparison.OrdinalIgnoreCase))
                         {
-                            var val = Convert.ToUInt64(reader.Value);
-                            pi.SetValue(result, val, null);
+                            if (!string.IsNullOrEmpty(reader.ReadAsString()))
+                            {
+                                var val = Convert.ToUInt64(reader.Value);
+                                pi.SetValue(result, val, null);
+                            }
                         }
-                    }
-                    else if (jsonPropName.Equals("Value", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (!string.IsNullOrEmpty(reader.ReadAsString()))
+                        else if (jsonPropName.Equals("Value", StringComparison.OrdinalIgnoreCase))
                         {
-                            var val = Convert.FromBase64String(reader.Value.ToString());
-                            pi.SetValue(result, val, null);
+                            if (!string.IsNullOrEmpty(reader.ReadAsString()))
+                            {
+                                var val = Convert.FromBase64String(reader.Value.ToString());
+                                pi.SetValue(result, val, null);
+                            }
                         }
-                    }
-                    else
-                    {
-                        if (reader.Read())
+                        else
                         {
-                            var convertedValue = Convert.ChangeType(reader.Value, pi.PropertyType);
-                            pi.SetValue(result, convertedValue, null);
+                            if (reader.Read())
+                            {
+                                var convertedValue = Convert.ChangeType(reader.Value, pi.PropertyType);
+                                pi.SetValue(result, convertedValue, null);
+                            }
                         }
                     }
                 }
