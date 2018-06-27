@@ -52,6 +52,8 @@ build_script:
     del /s /q "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
 after_build:
 - dotnet pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o artifacts
+- ps: Get-Childitem
+- ps: Get-Childitem .\artifacts
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
@@ -75,7 +77,6 @@ test: off
 after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
-- ps: Get-Childitem
 artifacts:
 - path: artifacts\*.nupkg
   name: NuGet
