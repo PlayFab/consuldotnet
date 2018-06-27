@@ -50,7 +50,12 @@ build_script:
     copy "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged\Consul.pdb" "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45\"
     del /s /q "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
 after_build:
-- ps: if ($Env:APPVEYOR_REPO_TAG -eq $true) {dotnet pack Consul --configuration $Env:CONFIGURATION --no-build -o [System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts")} else {dotnet pack Consul --configuration $Env:CONFIGURATION --no-build --version-suffix $Env:LABEL -o [System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts")}
+- ps: >-
+    if ($Env:APPVEYOR_REPO_TAG -eq $true) {
+      dotnet pack Consul --configuration $Env:CONFIGURATION --no-build -o $([System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts"))
+    } else {
+      dotnet pack Consul --configuration $Env:CONFIGURATION --no-build --version-suffix $Env:LABEL -o $([System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts"))
+    }
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
