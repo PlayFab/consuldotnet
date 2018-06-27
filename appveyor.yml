@@ -35,8 +35,7 @@ cache:
 - C:\consul_install -> appveyor.yml
 - '%USERPROFILE%\.nuget\packages -> **\project.json'
 init:
-- ps: if ($Env:APPVEYOR_REPO_TAG -eq $true) {$Env:APPVEYOR_BUILD_VERSION = $Env:APPVEYOR_REPO_TAG_NAME}
-- ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(4, "0")
+- ps: if ($Env:APPVEYOR_REPO_TAG -eq $true) {$Env:APPVEYOR_BUILD_VERSION = $Env:APPVEYOR_REPO_TAG_NAME} else {$Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(4, "0")}
 before_build:
 - dotnet --info
 - appveyor-retry dotnet restore Consul
@@ -51,7 +50,7 @@ build_script:
     copy "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged\Consul.pdb" "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45\"
     del /s /q "%APPVEYOR_BUILD_FOLDER%\Consul\bin\Any CPU\release\net45unmerged"
 after_build:
-- dotnet pack Consul --configuration %CONFIGURATION% --no-build --version-suffix %LABEL% -o %APPVEYOR_BUILD_FOLDER%\artifacts
+- ps: if ($Env:APPVEYOR_REPO_TAG -eq $true) {dotnet pack Consul --configuration $Env:CONFIGURATION --no-build -o [System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts")} else {dotnet pack Consul --configuration $Env:CONFIGURATION --no-build --version-suffix $Env:LABEL -o [System.IO.Path]::Combine($Env:APPVEYOR_BUILD_FOLDER, "artifacts")}
 before_test:
 - ps: >-
     $consulJob = Start-Job {C:\consul\Consul.Test\consul.exe agent -dev -config-file C:\consul\Consul.Test\test_config.json}
