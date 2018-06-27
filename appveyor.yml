@@ -78,7 +78,7 @@ after_test:
 - ps: Get-Job | Stop-Job
 - ps: Get-Job | Receive-Job
 artifacts:
-- path: "%APPVEYOR_BUILD_FOLDER%\artifacts\*.nupkg"
+- path: '%APPVEYOR_BUILD_FOLDER%\artifacts\*.nupkg'
   name: NuGet
 deploy:
 - provider: NuGet
