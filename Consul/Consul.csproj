@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <VersionPrefix>0.7.2.1</VersionPrefix>
+    <VersionPrefix>0.7.2.5</VersionPrefix>
     <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
     <AssemblyName>Consul</AssemblyName>
     <PackageId>Consul</PackageId>
