@@ -35,7 +35,7 @@ cache:
 - C:\consul_install -> appveyor.yml
 - '%USERPROFILE%\.nuget\packages -> **\project.json'
 init:
-- if "%APPVEYOR_REPO_TAG%" == "true" set APPVEYOR_BUILD_VERSION=%APPVEYOR_REPO_TAG_NAME%
+- ps: if ($Env:APPVEYOR_REPO_TAG -eq $true) {$Env:APPVEYOR_BUILD_VERSION = $Env:APPVEYOR_REPO_TAG_NAME}
 - ps: $Env:LABEL = "CI" + $Env:APPVEYOR_BUILD_NUMBER.PadLeft(4, "0")
 before_build:
 - dotnet --info
