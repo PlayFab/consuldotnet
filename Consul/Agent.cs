@@ -141,6 +141,7 @@ namespace Consul
         public int Port { get; set; }
         public string Address { get; set; }
         public bool EnableTagOverride { get; set; }
+        public IDictionary<string, string> Meta { get; set; }
     }
 
     /// <summary>
@@ -194,6 +195,9 @@ namespace Consul
 
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public AgentServiceCheck[] Checks { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public IDictionary<string, string> Meta { get; set; }
     }
 
     /// <summary>
