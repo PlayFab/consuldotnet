@@ -206,7 +206,7 @@ namespace Consul
                 {
                     try
                     {
-                        consulAddress.Port = ushort.Parse(addrParts[1]);
+                        consulAddress.Port = Int32.Parse(addrParts[1]);
                     }
                     catch (Exception ex)
                     {
