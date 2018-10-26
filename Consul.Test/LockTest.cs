@@ -38,7 +38,7 @@ namespace Consul.Test
         {
             m_lock.Dispose();
         }
-    
+
         [Fact]
         public async Task Lock_AcquireRelease()
         {
@@ -666,6 +666,27 @@ namespace Consul.Test
                 catch (LockNotHeldException ex)
                 {
                     Assert.IsType<LockNotHeldException>(ex);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task Lock_AcquireTimeout()
+        {
+            using (var client = new ConsulClient())
+            {
+                const string keyName = "test/lock/acquiretimeout";
+                var distributedLock = await client.AcquireLock(keyName);
+                try
+                {
+                    using (var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5)))
+                    {
+                        await Assert.ThrowsAsync<LockNotHeldException>(() => client.AcquireLock(keyName, cts.Token));
+                    }
+                }
+                finally
+                {
+                    await distributedLock.Release();
                 }
             }
         }

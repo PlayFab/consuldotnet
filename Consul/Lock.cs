@@ -331,11 +331,21 @@ namespace Consul
                 if (ct.IsCancellationRequested || (!IsHeld && !string.IsNullOrEmpty(Opts.Session)))
                 {
                     DisposeCancellationTokenSource();
-                    if (_sessionRenewTask != null)
+                    if (_monitorTask != null)
                     {
                         try
                         {
                             await _monitorTask.ConfigureAwait(false);
+                        }
+                        catch (AggregateException)
+                        {
+                            // Ignore AggregateExceptions from the tasks during Release, since if the Monitor task died, the developer will be Super Confused if they see the exception during Release.
+                        }
+                    }
+                    if (_sessionRenewTask != null)
+                    {
+                        try
+                        {
                             await _sessionRenewTask.ConfigureAwait(false);
                         }
                         catch (AggregateException)
