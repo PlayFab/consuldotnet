@@ -191,6 +191,10 @@ namespace Consul
         private void ConfigureFromEnvironment(UriBuilder consulAddress)
         {
             var envAddr = (Environment.GetEnvironmentVariable("CONSUL_HTTP_ADDR") ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (envAddr.Contains("http"))
+                envAddr = envAddr.Replace("http://", "").Replace("https://", "");
+
             if (!string.IsNullOrEmpty(envAddr))
             {
                 var addrParts = envAddr.Split(':');
@@ -651,7 +655,7 @@ namespace Consul
             config.Updated += HandleConfigUpdateEvent;
             var ctr = new ConsulClientConfigurationContainer(config);
             ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
-            
+
             ConfigContainer = ctr;
             InitializeEndpoints();
         }
