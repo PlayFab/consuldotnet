@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+
 #if !(CORECLR || PORTABLE || PORTABLE40)
 using System.Security.Permissions;
 using System.Runtime.Serialization;
@@ -23,12 +24,25 @@ namespace Consul
 #if !(CORECLR || PORTABLE || PORTABLE40)
     [Serializable]
 #endif
+
     public class ConsulRequestException : Exception
     {
         public HttpStatusCode StatusCode { get; set; }
-        public ConsulRequestException() { }
-        public ConsulRequestException(string message, HttpStatusCode statusCode) : base(message) { StatusCode = statusCode; }
-        public ConsulRequestException(string message, HttpStatusCode statusCode, Exception inner) : base(message, inner) { StatusCode = statusCode; }
+
+        public ConsulRequestException()
+        {
+        }
+
+        public ConsulRequestException(string message, HttpStatusCode statusCode) : base(message)
+        {
+            StatusCode = statusCode;
+        }
+
+        public ConsulRequestException(string message, HttpStatusCode statusCode, Exception inner) : base(message, inner)
+        {
+            StatusCode = statusCode;
+        }
+
 #if !(CORECLR || PORTABLE || PORTABLE40)
         protected ConsulRequestException(
           SerializationInfo info,
@@ -50,11 +64,21 @@ namespace Consul
 #if !(CORECLR || PORTABLE || PORTABLE40)
     [Serializable]
 #endif
+
     public class ConsulConfigurationException : Exception
     {
-        public ConsulConfigurationException() { }
-        public ConsulConfigurationException(string message) : base(message) { }
-        public ConsulConfigurationException(string message, Exception inner) : base(message, inner) { }
+        public ConsulConfigurationException()
+        {
+        }
+
+        public ConsulConfigurationException(string message) : base(message)
+        {
+        }
+
+        public ConsulConfigurationException(string message, Exception inner) : base(message, inner)
+        {
+        }
+
 #if !(CORECLR || PORTABLE || PORTABLE40)
         protected ConsulConfigurationException(
           System.Runtime.Serialization.SerializationInfo info,
@@ -78,6 +102,7 @@ namespace Consul
         internal bool ClientCertificateSupported { get { return _clientCertSupport.Value; } }
 
 #if CORECLR
+
         [Obsolete("Use of DisableServerCertificateValidation should be converted to setting the HttpHandler's ServerCertificateCustomValidationCallback in the ConsulClient constructor" +
             "This property will be removed when 0.8.0 is released.", false)]
 #else
@@ -112,6 +137,7 @@ namespace Consul
         /// This is only needed if an authenticating service exists in front of Consul; Token is used for ACL authentication by Consul.
         /// </summary>
 #if CORECLR
+
         [Obsolete("Use of HttpAuth should be converted to setting the HttpHandler's Credential property in the ConsulClient constructor" +
             "This property will be removed when 0.8.0 is released.", false)]
 #else
@@ -139,6 +165,7 @@ namespace Consul
 #if __MonoCS__
         [Obsolete("Client Certificates are not implemented in Mono", true)]
 #elif CORECLR
+
         [Obsolete("Use of ClientCertificate should be converted to adding to the HttpHandler's ClientCertificates list in the ConsulClient constructor." +
             "This property will be removed when 0.8.0 is released.", false)]
 #else
@@ -191,6 +218,10 @@ namespace Consul
         private void ConfigureFromEnvironment(UriBuilder consulAddress)
         {
             var envAddr = (Environment.GetEnvironmentVariable("CONSUL_HTTP_ADDR") ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (envAddr.Contains("http"))
+                envAddr = envAddr.Replace("http://", "").Replace("https://", "");
+
             if (!string.IsNullOrEmpty(envAddr))
             {
                 var addrParts = envAddr.Split(':');
@@ -376,6 +407,7 @@ namespace Consul
         /// </summary>
         public string Token { get; set; }
     }
+
     public abstract class ConsulResult
     {
         /// <summary>
@@ -387,13 +419,18 @@ namespace Consul
         /// Exposed so that the consumer can to check for a specific status code
         /// </summary>
         public HttpStatusCode StatusCode { get; set; }
-        public ConsulResult() { }
+
+        public ConsulResult()
+        {
+        }
+
         public ConsulResult(ConsulResult other)
         {
             RequestTime = other.RequestTime;
             StatusCode = other.StatusCode;
         }
     }
+
     /// <summary>
     /// The result of a Consul API query
     /// </summary>
@@ -419,7 +456,10 @@ namespace Consul
         /// </summary>
         public bool AddressTranslationEnabled { get; set; }
 
-        public QueryResult() { }
+        public QueryResult()
+        {
+        }
+
         public QueryResult(QueryResult other) : base(other)
         {
             LastIndex = other.LastIndex;
@@ -438,8 +478,15 @@ namespace Consul
         /// The result of the query
         /// </summary>
         public T Response { get; set; }
-        public QueryResult() { }
-        public QueryResult(QueryResult other) : base(other) { }
+
+        public QueryResult()
+        {
+        }
+
+        public QueryResult(QueryResult other) : base(other)
+        {
+        }
+
         public QueryResult(QueryResult other, T value) : base(other)
         {
             Response = value;
@@ -451,9 +498,15 @@ namespace Consul
     /// </summary>
     public class WriteResult : ConsulResult
     {
-        public WriteResult() { }
-        public WriteResult(WriteResult other) : base(other) { }
+        public WriteResult()
+        {
+        }
+
+        public WriteResult(WriteResult other) : base(other)
+        {
+        }
     }
+
     /// <summary>
     /// The result of a Consul API write
     /// </summary>
@@ -464,8 +517,15 @@ namespace Consul
         /// The result of the write
         /// </summary>
         public T Response { get; set; }
-        public WriteResult() { }
-        public WriteResult(WriteResult other) : base(other) { }
+
+        public WriteResult()
+        {
+        }
+
+        public WriteResult(WriteResult other) : base(other)
+        {
+        }
+
         public WriteResult(WriteResult other, T value) : base(other)
         {
             Response = value;
@@ -477,14 +537,12 @@ namespace Consul
     /// </summary>
     public partial class ConsulClient : IDisposable
     {
-
         /// <summary>
         /// This class is used to group all the configurable bits of a ConsulClient into a single pointer reference
         /// which is great for implementing reconfiguration later.
         /// </summary>
         private class ConsulClientConfigurationContainer
         {
-
             internal readonly bool skipClientDispose;
             internal readonly HttpClient HttpClient;
 #if CORECLR
@@ -509,6 +567,7 @@ namespace Consul
             }
 
             #region Old style config handling
+
             public ConsulClientConfigurationContainer(ConsulClientConfiguration config, HttpClient client)
             {
                 skipClientDispose = true;
@@ -529,9 +588,11 @@ namespace Consul
                 HttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                 HttpClient.DefaultRequestHeaders.Add("Keep-Alive", "true");
             }
-            #endregion
+
+            #endregion Old style config handling
 
             #region IDisposable Support
+
             private bool disposedValue = false; // To detect redundant calls
 
             protected virtual void Dispose(bool disposing)
@@ -575,7 +636,8 @@ namespace Consul
                     throw new ObjectDisposedException(typeof(ConsulClientConfigurationContainer).FullName.ToString());
                 }
             }
-            #endregion
+
+            #endregion IDisposable Support
         }
 
         private ConsulClientConfigurationContainer ConfigContainer;
@@ -591,6 +653,7 @@ namespace Consul
         internal readonly JsonSerializer serializer = new JsonSerializer();
 
         #region New style config with Actions
+
         /// <summary>
         /// Initializes a new Consul client with a default configuration that connects to 127.0.0.1:8500.
         /// </summary>
@@ -623,6 +686,7 @@ namespace Consul
 #if !CORECLR
         public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<WebRequestHandler> handlerOverride)
 #else
+
         public ConsulClient(Action<ConsulClientConfiguration> configOverride, Action<HttpClient> clientOverride, Action<HttpClientHandler> handlerOverride)
 #endif
         {
@@ -637,9 +701,11 @@ namespace Consul
 
             InitializeEndpoints();
         }
-        #endregion
+
+        #endregion New style config with Actions
 
         #region Old style config
+
         /// <summary>
         /// Initializes a new Consul client with the configuration specified.
         /// </summary>
@@ -651,7 +717,7 @@ namespace Consul
             config.Updated += HandleConfigUpdateEvent;
             var ctr = new ConsulClientConfigurationContainer(config);
             ApplyConfig(ctr.Config, ctr.HttpHandler, ctr.HttpClient);
-            
+
             ConfigContainer = ctr;
             InitializeEndpoints();
         }
@@ -674,7 +740,8 @@ namespace Consul
             ConfigContainer = ctr;
             InitializeEndpoints();
         }
-        #endregion
+
+        #endregion Old style config
 
         private void InitializeEndpoints()
         {
@@ -694,6 +761,7 @@ namespace Consul
         }
 
         #region IDisposable Support
+
         private bool disposedValue = false; // To detect redundant calls
 
         protected virtual void Dispose(bool disposing)
@@ -734,18 +802,20 @@ namespace Consul
                 throw new ObjectDisposedException(typeof(ConsulClient).FullName.ToString());
             }
         }
-        #endregion
 
-        void HandleConfigUpdateEvent(object sender, EventArgs e)
+        #endregion IDisposable Support
+
+        private void HandleConfigUpdateEvent(object sender, EventArgs e)
         {
             ApplyConfig(sender as ConsulClientConfiguration, HttpHandler, HttpClient);
-
         }
+
 #if !CORECLR
         void ApplyConfig(ConsulClientConfiguration config, WebRequestHandler handler, HttpClient client)
 #else
-        void ApplyConfig(ConsulClientConfiguration config, HttpClientHandler handler, HttpClient client)
-#endif        
+
+        private void ApplyConfig(ConsulClientConfiguration config, HttpClientHandler handler, HttpClient client)
+#endif
         {
 #pragma warning disable CS0618 // Type or member is obsolete
             if (config.HttpAuth != null)
@@ -887,6 +957,7 @@ namespace Consul
         }
 
         protected abstract void ApplyOptions(ConsulClientConfiguration clientConfig);
+
         protected abstract void ApplyHeaders(HttpRequestMessage message, ConsulClientConfiguration clientConfig);
 
         protected Uri BuildConsulUri(string url, Dictionary<string, string> p)
@@ -1027,9 +1098,11 @@ namespace Consul
                 case ConsistencyMode.Consistent:
                     Params["consistent"] = string.Empty;
                     break;
+
                 case ConsistencyMode.Stale:
                     Params["stale"] = string.Empty;
                     break;
+
                 case ConsistencyMode.Default:
                     break;
             }
