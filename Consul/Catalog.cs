@@ -31,13 +31,18 @@ namespace Consul
         [JsonProperty(PropertyName = "Node")]
         public string Name { get; set; }
         public string Address { get; set; }
+        public string Datacenter { get; set; }
         public Dictionary<string, string> TaggedAddresses { get; set; }
+        public Dictionary<string, string> Meta { get; set; }
     }
 
     public class CatalogService
     {
         public string Node { get; set; }
         public string Address { get; set; }
+        public string Datacenter { get; set; }
+        public IDictionary<string, string> TaggedAddresses { get; set; }
+        public IDictionary<string, string> NodeMeta { get; set; }
         public string ServiceID { get; set; }
         public string ServiceName { get; set; }
         public string ServiceAddress { get; set; }
@@ -63,6 +68,8 @@ namespace Consul
         public string Node { get; set; }
         public string Address { get; set; }
         public string Datacenter { get; set; }
+        public IDictionary<string, string> TaggedAddresses { get; set; }
+        public IDictionary<string, string> NodeMeta { get; set; }
         public AgentService Service { get; set; }
         public AgentCheck Check { get; set; }
     }

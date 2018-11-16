@@ -125,9 +125,16 @@ namespace Consul
         public HealthStatus Status { get; set; }
 
         public string Notes { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string Output { get; set; }
         public string ServiceID { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public string ServiceName { get; set; }
+
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public AgentServiceCheck Definition { get; set; }
     }
 
     /// <summary>
