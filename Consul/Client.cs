@@ -318,7 +318,8 @@ namespace Consul
             Consistency = ConsistencyMode.Default,
             Datacenter = string.Empty,
             Token = string.Empty,
-            WaitIndex = 0
+            WaitIndex = 0,
+            Cached = false
         };
 
         /// <summary>
@@ -353,6 +354,13 @@ namespace Consul
         /// for the sort.
         /// </summary>
         public string Near { get; set; }
+
+        /// <summary>
+        /// This query flag will tell the consul agent to return a cached resource, if the endpoint supports caching.
+        /// Some read endpoints support agent caching. They are clearly marked in the documentation. Agent caching can take two forms, simple or background refresh depending on the endpoint's semantics.
+        /// https://www.consul.io/api/index.html
+        /// </summary>
+        public bool Cached { get; set; }
     }
 
     /// <summary>
@@ -1044,6 +1052,10 @@ namespace Consul
             if (!string.IsNullOrEmpty(Options.Near))
             {
                 Params["near"] = Options.Near;
+            }
+            if (Options.Cached)
+            {
+                Params["cached"] = string.Empty;
             }
         }
 
